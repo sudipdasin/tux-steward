@@ -11,4 +11,4 @@ Executed in the development container:
 
 Not executed: rendered GUI smoke testing (no display server), real Linux Mint/XFCE desktop testing, privileged mutations or GitHub Actions for this revision. Remote CI is configured for Python 3.10 and 3.12, but configuration is not evidence of a passed remote run.
 
-GitHub repository: sudipdasin/tux-steward (private). No public release has been published. The live UI queue can discard bursts; exported reports retain the independent bounded output tail. Elevated processes may survive a timeout; this does not roll back system changes.
+The project repository is private. No public release has been published. The live UI queue can discard bursts; exported reports retain the independent bounded output tail. Elevated processes may survive a timeout; this does not roll back system changes.

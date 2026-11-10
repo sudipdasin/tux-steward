@@ -1,5 +1,9 @@
 # Changelog
 
+## Privacy cleanup — 2026-11-10
+
+Replaced personal package attribution with a neutral contributor label and removed account identifiers from project documentation. Historical Git metadata and repository ownership are outside this file cleanup.
+
 ## 0.1.1 — 2026-11-10
 
 Live command output, case-insensitive tool search, bounded output/history memory, partial-output retention on timeout, and deadline handling for child-held output pipes. Added real subprocess regression tests and Python 3.10/3.12 CI matrix. Desktop visual testing remains pending.
