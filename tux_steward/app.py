@@ -7,7 +7,7 @@ import shlex
 import threading
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
-from .core import ACTIONS, execute, unavailable
+from .core import ACTIONS, execute, unavailable, matches
 from . import __version__
 
 BG='#101827'; PANEL='#192438'; TEXT='#e7eef9'; MUTED='#9aacc5'; ACCENT='#66dfbf'
@@ -25,7 +25,8 @@ class App(tk.Tk):
         super().__init__()
         self.title('Tux Steward · Linux System Tools')
         self.geometry('1120x800'); self.minsize(900,650); self.configure(bg=BG)
-        self.results=[]; self.events=queue.Queue(); self.busy=False
+        self.results=[]; self.events=queue.Queue(); self.live=queue.Queue(maxsize=64); self.busy=False
+        self.rows=[]
         self.protocol('WM_DELETE_WINDOW',self.close)
         style=ttk.Style(self); style.theme_use('clam')
         style.configure('.',background=PANEL,foreground=TEXT,font=('DejaVu Sans',10))
@@ -44,6 +45,12 @@ class App(tk.Tk):
         tk.Label(top,text=f'{platform.system()} {platform.release()}   •   {platform.machine()}   •   v{__version__} alpha',bg=BG,fg=MUTED).pack(anchor='w')
         self.status=tk.StringVar(value='Ready · Choose a tool to review its command')
         tk.Label(self,textvariable=self.status,bg=BG,fg=ACCENT,anchor='w').pack(fill='x',padx=28,pady=8)
+        searchbar=tk.Frame(self,bg=BG); searchbar.pack(fill='x',padx=26,pady=(0,8))
+        tk.Label(searchbar,text='Find tools',bg=BG,fg=MUTED).pack(side='left',padx=(0,10))
+        self.search=tk.StringVar()
+        ttk.Entry(searchbar,textvariable=self.search).pack(side='left',fill='x',expand=True)
+        ttk.Button(searchbar,text='Clear',command=lambda:self.search.set('')).pack(side='left',padx=8)
+        self.search.trace_add('write',self.filter_tools)
         self.book=ttk.Notebook(self); self.book.pack(fill='both',expand=True,padx=24)
         for group in ['Diagnostics','Storage','Maintenance','Performance','Input','Gaming','Schedules']:
             page=ttk.Frame(self.book,padding=16); self.book.add(page,text=group)
@@ -55,15 +62,27 @@ class App(tk.Tk):
                 problem=unavailable(a)
                 label='Unavailable · '+problem if problem else ('Authentication required' if a.admin else 'Changes settings' if a.changes else 'Read only')
                 tk.Label(row,text=label,bg=PANEL,fg=MUTED).pack(side='left',padx=14)
+                self.rows.append((a,row))
         bottom=tk.Frame(self,bg=BG); bottom.pack(fill='both',padx=24,pady=14)
-        tk.Label(bottom,text='SESSION OUTPUT',bg=BG,fg=MUTED,font=('DejaVu Sans',9,'bold')).pack(anchor='w')
+        tk.Label(bottom,text='LIVE OUTPUT · export retains the output tail; history keeps 20 tasks',bg=BG,fg=MUTED,font=('DejaVu Sans',9,'bold')).pack(anchor='w')
         box=tk.Frame(bottom,bg=BG); box.pack(fill='both',expand=True,pady=6)
         self.output=tk.Text(box,height=8,bg='#0b1220',fg=TEXT,insertbackground=TEXT,font=('DejaVu Sans Mono',10),relief='flat',wrap='word',state='disabled')
         scrollbar=ttk.Scrollbar(box,command=self.output.yview); scrollbar.pack(side='right',fill='y'); self.output.configure(yscrollcommand=scrollbar.set); self.output.pack(fill='both',expand=True)
         self.write('Welcome. No maintenance action runs at startup.\nPreview any tool, then run it when you are ready.\n')
         self.after(100,self.poll)
     def write(self,text):
-        self.output.config(state='normal'); self.output.insert('end',text); self.output.see('end'); self.output.config(state='disabled')
+        self.output.config(state='normal'); self.output.insert('end',text);
+        size=int(self.output.count('1.0','end-1c','chars')[0])
+        if size > 250000: self.output.delete('1.0',f'1.0+{size-250000}c')
+        self.output.see('end'); self.output.config(state='disabled')
+    def filter_tools(self,*_):
+        for a,row in self.rows:
+            row.pack_forget()
+        for a,row in self.rows:
+            if matches(a,self.search.get()): row.pack(fill='x',pady=5)
+    def stream(self,chunk):
+        try: self.live.put_nowait(chunk)
+        except queue.Full: pass  # Report retains the output tail independently.
     def review(self,a):
         if self.busy: messagebox.showinfo('Task running','Wait for the current task to finish.'); return
         problem=unavailable(a)
@@ -72,16 +91,26 @@ class App(tk.Tk):
         if not messagebox.askokcancel(a.title,f'{a.description}\n\nCommand:\n{preview}\n\n'+('This action changes your system. Continue?' if a.changes else 'Run this diagnostic?')): return
         self.busy=True; self.status.set('Running · '+a.title); self.write('\n$ '+preview+'\n')
         def worker():
-            try: result=execute(a.id,confirmed=True)
-            except Exception as e: result={'action':a.title,'code':-1,'output':str(e)}
+            try: result=execute(a.id,confirmed=True,on_output=self.stream)
+            except Exception as e:
+                self.stream(str(e)+'\n')
+                result={'action':a.title,'command':list(a.command),'code':-1,'output':str(e)}
             self.events.put(result)
         threading.Thread(target=worker,daemon=True).start()
     def poll(self):
         try:
+            # Limit work per tick so high-volume tools cannot starve Tk events.
+            for _ in range(64): self.write(self.live.get_nowait())
+        except queue.Empty: pass
+        try:
             while True:
-                result=self.events.get_nowait(); self.results.append(result); self.busy=False
+                result=self.events.get_nowait()
+                # Worker finished; at most 64 queued chunks remain.
+                while not self.live.empty(): self.write(self.live.get_nowait())
+                self.results.append(result); self.results=self.results[-20:]; self.busy=False
                 self.status.set(('Completed' if result['code']==0 else 'Needs attention')+' · '+result['action'])
-                self.write(result['output']+'\nExit code: '+str(result['code'])+'\n')
+                self.write('\nExit code: '+str(result['code'])+'\n')
+                if result.get('truncated'): self.write('Report retains the latest 250,000 characters.\n')
         except queue.Empty: pass
         self.after(100,self.poll)
     def export(self):

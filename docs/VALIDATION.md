@@ -1,11 +1,14 @@
-# Validation — 0.1.0
+# Validation — 0.1.1
 
 Executed in the development container:
 
-- Nine unittest cases passed, including real `df -hT` execution, confirmation gates, PolicyKit argument construction, missing tools, Wayland gate, timeout and nonzero exit handling.
-- Python byte compilation passed for the application package.
-- Tkinter imports successfully (Tk 9.0).
+- 20 unittest cases passed, including real `df -hT` and real Python subprocess integration tests.
+- Live output arrives before command completion; stderr and nonzero exit codes are retained.
+- A 1,000,000-character producer retains at most 250,000 characters and marks truncation.
+- Timeouts preserve partial output and finish promptly when child processes hold stdout open or the producer closes stdout before exiting.
+- Split UTF-8, invalid bytes, callback failures, literal argument handling, missing tools, mutation confirmation and Wayland gating are covered.
+- Python byte compilation passed.
 
-Not executed: rendered GUI smoke testing (no display server; installing Xvfb failed due to container package-manager permissions), actual Linux Mint/XFCE desktop testing, privileged mutations, real Wine/game lifecycle, or GitHub Actions. CI is configured but not yet run remotely. This alpha must be tested on the target desktop before considering it production-ready.
+Not executed: rendered GUI smoke testing (no display server), real Linux Mint/XFCE desktop testing, privileged mutations or GitHub Actions for this revision. Remote CI is configured for Python 3.10 and 3.12, but configuration is not evidence of a passed remote run.
 
-GitHub repository: sudipdasin/tux-steward (private). No public release has been published. Remote CI results must be checked separately from the local validation above.
+GitHub repository: sudipdasin/tux-steward (private). No public release has been published. The live UI queue can discard bursts; exported reports retain the independent bounded output tail. Elevated processes may survive a timeout; this does not roll back system changes.

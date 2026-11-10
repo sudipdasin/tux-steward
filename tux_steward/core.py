@@ -2,8 +2,7 @@
 from dataclasses import dataclass
 import os
 import shutil
-import subprocess
-import time
+from .runner import run_command
 
 @dataclass(frozen=True)
 class Action:
@@ -54,7 +53,7 @@ def unavailable(a):
         return 'Missing dependency: pkexec (PolicyKit authentication agent required)'
     return ''
 
-def execute(action_id, confirmed=False, timeout=120):
+def execute(action_id, confirmed=False, timeout=120, on_output=None):
     a = CATALOG[action_id]
     if a.changes and not confirmed:
         raise PermissionError('Review and confirm the action first.')
@@ -62,9 +61,11 @@ def execute(action_id, confirmed=False, timeout=120):
     if problem:
         raise RuntimeError(problem)
     command = (('pkexec',) if a.admin else ()) + a.command
-    started = time.monotonic()
-    try:
-        p = subprocess.run(command, capture_output=True, text=True, errors='replace', timeout=timeout, shell=False)
-        return {'action':a.title,'command':list(command),'code':p.returncode,'output':(p.stdout+p.stderr)[-250000:], 'seconds':round(time.monotonic()-started,2)}
-    except subprocess.TimeoutExpired:
-        return {'action':a.title,'command':list(command),'code':124,'output':'Timed out. Check system state before retrying; changes may have partially completed.', 'seconds':round(time.monotonic()-started,2)}
+    result = run_command(command, timeout=timeout, on_output=on_output)
+    return {'action':a.title, 'command':list(command), **result}
+
+
+def matches(action, query):
+    """Case-insensitive search across user-facing tool metadata."""
+    text = ' '.join((action.title, action.group, action.description)).casefold()
+    return all(word in text for word in query.casefold().split())
