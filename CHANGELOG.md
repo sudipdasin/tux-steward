@@ -2,7 +2,7 @@
 
 ## Privacy cleanup — 2026-11-10
 
-Replaced personal package attribution with a neutral contributor label and removed account identifiers from project documentation. Historical Git metadata and repository ownership are outside this file cleanup.
+Removed account-specific references from validation documentation. Developer attribution is retained. Added exclusions and guidance to keep private machine data, local configuration and diagnostic exports out of source control.
 
 ## 0.1.1 — 2026-11-10
 
