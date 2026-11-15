@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Tux Steward
+Comment=Linux desktop diagnostics and maintenance
+Exec=tux-steward
+Icon=applications-system
+Terminal=false
+Categories=System;Settings;

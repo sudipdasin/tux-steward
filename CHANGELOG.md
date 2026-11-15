@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 — 2026-11-15
+
+Replaced the Python/Tk implementation, tests and packaging with C++17, Qt Widgets and CMake. Retained all 25 tools, seven grouped tabs, search, live bounded output, PolicyKit authentication, default-cancel command review and JSON reports. Added scrollable tool pages, resizable output, atomic report export, desktop installation and C++ subprocess/GUI tests. No Python runtime remains.
+
 ## Privacy cleanup — 2026-11-10
 
 Removed account-specific references from validation documentation. Developer attribution is retained. Added exclusions and guidance to keep private machine data, local configuration and diagnostic exports out of source control.

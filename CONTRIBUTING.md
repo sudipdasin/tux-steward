@@ -1,3 +1,5 @@
 # Contributing
 
-Use a feature branch and a pull request. Describe behavior, compatibility, risk, rollback and executed tests. Keep core logic independent of Tk. Use argument vectors, never shell interpolation. Do not import personal debug logs or auto-run the source scripts. Mutations require review; administrator commands must use PolicyKit. Use semantic versioning and update the changelog. Before public distribution, test on Linux Mint XFCE and review packaging, licensing and privacy.
+Use a feature branch and pull request. Describe behavior, compatibility, risk, rollback and executed tests. Use C++17, CMake and Qt Widgets. Keep the core independent of GUI widgets. Never execute shell interpolation or private reference scripts. Mutations require command review; administrator tasks use PolicyKit. Keep personal machine data out of commits while retaining developer attribution.
+
+Build with CMake, run CTest, and verify GUI behavior before merging. Add real subprocess tests for lifecycle changes. Keep semantic versions, CHANGELOG.md and validation evidence current. Before public distribution, test supported Linux Mint/XFCE desktops and review packaging, licensing and privacy. Never report unexecuted tests as passing.

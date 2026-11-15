@@ -1,4 +1,6 @@
 #!/bin/sh
 set -eu
 cd -- "$(dirname -- "$0")"
-exec python3 -m tux_steward
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j2
+exec ./build/tux-steward "$@"

@@ -1,0 +1,79 @@
+#include "tux/window.hpp"
+#include <QApplication>
+#include <QLabel>
+#include <QAction>
+#include <QFile>
+#include <QFileDialog>
+#include <QElapsedTimer>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QPlainTextEdit>
+#include <QTemporaryDir>
+#include <thread>
+#include <chrono>
+#include <QLineEdit>
+#include <QMessageBox>
+#include <QPushButton>
+#include <QTabWidget>
+#include <QTimer>
+#include <iostream>
+int main(int argc,char** argv) {
+    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
+    QApplication app(argc,argv);
+    tux::Window window; window.show(); app.processEvents();
+    auto* tabs=window.findChild<QTabWidget*>("toolTabs");
+    auto* search=window.findChild<QLineEdit*>("toolSearch");
+    if (window.toolCount()!=25 || !tabs || tabs->count()!=7 || !search) return 1;
+    search->setText("Vulkan"); app.processEvents();
+    int visible=0;
+    for (auto* button:window.findChildren<QPushButton*>())
+        if (button->objectName().startsWith("tool_") && !button->parentWidget()->isHidden()) ++visible;
+    if (visible!=1) return 2;
+    search->clear(); app.processEvents();
+    bool cancelled=false;
+    QTimer::singleShot(0,[&]{
+        for (auto* widget:QApplication::topLevelWidgets()) {
+            if (auto* box=qobject_cast<QMessageBox*>(widget)) {
+                cancelled=box->defaultButton()==box->button(QMessageBox::Cancel);
+                box->reject();
+            }
+        }
+    });
+    window.findChild<QPushButton*>("tool_storage")->click();
+    if (!cancelled || !window.findChild<QLabel*>("taskStatus")->text().startsWith("Ready")) return 3;
+    // done(Ok) represents the button result, rather than QDialog::Accepted.
+    QTimer::singleShot(0,[&]{
+        for (auto* widget:QApplication::topLevelWidgets())
+            if (auto* box=qobject_cast<QMessageBox*>(widget)) box->done(QMessageBox::Ok);
+    });
+    window.findChild<QPushButton*>("tool_storage")->click();
+    auto* status=window.findChild<QLabel*>("taskStatus");
+    QElapsedTimer deadline; deadline.start();
+    while (status->text().startsWith("Running") && deadline.elapsed()<5000) {
+        app.processEvents(); std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    auto* output=window.findChild<QPlainTextEdit*>("sessionOutput");
+    if (!status->text().startsWith("Completed") || !output->toPlainText().contains("Filesystem")) return 5;
+    QTemporaryDir temp;
+    const auto report=temp.filePath("report.json");
+    QTimer::singleShot(0,[&]{
+        for (auto* widget:QApplication::topLevelWidgets()) {
+            if (auto* dialog=qobject_cast<QFileDialog*>(widget)) {
+                dialog->selectFile(report); QMetaObject::invokeMethod(dialog,"accept",Qt::DirectConnection);
+            }
+        }
+    });
+    for (auto* item:window.findChildren<QAction*>())
+        if (item->text().startsWith("Export session")) { item->trigger(); break; }
+    QFile saved(report);
+    if (!saved.open(QIODevice::ReadOnly)) return 6;
+    const auto records=QJsonDocument::fromJson(saved.readAll()).object().value("results").toArray();
+    if (records.size()!=1 || records.first().toObject().value("code").toInt()!=0) return 7;
+    output->setPlainText("Report exported locally. Review diagnostics before sharing.\n");
+    for (int i=0;i<tabs->count();++i) { tabs->setCurrentIndex(i); app.processEvents(); }
+    tabs->setCurrentIndex(0); app.processEvents();
+    if (argc>1 && !window.grab().save(QString::fromLocal8Bit(argv[1]))) return 4;
+    window.close();
+    std::cout<<"GUI: 25 tools, seven tabs, search, default-cancel review, real diagnostic completion, JSON export and render passed\n";
+    return 0;
+}
