@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "tux/process_manager.hpp"
+#include "tux/system_monitor_tabs.hpp"
 
 #include <QElapsedTimer>
 #include <QDateTime>
@@ -414,6 +415,14 @@ ProcessManagerWidget::ProcessManagerWidget(QWidget *parent)
     layout->addWidget(title);
     layout->addWidget(description);
 
+    auto *tabs = new QTabWidget(this);
+    layout->addWidget(tabs, 1);
+    auto *processPage = new QWidget(tabs);
+    auto *processLayout = new QVBoxLayout(processPage);
+    processLayout->setContentsMargins(0, 8, 0, 0);
+    tabs->addTab(processPage, tr("Processes"));
+    new SystemMonitorTabs(tabs);
+
     auto *toolbar = new QVBoxLayout;
     auto *searchRow = new QHBoxLayout;
     search_ = new QLineEdit(this);
@@ -440,7 +449,7 @@ ProcessManagerWidget::ProcessManagerWidget(QWidget *parent)
     actionsRow->addWidget(detailsButton_);
     actionsRow->addWidget(exportButton_);
     toolbar->addLayout(actionsRow);
-    layout->addLayout(toolbar);
+    processLayout->addLayout(toolbar);
 
     model_ = new ProcessTableModel(this);
     proxy_ = new ProcessSortProxyModel(this);
@@ -464,12 +473,12 @@ ProcessManagerWidget::ProcessManagerWidget(QWidget *parent)
     table_->setColumnWidth(ProcessTableModel::Pid, 90);
     table_->setColumnWidth(ProcessTableModel::Owner, 100);
     table_->setColumnWidth(ProcessTableModel::State, 110);
-    layout->addWidget(table_, 1);
+    processLayout->addWidget(table_, 1);
 
     status_ = new QLabel(this);
     status_->setObjectName(QStringLiteral("fileStatus"));
     status_->setText(tr("Process monitoring starts when you open this page."));
-    layout->addWidget(status_);
+    processLayout->addWidget(status_);
 
     timer_ = new QTimer(this);
     timer_->setInterval(2000);
