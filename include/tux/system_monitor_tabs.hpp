@@ -123,6 +123,8 @@ private:
                 if (!blueman.isEmpty()) QProcess::startDetached(blueman, {});
                 else if (!gnome.isEmpty()) QProcess::startDetached(gnome, {QStringLiteral("bluetooth")});
                 else if (!xfce.isEmpty()) QProcess::startDetached(xfce, {});
+                else QMessageBox::information(page, QObject::tr("Bluetooth settings unavailable"),
+                    QObject::tr("Install or open the Bluetooth settings app provided by your desktop environment."));
             });
         }
     }
@@ -420,11 +422,54 @@ private:
         return out;
     }
 
+    static QString appHistoryReport()
+    {
+        // Keep an in-memory, current-session history only. It is never written
+        // to disk, and process identity includes start time to avoid PID reuse.
+        static QHash<QString, quint64> previousTicks;
+        static QHash<QString, quint64> usageByName;
+        QHash<QString, quint64> currentTicks;
+        QHash<QString, QString> namesByIdentity;
+        const QStringList pids = QDir(QStringLiteral("/proc")).entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+        for (const QString &pid : pids) {
+            if (pid.isEmpty() || !pid.front().isDigit()) continue;
+            const QString line = read(QStringLiteral("/proc/%1/stat").arg(pid)).trimmed();
+            const qsizetype openParen = line.indexOf(QLatin1Char('('));
+            const qsizetype closeParen = line.lastIndexOf(QLatin1Char(')'));
+            if (openParen < 0 || closeParen <= openParen) continue;
+            const QStringList fields = line.mid(closeParen + 2).simplified().split(QLatin1Char(' '));
+            if (fields.size() < 20) continue;
+            bool ticksOk = false;
+            const quint64 ticks = fields.at(11).toULongLong(&ticksOk) + fields.at(12).toULongLong();
+            const quint64 start = fields.at(19).toULongLong();
+            if (!ticksOk) continue;
+            const QString identity = pid + QLatin1Char(':') + QString::number(start);
+            currentTicks.insert(identity, ticks);
+            namesByIdentity.insert(identity, QString::fromLocal8Bit(line.mid(openParen + 1, closeParen - openParen - 1)));
+            if (previousTicks.contains(identity) && ticks >= previousTicks.value(identity))
+                usageByName[namesByIdentity.value(identity)] += ticks - previousTicks.value(identity);
+        }
+        previousTicks = std::move(currentTicks);
+        QList<QPair<QString, quint64>> rows;
+        for (auto it = usageByName.cbegin(); it != usageByName.cend(); ++it) rows.append({it.key(), it.value()});
+        std::sort(rows.begin(), rows.end(), [](const auto &a, const auto &b) { return a.second > b.second; });
+        const long clockTicks = ::sysconf(_SC_CLK_TCK);
+        QString out = QObject::tr("CPU time sampled during this Task Manager session (held in memory only)\n\n");
+        int count = 0;
+        for (const auto &row : rows) {
+            const double seconds = static_cast<double>(row.second) / static_cast<double>(clockTicks > 0 ? clockTicks : 100);
+            out += QStringLiteral("%1  ·  %2 s\n").arg(row.first, QString::number(seconds, 'f', 1));
+            if (++count >= 50) break;
+        }
+        if (rows.isEmpty()) out += QObject::tr("Collecting the first sample. Open this tab for a few seconds to build session history.");
+        return out;
+    }
+
     void refreshCurrent()
     {
         const int index = tabs_->currentIndex() - firstIndex_;
         if (index == 0) performance_->setPlainText(performanceReport());
-        else if (index == 1) history_->setPlainText(tr("Per-app usage history is not available yet. Linux does not provide a portable historical usage database; this tab will report usage collected during this manager session in a future update."));
+        else if (index == 1) history_->setPlainText(appHistoryReport());
         else if (index == 2) users_->setPlainText(usersReport());
         else if (index == 3) details_->setPlainText(detailsReport());
         else if (index == 4) network_->setPlainText(networkReport());
