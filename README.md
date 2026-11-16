@@ -1,6 +1,6 @@
 # ◉ Tux Steward
 
-**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **0.3.0** is a development alpha under GPL-3.0-or-later. The repository is initially private; a public release requires the owner's instruction.
+**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **0.4.0** is a development alpha under GPL-3.0-or-later. The repository is initially private; a public release requires the owner's instruction.
 
 ## Build and run
 
@@ -31,7 +31,7 @@ Ensure the install prefix's `bin` directory is on PATH for the desktop menu laun
 
 Seven tabs retain all 25 tools from the original application: Diagnostics, Storage, Maintenance, Performance, Input, Gaming, and Schedules. Search by tool name, group or description. Each tab scrolls; a resizable output pane streams task output. File and Help menus provide JSON export and project information.
 
-The separately launched **Tux Task Manager** monitors Linux processes without needing administrator access. It shows CPU share, resident memory, PID, account name, and process state; search and sort the list; and refreshes every two seconds while visible. End Task sends `SIGTERM`; Force stop sends `SIGKILL` after its own warning. Both controls are limited to the current user's processes, exclude the task manager itself, and recheck process start identity before signaling to guard against PID reuse. Optional JSON reports are saved locally with an explicit warning that command lines and paths may be sensitive.
+The separately launched **Tux Task Manager** monitors Linux processes without needing administrator access. It shows CPU share, resident memory, PID, account name, and process state; search and sort the list; and refreshes every two seconds while visible. Open process details with the Details button or double-click a row to inspect its parent, executable, working directory, and command line. End Task sends `SIGTERM`; Force stop sends `SIGKILL` after its own warning. Both controls are limited to the current user's processes, exclude the task manager itself, and recheck process start identity before signaling to guard against PID reuse. Optional JSON reports are saved locally with an explicit warning that command lines and paths may be sensitive.
 
 Tools include storage and mount inspection, journal diagnostics, failed services, APT removal simulation and cache cleaning, journal retention, RAM/zRAM/TLP inspection, reversible XFCE compositor controls, X11 device inspection, Wine/Lutris/Vulkan checks, timer inspection and the distribution SSD trim timer.
 
