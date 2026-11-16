@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.0 — 2026-11-16
+
+Added read-only process details with parent PID/name, executable target, working directory and command line. Details open from the selected process or by double-clicking a row. Unavailable `/proc` fields are reported as unavailable; no process controls are offered from the details view.
+
 ## 0.3.0 — 2026-11-16
 
 Added **Tux Task Manager**, a separate lightweight process-monitor application alongside Tux Steward's existing system tools. It reads `/proc`, shows CPU, resident memory, PID, user and process state, supports search and sorting, and refreshes only while visible. End Task and Force stop are limited to the current user's processes, with PID-reuse checks and separate confirmation. Added local JSON export with a privacy warning and atomic save. Existing Tux Steward tools and the bounded, shell-free command runner remain available.

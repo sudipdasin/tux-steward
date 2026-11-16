@@ -17,3 +17,5 @@ The supplied project sources were reviewed as reference material; they are not e
 The initial release is a safe foundation, not feature parity with every legacy command.
 
 The standalone Tux Task Manager reads process details from `/proc` and sends signals only to same-user processes after confirmation. Its optional process report can include private command-line arguments and paths; export is local and preceded by a warning. It does not share the Tux Steward diagnostics runner or require administrator privileges.
+
+The process details dialog reads parent ID, executable symlink, working directory symlink and command line on demand. These fields can be unavailable when the process exits or permissions prevent access; displaying details never signals the process.
