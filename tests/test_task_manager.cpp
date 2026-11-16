@@ -2,6 +2,8 @@
 #include "tux/process_manager.hpp"
 
 #include <QApplication>
+#include <QEventLoop>
+#include <QTimer>
 #include <QStringList>
 #include <QTabWidget>
 #include <QTableView>
@@ -60,5 +62,53 @@ int main(int argc, char **argv)
         std::cerr << "Missing GPU metrics view\n";
         return 1;
     }
+    auto *resourceTimer = manager.findChild<QTimer *>(QStringLiteral("taskManagerResourceRefreshTimer"));
+    if (resourceTimer == nullptr || resourceTimer->isActive()) {
+        std::cerr << "Hidden resource views must not poll\n";
+        return 1;
+    }
+    manager.show();
+    application.processEvents();
+    if (resourceTimer->isActive()) {
+        std::cerr << "Processes tab must not run the resource timer\n";
+        return 1;
+    }
+    auto *mutableTabs = manager.findChild<QTabWidget *>(QStringLiteral("taskManagerTabs"));
+    int performanceIndex = -1;
+    for (int i = 0; i < tabs->count(); ++i)
+        if (tabs->tabText(i) == QStringLiteral("Performance")) performanceIndex = i;
+    mutableTabs->setCurrentIndex(performanceIndex);
+    application.processEvents();
+    if (!resourceTimer->isActive() || resourceTimer->interval() != 2000) {
+        std::cerr << "Visible Performance view must refresh every two seconds\n";
+        return 1;
+    }
+    int ticks = 0;
+    QObject::connect(resourceTimer, &QTimer::timeout, &manager, [&ticks]() { ++ticks; });
+    QEventLoop loop;
+    QTimer::singleShot(2400, &loop, &QEventLoop::quit);
+    loop.exec();
+    if (ticks == 0) {
+        std::cerr << "Resource refresh timer did not fire\n";
+        return 1;
+    }
+    manager.hide();
+    application.processEvents();
+    if (resourceTimer->isActive()) {
+        std::cerr << "Hidden Task Manager continued polling\n";
+        return 1;
+    }
+    manager.show();
+    application.processEvents();
+    if (!resourceTimer->isActive()) {
+        std::cerr << "Resource timer did not resume after showing the window\n";
+        return 1;
+    }
+    mutableTabs->setCurrentIndex(0);
+    if (resourceTimer->isActive()) {
+        std::cerr << "Resource timer did not stop on Processes tab\n";
+        return 1;
+    }
+    manager.hide();
     return 0;
 }
