@@ -6,9 +6,13 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QHash>
+#include <QHBoxLayout>
+#include <QLabel>
 #include <QPlainTextEdit>
 #include <QProcess>
 #include <QPushButton>
+#include <QMessageBox>
+#include <QSaveFile>
 #include <QObject>
 #include <QStandardPaths>
 #include <QStorageInfo>
@@ -24,7 +28,7 @@
 // detected at runtime, so they are not hard dependencies.
 class SystemMonitorTabs final : public QObject {
 public:
-    explicit SystemMonitorTabs(QTabWidget *tabs) : QObject(tabs), tabs_(tabs)
+    explicit SystemMonitorTabs(QTabWidget *tabs) : QObject(tabs), tabs_(tabs), firstIndex_(tabs->count())
     {
         addReportTab(tr("Performance"), &performance_);
         addReportTab(tr("App history"), &history_);
@@ -62,12 +66,47 @@ private:
             filters_.insert(name, filter);
             connect(filter, qOverload<int>(&QComboBox::currentIndexChanged), tabs_, [this]() { refreshCurrent(); });
         }
+        if (name == tr("Startup apps")) {
+            startupSelection_ = new QComboBox(page);
+            startupSelection_->setMinimumWidth(250);
+            auto *row = new QHBoxLayout;
+            row->addWidget(startupSelection_, 1);
+            auto *enable = new QPushButton(tr("Enable at sign-in"), page);
+            auto *disable = new QPushButton(tr("Disable at sign-in"), page);
+            row->addWidget(enable);
+            row->addWidget(disable);
+            layout->addLayout(row);
+            connect(enable, &QPushButton::clicked, tabs_, [this]() { setStartupEnabled(true); });
+            connect(disable, &QPushButton::clicked, tabs_, [this]() { setStartupEnabled(false); });
+        }
+        if (name == tr("Services")) {
+            serviceSelection_ = new QComboBox(page);
+            serviceSelection_->setMinimumWidth(250);
+            auto *row = new QHBoxLayout;
+            row->addWidget(serviceSelection_, 1);
+            const auto addAction = [this, page, row](const QString &label, const QString &action) {
+                auto *button = new QPushButton(label, page);
+                row->addWidget(button);
+                connect(button, &QPushButton::clicked, tabs_, [this, action]() { changeService(action); });
+            };
+            addAction(tr("Start"), QStringLiteral("start"));
+            addAction(tr("Stop"), QStringLiteral("stop"));
+            addAction(tr("Enable"), QStringLiteral("enable"));
+            addAction(tr("Disable"), QStringLiteral("disable"));
+            layout->addLayout(row);
+        }
         auto *text = new QPlainTextEdit(page);
         text->setReadOnly(true);
         text->setLineWrapMode(QPlainTextEdit::NoWrap);
         text->setPlaceholderText(tr("Reading system information…"));
         *view = text;
         layout->addWidget(text, 1);
+        if (name == tr("Startup apps") || name == tr("Services")) {
+            auto *actionStatus = new QLabel(page);
+            actionStatus->setWordWrap(true);
+            layout->addWidget(actionStatus);
+            actionStatusByTab_.insert(name, actionStatus);
+        }
         tabs_->addTab(page, name);
         if (name == tr("Bluetooth")) {
             auto *openSettings = new QPushButton(tr("Open Bluetooth settings…"), page);
@@ -240,6 +279,77 @@ private:
         return out;
     }
 
+    void refreshStartupChoices(int filter)
+    {
+        if (startupSelection_ == nullptr) return;
+        const QString selected = startupSelection_->currentData().toString();
+        startupSelection_->clear();
+        const QString userPath = QDir::home().filePath(QStringLiteral(".config/autostart"));
+        const QString systemPath = QStringLiteral("/etc/xdg/autostart");
+        QHash<QString, QString> effective;
+        if (filter == 0 || filter == 2) {
+            for (const QString &file : QDir(systemPath).entryList({QStringLiteral("*.desktop")}, QDir::Files, QDir::Name))
+                effective.insert(file, QDir(systemPath).filePath(file));
+        }
+        if (filter == 0 || filter == 1) {
+            for (const QString &file : QDir(userPath).entryList({QStringLiteral("*.desktop")}, QDir::Files, QDir::Name))
+                effective.insert(file, QDir(userPath).filePath(file));
+        }
+        QStringList files = effective.keys();
+        std::sort(files.begin(), files.end(), [](const QString &a, const QString &b) { return a.compare(b, Qt::CaseInsensitive) < 0; });
+        for (const QString &fileName : files) {
+            const QString path = effective.value(fileName);
+            const QString contents = read(path);
+            QString name = fileName;
+            for (const QString &line : contents.split(QLatin1Char('\n'))) {
+                if (line.startsWith(QStringLiteral("Name="))) { name = line.mid(5).trimmed(); break; }
+            }
+            const bool disabled = contents.contains(QStringLiteral("Hidden=true"));
+            const bool userEntry = path.startsWith(userPath + QLatin1Char('/'));
+            startupSelection_->addItem(QStringLiteral("%1  ·  %2  ·  %3").arg(name,
+                userEntry ? tr("User / third-party") : tr("System"), disabled ? tr("disabled") : tr("enabled")), path);
+        }
+        const int restore = startupSelection_->findData(selected);
+        if (restore >= 0) startupSelection_->setCurrentIndex(restore);
+    }
+
+    void setStartupEnabled(bool enabled)
+    {
+        if (startupSelection_ == nullptr || startupSelection_->currentIndex() < 0) return;
+        const QString sourcePath = startupSelection_->currentData().toString();
+        const QFileInfo sourceInfo(sourcePath);
+        const QString targetPath = sourcePath.startsWith(QDir::home().filePath(QStringLiteral(".config/autostart")) + QLatin1Char('/'))
+            ? sourcePath : QDir::home().filePath(QStringLiteral(".config/autostart/") + sourceInfo.fileName());
+        QString contents = read(sourcePath);
+        if (contents.isEmpty()) {
+            statusMessage_ = tr("Could not read this startup entry.");
+            refreshCurrent();
+            return;
+        }
+        QStringList lines = contents.split(QLatin1Char('\n'));
+        bool found = false;
+        for (QString &line : lines) {
+            if (line.startsWith(QStringLiteral("Hidden="))) {
+                line = QStringLiteral("Hidden=") + (enabled ? QStringLiteral("false") : QStringLiteral("true"));
+                found = true;
+            }
+        }
+        if (!found) {
+            const int group = lines.indexOf(QStringLiteral("[Desktop Entry]"));
+            if (group >= 0) lines.insert(group + 1, QStringLiteral("Hidden=") + (enabled ? QStringLiteral("false") : QStringLiteral("true")));
+            else lines << QStringLiteral("[Desktop Entry]") << (QStringLiteral("Hidden=") + (enabled ? QStringLiteral("false") : QStringLiteral("true")));
+        }
+        QDir().mkpath(QFileInfo(targetPath).absolutePath());
+        QSaveFile file(targetPath);
+        const QByteArray bytes = lines.join(QLatin1Char('\n')).toLocal8Bit();
+        if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size() || !file.commit())
+            statusMessage_ = tr("Could not update this startup entry. Check folder permissions.");
+        else statusMessage_ = enabled ? tr("The app will start when you sign in.") : tr("The app is disabled at sign-in for this user.");
+        if (actionStatusByTab_.value(tr("Startup apps")) != nullptr)
+            actionStatusByTab_.value(tr("Startup apps"))->setText(statusMessage_);
+        refreshCurrent();
+    }
+
     static QString servicesReport(int filter)
     {
         if (!QFileInfo::exists(QStringLiteral("/run/systemd/system")) && filter != 2) {
@@ -307,20 +417,113 @@ private:
 
     void refreshCurrent()
     {
-        const int index = tabs_->currentIndex();
+        const int index = tabs_->currentIndex() - firstIndex_;
         if (index == 0) performance_->setPlainText(performanceReport());
-        else if (index == 1) history_->setPlainText(tr("App history is collected while Task Manager is open. Historical usage is not available yet.\n\nLinux does not keep a portable per-app history by default."));
+        else if (index == 1) history_->setPlainText(tr("Per-app usage history is not available yet. Linux does not provide a portable historical usage database; this tab will report usage collected during this manager session in a future update."));
         else if (index == 2) users_->setPlainText(usersReport());
         else if (index == 3) details_->setPlainText(detailsReport());
         else if (index == 4) network_->setPlainText(networkReport());
         else if (index == 5) disk_->setPlainText(diskReport());
         else if (index == 6) bluetooth_->setPlainText(bluetoothReport());
-        else if (index == 7) startup_->setPlainText(startupReport(filters_.value(tr("Startup apps"))->currentIndex()));
-        else if (index == 8) services_->setPlainText(servicesReport(filters_.value(tr("Services"))->currentIndex()));
+        else if (index == 7) {
+            const int filter = filters_.value(tr("Startup apps"))->currentIndex();
+            refreshStartupChoices(filter);
+            startup_->setPlainText(startupReport(filter));
+        } else if (index == 8) {
+            const int filter = filters_.value(tr("Services"))->currentIndex();
+            refreshServiceChoices(filter);
+            services_->setPlainText(servicesReport(filter));
+        }
+        if (index == 7 && actionStatusByTab_.value(tr("Startup apps")) != nullptr)
+            actionStatusByTab_.value(tr("Startup apps"))->setText(statusMessage_);
+        if (index == 8 && actionStatusByTab_.value(tr("Services")) != nullptr)
+            actionStatusByTab_.value(tr("Services"))->setText(statusMessage_);
+    }
+
+    void refreshServiceChoices(int filter)
+    {
+        if (serviceSelection_ == nullptr) return;
+        const QString selected = serviceSelection_->currentData().toMap().value(QStringLiteral("unit")).toString();
+        serviceSelection_->clear();
+        const QString systemctl = QStandardPaths::findExecutable(QStringLiteral("systemctl"));
+        if (systemctl.isEmpty()) return;
+        for (bool user : {false, true}) {
+            if ((filter == 1 && user) || (filter == 2 && !user)) continue;
+            QProcess process;
+            QStringList args;
+            if (user) args << QStringLiteral("--user");
+            args << QStringLiteral("list-unit-files") << QStringLiteral("--type=service")
+                 << QStringLiteral("--no-legend") << QStringLiteral("--no-pager");
+            process.start(systemctl, args);
+            if (!process.waitForFinished(700) || process.exitCode() != 0) { process.kill(); continue; }
+            const QStringList lines = QString::fromLocal8Bit(process.readAllStandardOutput()).split(QLatin1Char('\n'));
+            for (const QString &line : lines) {
+                const QString unit = line.simplified().section(QLatin1Char(' '), 0, 0);
+                if (!unit.endsWith(QStringLiteral(".service"))) continue;
+                QVariantMap data;
+                data.insert(QStringLiteral("unit"), unit);
+                data.insert(QStringLiteral("user"), user);
+                serviceSelection_->addItem(filter == 0
+                    ? QStringLiteral("%1  ·  %2").arg(unit, user ? tr("User") : tr("System")) : unit, data);
+            }
+        }
+        const int restore = serviceSelection_->findData(selected);
+        if (restore >= 0) serviceSelection_->setCurrentIndex(restore);
+    }
+
+    void changeService(const QString &action)
+    {
+        if (serviceSelection_ == nullptr || serviceSelection_->currentIndex() < 0) return;
+        const QVariantMap data = serviceSelection_->currentData().toMap();
+        const QString unit = data.value(QStringLiteral("unit")).toString();
+        const bool user = data.value(QStringLiteral("user")).toBool();
+        if (unit.isEmpty()) return;
+        const QString scope = user ? tr("your user session") : tr("the whole system");
+        const auto answer = QMessageBox::warning(tabs_, tr("Change service"),
+            tr("Run ‘%1’ for %2 in %3? Changing system services can affect networking, login, or other apps.")
+                .arg(action, unit, scope), QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Cancel);
+        if (answer != QMessageBox::Yes) return;
+
+        const QString systemctl = QStandardPaths::findExecutable(QStringLiteral("systemctl"));
+        QString program = systemctl;
+        QStringList args;
+        if (user) args << QStringLiteral("--user") << action << unit;
+        else {
+            const QString pkexec = QStandardPaths::findExecutable(QStringLiteral("pkexec"));
+            if (pkexec.isEmpty()) {
+                statusMessage_ = tr("Administrator authorization (pkexec) is unavailable.");
+                if (actionStatusByTab_.value(tr("Services")) != nullptr)
+                    actionStatusByTab_.value(tr("Services"))->setText(statusMessage_);
+                refreshCurrent();
+                return;
+            }
+            program = pkexec;
+            args << systemctl << action << unit;
+        }
+        if (program.isEmpty()) return;
+        auto *process = new QProcess(this);
+        connect(process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this,
+                [this, process, action, unit](int code, QProcess::ExitStatus status) {
+            if (status == QProcess::NormalExit && code == 0)
+                statusMessage_ = tr("‘%1’ completed for %2.").arg(action, unit);
+            else
+                statusMessage_ = tr("Could not %1 %2: %3").arg(action, unit, QString::fromLocal8Bit(process->readAllStandardError()).trimmed());
+            process->deleteLater();
+            refreshCurrent();
+        });
+        statusMessage_ = tr("Waiting for service manager…");
+        if (actionStatusByTab_.value(tr("Services")) != nullptr)
+            actionStatusByTab_.value(tr("Services"))->setText(statusMessage_);
+        process->start(program, args);
     }
 
     QTabWidget *tabs_ = nullptr;
+    int firstIndex_ = 0;
     QHash<QString, QComboBox *> filters_;
+    QHash<QString, QLabel *> actionStatusByTab_;
+    QComboBox *startupSelection_ = nullptr;
+    QComboBox *serviceSelection_ = nullptr;
+    QString statusMessage_;
     QPlainTextEdit *performance_ = nullptr;
     QPlainTextEdit *history_ = nullptr;
     QPlainTextEdit *users_ = nullptr;
