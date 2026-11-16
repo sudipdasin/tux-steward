@@ -24,7 +24,7 @@ int main(int argc, char **argv)
         QStringLiteral("Services"), QStringLiteral("GPU")
     };
     const auto *processTable = manager.findChild<QTableView *>(QStringLiteral("processTable"));
-    if (processTable == nullptr || processTable->model() == nullptr || processTable->model()->columnCount() != 7) {
+    if (processTable == nullptr || processTable->model() == nullptr || processTable->model()->columnCount() != 9) {
         std::cerr << "Process list is missing the parent-process column\n";
         return 1;
     }
