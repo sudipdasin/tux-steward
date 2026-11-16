@@ -117,7 +117,7 @@ class SystemMonitorTabs final : public QObject {
 public:
     explicit SystemMonitorTabs(QTabWidget *tabs) : QObject(tabs), tabs_(tabs), firstIndex_(tabs->count())
     {
-        addReportTab(tr("Performance"), &performance_);
+        addReportTab(tr("Performance"), nullptr);
         addReportTab(tr("App history"), &history_);
         addReportTab(tr("Users"), &users_);
         addReportTab(tr("Details"), &details_);
@@ -157,7 +157,6 @@ private:
             grid->addWidget(diskChart_, 1, 0);
             grid->addWidget(networkChart_, 1, 1);
             layout->addLayout(grid, 1);
-            *view = nullptr;
             tabs_->addTab(page, name);
             return;
         }
