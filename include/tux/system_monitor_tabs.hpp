@@ -23,6 +23,7 @@
 #include <QWidget>
 
 #include <algorithm>
+#include <unistd.h>
 
 // Lightweight Linux resource views for the Task Manager. Data comes directly
 // from procfs/sysfs and standard Qt APIs; optional service/Bluetooth tools are
@@ -445,7 +446,7 @@ private:
             if (!ticksOk) continue;
             const QString identity = pid + QLatin1Char(':') + QString::number(start);
             currentTicks.insert(identity, ticks);
-            namesByIdentity.insert(identity, QString::fromLocal8Bit(line.mid(openParen + 1, closeParen - openParen - 1)));
+            namesByIdentity.insert(identity, line.mid(openParen + 1, closeParen - openParen - 1));
             if (previousTicks.contains(identity) && ticks >= previousTicks.value(identity))
                 usageByName[namesByIdentity.value(identity)] += ticks - previousTicks.value(identity);
         }
