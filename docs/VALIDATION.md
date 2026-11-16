@@ -22,4 +22,6 @@ For sanitizer checks, configure a separate build directory with `-DCMAKE_CXX_FLA
 
 Not executed: real Linux Mint/XFCE display-server sessions, real PolicyKit prompts, privileged system mutations, hardware tuning or real Wine game lifecycle. The offscreen render does not establish real desktop or hardware compatibility. GitHub Actions is configured for GCC and Clang; local results are not a claim that remote CI has passed.
 
+The 0.3.0 Tux Task Manager target is new and is not covered by the existing offscreen UI test suite. Its process sampling and signal behavior still need interactive validation on a disposable test account. Do not treat the system-tools UI tests as validation of the standalone process manager.
+
 The repository remains a development alpha. Reports can contain private system data; only synthetic test fixtures belong in source control. No public release has been published.
