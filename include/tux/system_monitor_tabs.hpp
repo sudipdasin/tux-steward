@@ -7,6 +7,7 @@
 #include <QFileInfo>
 #include <QHash>
 #include <QHBoxLayout>
+#include <QElapsedTimer>
 #include <QLabel>
 #include <QPlainTextEdit>
 #include <QProcess>
@@ -59,12 +60,16 @@ private:
         } else if (name == tr("Services")) {
             filter = new QComboBox(page);
             filter->addItems({tr("All services"), tr("System services"), tr("User services")});
+            filter->setCurrentIndex(1);
         }
         if (filter != nullptr) {
             filter->setMaximumWidth(260);
             layout->addWidget(filter, 0, Qt::AlignLeft);
             filters_.insert(name, filter);
-            connect(filter, qOverload<int>(&QComboBox::currentIndexChanged), tabs_, [this]() { refreshCurrent(); });
+            connect(filter, qOverload<int>(&QComboBox::currentIndexChanged), tabs_, [this, name]() {
+                if (name == tr("Services")) serviceRefresh_.invalidate();
+                refreshCurrent();
+            });
         }
         if (name == tr("Startup apps")) {
             startupSelection_ = new QComboBox(page);
@@ -430,9 +435,12 @@ private:
             refreshStartupChoices(filter);
             startup_->setPlainText(startupReport(filter));
         } else if (index == 8) {
-            const int filter = filters_.value(tr("Services"))->currentIndex();
-            refreshServiceChoices(filter);
-            services_->setPlainText(servicesReport(filter));
+            if (!serviceRefresh_.isValid() || serviceRefresh_.elapsed() >= 10000) {
+                const int filter = filters_.value(tr("Services"))->currentIndex();
+                refreshServiceChoices(filter);
+                services_->setPlainText(servicesReport(filter));
+                serviceRefresh_.restart();
+            }
         }
         if (index == 7 && actionStatusByTab_.value(tr("Startup apps")) != nullptr)
             actionStatusByTab_.value(tr("Startup apps"))->setText(statusMessage_);
@@ -509,6 +517,7 @@ private:
             else
                 statusMessage_ = tr("Could not %1 %2: %3").arg(action, unit, QString::fromLocal8Bit(process->readAllStandardError()).trimmed());
             process->deleteLater();
+            serviceRefresh_.invalidate();
             refreshCurrent();
         });
         statusMessage_ = tr("Waiting for service manager…");
@@ -534,4 +543,5 @@ private:
     QPlainTextEdit *startup_ = nullptr;
     QPlainTextEdit *services_ = nullptr;
     QTimer *autoRefresh_ = nullptr;
+    QElapsedTimer serviceRefresh_;
 };
