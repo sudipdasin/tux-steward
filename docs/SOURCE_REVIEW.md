@@ -15,3 +15,5 @@ The supplied project sources were reviewed as reference material; they are not e
 | Suite configuration | No user-specific media path embedded | Future settings should validate paths and local filesystem capabilities |
 
 The initial release is a safe foundation, not feature parity with every legacy command.
+
+The standalone Tux Task Manager reads process details from `/proc` and sends signals only to same-user processes after confirmation. Its optional process report can include private command-line arguments and paths; export is local and preceded by a warning. It does not share the Tux Steward diagnostics runner or require administrator privileges.
