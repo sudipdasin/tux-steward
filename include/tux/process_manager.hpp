@@ -4,6 +4,8 @@
 #include <QWidget>
 
 class QLabel;
+class QComboBox;
+class QTreeWidget;
 class QLineEdit;
 class QPushButton;
 class QSortFilterProxyModel;
@@ -26,6 +28,8 @@ private:
     void showProcessDetails();
     void refreshProcesses();
     void exportProcessReport();
+    void refreshProcessTree();
+    void filterProcessTree();
     qint64 selectedPid() const;
 
     ProcessTableModel *model_ = nullptr;
@@ -38,4 +42,9 @@ private:
     QPushButton *detailsButton_ = nullptr;
     QPushButton *exportButton_ = nullptr;
     QTimer *timer_ = nullptr;
+    QTreeWidget *tree_ = nullptr;
+    QLineEdit *treeSearch_ = nullptr;
+    QComboBox *refreshSpeed_ = nullptr;
+    QPushButton *pauseButton_ = nullptr;
+    bool paused_ = false;
 };
