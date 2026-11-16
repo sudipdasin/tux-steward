@@ -3,9 +3,11 @@
 
 #include <QElapsedTimer>
 #include <QDateTime>
+#include <QDialog>
 #include <QFile>
 #include <QFileInfo>
 #include <QFileDialog>
+#include <QFormLayout>
 #include <QHeaderView>
 #include <QHBoxLayout>
 #include <QJsonArray>
@@ -46,6 +48,7 @@
 namespace {
 struct ProcessEntry {
     qint64 pid = 0;
+    qint64 parentPid = 0;
     QString name;
     QString owner;
     QString state;
@@ -82,16 +85,18 @@ bool parseProcessStat(const QString &pidText, ProcessEntry *entry)
     }
     bool userTicksOk = false;
     bool systemTicksOk = false;
+    bool parentPidOk = false;
     bool startTicksOk = false;
     bool rssOk = false;
     entry->pid = pid;
     entry->name = QString::fromLocal8Bit(line.mid(openParen + 1, closeParen - openParen - 1));
     entry->state = QString::fromLatin1(fields.at(0));
+    entry->parentPid = fields.at(1).toLongLong(&parentPidOk);
     const quint64 userTicks = fields.at(11).toULongLong(&userTicksOk);
     const quint64 systemTicks = fields.at(12).toULongLong(&systemTicksOk);
     entry->startTicks = fields.at(19).toULongLong(&startTicksOk);
     const qint64 residentPages = fields.at(21).toLongLong(&rssOk);
-    if (!userTicksOk || !systemTicksOk || !startTicksOk || !rssOk) {
+    if (!parentPidOk || !userTicksOk || !systemTicksOk || !startTicksOk || !rssOk) {
         return false;
     }
     entry->cpuTicks = userTicks + systemTicks;
@@ -185,6 +190,16 @@ QString memoryText(quint64 bytes, double percent)
     }
     return QStringLiteral("%1 MiB (%2%)").arg(mebibytes, 0, 'f', 1).arg(percent, 0, 'f', 1);
 }
+
+QString processStateName(const QString &state)
+{
+    if (state == QStringLiteral("R")) return QObject::tr("Running");
+    if (state == QStringLiteral("S")) return QObject::tr("Sleeping");
+    if (state == QStringLiteral("D")) return QObject::tr("Waiting");
+    if (state == QStringLiteral("T")) return QObject::tr("Stopped");
+    if (state == QStringLiteral("Z")) return QObject::tr("Zombie");
+    return state;
+}
 }
 
 class ProcessTableModel final : public QAbstractTableModel {
@@ -237,13 +252,7 @@ public:
         case Memory: return memoryText(entry.residentBytes, entry.memoryPercent);
         case Pid: return entry.pid;
         case Owner: return entry.owner;
-        case State:
-            if (entry.state == QStringLiteral("R")) return QObject::tr("Running");
-            if (entry.state == QStringLiteral("S")) return QObject::tr("Sleeping");
-            if (entry.state == QStringLiteral("D")) return QObject::tr("Waiting");
-            if (entry.state == QStringLiteral("T")) return QObject::tr("Stopped");
-            if (entry.state == QStringLiteral("Z")) return QObject::tr("Zombie");
-            return entry.state;
+        case State: return processStateName(entry.state);
         default: return {};
         }
     }
@@ -404,7 +413,8 @@ ProcessManagerWidget::ProcessManagerWidget(QWidget *parent)
     layout->addWidget(title);
     layout->addWidget(description);
 
-    auto *toolbar = new QHBoxLayout;
+    auto *toolbar = new QVBoxLayout;
+    auto *searchRow = new QHBoxLayout;
     search_ = new QLineEdit(this);
     search_->setPlaceholderText(tr("Search processes by name, user, or PID"));
     search_->setClearButtonEnabled(true);
@@ -413,15 +423,22 @@ ProcessManagerWidget::ProcessManagerWidget(QWidget *parent)
     endTaskButton_->setObjectName(QStringLiteral("primaryAction"));
     forceStopButton_ = new QPushButton(tr("Force stop"), this);
     forceStopButton_->setObjectName(QStringLiteral("dangerAction"));
+    detailsButton_ = new QPushButton(tr("Details"), this);
+    detailsButton_->setObjectName(QStringLiteral("secondaryAction"));
     exportButton_ = new QPushButton(tr("Export report…"), this);
     exportButton_->setObjectName(QStringLiteral("secondaryAction"));
     endTaskButton_->setEnabled(false);
     forceStopButton_->setEnabled(false);
-    toolbar->addWidget(search_, 1);
-    toolbar->addWidget(refreshButton);
-    toolbar->addWidget(endTaskButton_);
-    toolbar->addWidget(forceStopButton_);
-    toolbar->addWidget(exportButton_);
+    detailsButton_->setEnabled(false);
+    searchRow->addWidget(search_, 1);
+    searchRow->addWidget(refreshButton);
+    toolbar->addLayout(searchRow);
+    auto *actionsRow = new QHBoxLayout;
+    actionsRow->addWidget(endTaskButton_);
+    actionsRow->addWidget(forceStopButton_);
+    actionsRow->addWidget(detailsButton_);
+    actionsRow->addWidget(exportButton_);
+    toolbar->addLayout(actionsRow);
     layout->addLayout(toolbar);
 
     model_ = new ProcessTableModel(this);
@@ -461,12 +478,15 @@ ProcessManagerWidget::ProcessManagerWidget(QWidget *parent)
     connect(endTaskButton_, &QPushButton::clicked, this, [this]() { stopSelectedProcess(false); });
     connect(forceStopButton_, &QPushButton::clicked, this, [this]() { stopSelectedProcess(true); });
     connect(exportButton_, &QPushButton::clicked, this, &ProcessManagerWidget::exportProcessReport);
+    connect(detailsButton_, &QPushButton::clicked, this, &ProcessManagerWidget::showProcessDetails);
+    connect(table_, &QTableView::doubleClicked, this, [this]() { showProcessDetails(); });
     connect(table_->selectionModel(), &QItemSelectionModel::selectionChanged, this, [this]() {
         const qint64 pid = selectedPid();
         const ProcessEntry *entry = model_->find(pid);
         const bool canStop = entry != nullptr && entry->uid == static_cast<uint>(::geteuid()) && pid != ::getpid();
         endTaskButton_->setEnabled(canStop);
         forceStopButton_->setEnabled(canStop);
+        detailsButton_->setEnabled(entry != nullptr);
     });
     connect(new QShortcut(QKeySequence(Qt::Key_Delete), this), &QShortcut::activated,
             this, [this]() { stopSelectedProcess(false); });
@@ -531,6 +551,67 @@ void ProcessManagerWidget::exportProcessReport()
         return;
     }
     status_->setText(tr("Process report saved locally · review it before sharing"));
+}
+
+void ProcessManagerWidget::showProcessDetails()
+{
+    const qint64 pid = selectedPid();
+    const ProcessEntry *entry = model_->find(pid);
+    if (entry == nullptr) {
+        status_->setText(tr("Select a process to view its details."));
+        return;
+    }
+    const ProcessEntry process = *entry;
+    if (!model_->stillSameProcess(process.pid, process.startTicks)) {
+        status_->setText(tr("That process has already exited. Refreshing the list."));
+        model_->refresh();
+        return;
+    }
+
+    const QString processId = QString::number(process.pid);
+    const QString command = processCommand(processId);
+    const QString executable = QFileInfo(QStringLiteral("/proc/%1/exe").arg(processId)).symLinkTarget();
+    const QString workingDirectory = QFileInfo(QStringLiteral("/proc/%1/cwd").arg(processId)).symLinkTarget();
+    const ProcessEntry *parent = model_->find(process.parentPid);
+    const QString parentName = parent != nullptr
+        ? QStringLiteral("%1 (%2)").arg(parent->name).arg(process.parentPid)
+        : QString::number(process.parentPid);
+
+    QDialog dialog(this);
+    dialog.setWindowTitle(tr("Process details — %1").arg(process.name));
+    dialog.setMinimumWidth(540);
+    auto *layout = new QVBoxLayout(&dialog);
+    auto *form = new QFormLayout;
+    const auto addValue = [form, &dialog](const QString &label, const QString &value) {
+        auto *text = new QLabel(value.isEmpty() ? QObject::tr("Unavailable") : value, &dialog);
+        text->setTextFormat(Qt::PlainText);
+        text->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        text->setWordWrap(true);
+        form->addRow(label, text);
+    };
+    addValue(tr("Process"), process.name);
+    addValue(tr("Process ID"), QString::number(process.pid));
+    addValue(tr("Parent process"), parentName);
+    addValue(tr("User"), process.owner);
+    addValue(tr("Status"), processStateName(process.state));
+    addValue(tr("CPU"), QStringLiteral("%1%").arg(process.cpuPercent, 0, 'f', 1));
+    addValue(tr("Memory"), memoryText(process.residentBytes, process.memoryPercent));
+    addValue(tr("Executable"), executable);
+    addValue(tr("Working directory"), workingDirectory);
+    layout->addLayout(form);
+
+    auto *commandHeading = new QLabel(tr("Command line"), &dialog);
+    layout->addWidget(commandHeading);
+    auto *commandText = new QPlainTextEdit(&dialog);
+    commandText->setReadOnly(true);
+    commandText->setPlainText(command.isEmpty() ? tr("Unavailable") : command);
+    commandText->setMaximumHeight(100);
+    layout->addWidget(commandText);
+    auto *closeButton = new QPushButton(tr("Close"), &dialog);
+    closeButton->setDefault(true);
+    connect(closeButton, &QPushButton::clicked, &dialog, &QDialog::accept);
+    layout->addWidget(closeButton, 0, Qt::AlignRight);
+    dialog.exec();
 }
 
 qint64 ProcessManagerWidget::selectedPid() const
