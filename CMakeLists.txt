@@ -28,6 +28,21 @@ if(BUILD_TESTING)
     target_link_libraries(tux-ui-tests PRIVATE tux-ui)
     add_test(NAME ui COMMAND tux-ui-tests)
     set_tests_properties(ui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 20)
+
+    add_executable(tux-task-manager-tests
+        tests/test_task_manager.cpp
+        src/process_manager.cpp
+        include/tux/process_manager.hpp
+        include/tux/system_monitor_tabs.hpp
+    )
+    target_include_directories(tux-task-manager-tests PRIVATE include)
+    target_link_libraries(tux-task-manager-tests PRIVATE Qt5::Widgets)
+    target_compile_options(tux-task-manager-tests PRIVATE -Wall -Wextra -Wpedantic)
+    add_test(NAME task-manager-tabs COMMAND tux-task-manager-tests)
+    set_tests_properties(task-manager-tabs PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+        TIMEOUT 20
+    )
 endif()
 include(GNUInstallDirs)
 install(TARGETS tux-steward RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Add Task Manager tabs for performance, app session history, users, process details, network, disks, Bluetooth, startup apps, and services.
+- Add per-user startup toggles and confirmed systemd service controls with Polkit for system-wide actions.
+
 ## 0.4.0 — 2026-11-16
 
 Added read-only process details with parent PID/name, executable target, working directory and command line. Details open from the selected process or by double-clicking a row. Unavailable `/proc` fields are reported as unavailable; no process controls are offered from the details view.
