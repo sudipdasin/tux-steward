@@ -416,6 +416,7 @@ ProcessManagerWidget::ProcessManagerWidget(QWidget *parent)
     layout->addWidget(description);
 
     auto *tabs = new QTabWidget(this);
+    tabs->setObjectName(QStringLiteral("taskManagerTabs"));
     layout->addWidget(tabs, 1);
     auto *processPage = new QWidget(tabs);
     auto *processLayout = new QVBoxLayout(processPage);
