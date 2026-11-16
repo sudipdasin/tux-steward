@@ -1,8 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "tux/process_manager.hpp"
+#include "tux/process_tree.hpp"
 #include "tux/system_monitor_tabs.hpp"
 
 #include <QElapsedTimer>
+#include <QCheckBox>
+#include <QComboBox>
+#include <QDialogButtonBox>
+#include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
+#include <QSet>
 #include <QDateTime>
 #include <QDialog>
 #include <QFile>
@@ -385,7 +392,9 @@ public:
         return parseProcessStat(QString::number(pid), &current) && current.startTicks == startTicks;
     }
 
-    QJsonArray reportRows() const
+    const QList<ProcessEntry> &snapshot() const { return entries_; }
+
+    QJsonArray reportRows(bool includePrivateDetails = false) const
     {
         QJsonArray rows;
         for (const ProcessEntry &entry : entries_) {
@@ -397,13 +406,13 @@ public:
                 row.insert(QStringLiteral("disk_write_bytes_per_second"), entry.diskWriteBytesPerSecond);
             }
             row.insert(QStringLiteral("name"), entry.name);
-            row.insert(QStringLiteral("user"), entry.owner);
+            if (includePrivateDetails) row.insert(QStringLiteral("user"), entry.owner);
             row.insert(QStringLiteral("state"), entry.state);
             row.insert(QStringLiteral("cpu_percent"), entry.cpuPercent);
             row.insert(QStringLiteral("resident_bytes"), static_cast<qint64>(entry.residentBytes));
-            const QString command = processCommand(QString::number(entry.pid));
-            if (!command.isEmpty()) {
-                row.insert(QStringLiteral("command_line"), command);
+            if (includePrivateDetails) {
+                const QString command = processCommand(QString::number(entry.pid));
+                if (!command.isEmpty()) row.insert(QStringLiteral("command_line"), command);
             }
             rows.append(row);
         }
@@ -489,6 +498,7 @@ ProcessManagerWidget::ProcessManagerWidget(QWidget *parent)
     search_ = new QLineEdit(this);
     search_->setPlaceholderText(tr("Search processes by name, user, or PID"));
     search_->setClearButtonEnabled(true);
+    search_->setObjectName(QStringLiteral("processSearch"));
     auto *refreshButton = new QPushButton(tr("Refresh"), this);
     endTaskButton_ = new QPushButton(tr("End task"), this);
     endTaskButton_->setObjectName(QStringLiteral("primaryAction"));
@@ -497,12 +507,23 @@ ProcessManagerWidget::ProcessManagerWidget(QWidget *parent)
     detailsButton_ = new QPushButton(tr("Details"), this);
     detailsButton_->setObjectName(QStringLiteral("secondaryAction"));
     exportButton_ = new QPushButton(tr("Export report…"), this);
-    exportButton_->setObjectName(QStringLiteral("secondaryAction"));
+    exportButton_->setObjectName(QStringLiteral("processExportButton"));
     endTaskButton_->setEnabled(false);
     forceStopButton_->setEnabled(false);
     detailsButton_->setEnabled(false);
     searchRow->addWidget(search_, 1);
+    refreshButton->setObjectName(QStringLiteral("processRefreshButton"));
     searchRow->addWidget(refreshButton);
+    refreshSpeed_ = new QComboBox(this);
+    refreshSpeed_->setObjectName(QStringLiteral("processRefreshSpeed"));
+    refreshSpeed_->addItem(tr("Fast · 1 s"), 1000);
+    refreshSpeed_->addItem(tr("Normal · 2 s"), 2000);
+    refreshSpeed_->addItem(tr("Low overhead · 5 s"), 5000);
+    refreshSpeed_->setCurrentIndex(1);
+    searchRow->addWidget(refreshSpeed_);
+    pauseButton_ = new QPushButton(tr("Pause processes"), this);
+    pauseButton_->setObjectName(QStringLiteral("processPauseButton"));
+    searchRow->addWidget(pauseButton_);
     toolbar->addLayout(searchRow);
     auto *actionsRow = new QHBoxLayout;
     actionsRow->addWidget(endTaskButton_);
@@ -545,8 +566,25 @@ ProcessManagerWidget::ProcessManagerWidget(QWidget *parent)
     processLayout->addWidget(status_);
 
     timer_ = new QTimer(this);
+    timer_->setObjectName(QStringLiteral("processRefreshTimer"));
     timer_->setInterval(2000);
     connect(timer_, &QTimer::timeout, this, &ProcessManagerWidget::refreshProcesses);
+    connect(refreshSpeed_, qOverload<int>(&QComboBox::currentIndexChanged), this, [this]() {
+        timer_->setInterval(refreshSpeed_->currentData().toInt());
+        model_->resetCpuBaseline();
+        if (!paused_ && isVisible()) refreshProcesses();
+    });
+    connect(pauseButton_, &QPushButton::clicked, this, [this]() {
+        paused_ = !paused_;
+        pauseButton_->setText(paused_ ? tr("Resume processes") : tr("Pause processes"));
+        if (paused_) {
+            timer_->stop();
+            status_->setText(tr("Process snapshot paused · Refresh updates once; resource tabs remain independent"));
+        } else {
+            model_->resetCpuBaseline();
+            if (isVisible()) { refreshProcesses(); timer_->start(); }
+        }
+    });
     connect(refreshButton, &QPushButton::clicked, this, &ProcessManagerWidget::refreshProcesses);
     connect(search_, &QLineEdit::textChanged, proxy_, &QSortFilterProxyModel::setFilterFixedString);
     connect(endTaskButton_, &QPushButton::clicked, this, [this]() { stopSelectedProcess(false); });
@@ -564,13 +602,47 @@ ProcessManagerWidget::ProcessManagerWidget(QWidget *parent)
     });
     connect(new QShortcut(QKeySequence(Qt::Key_Delete), this), &QShortcut::activated,
             this, [this]() { stopSelectedProcess(false); });
+    auto *treePage = new QWidget(tabs);
+    auto *treeLayout = new QVBoxLayout(treePage);
+    auto *treeInfo = new QLabel(tr("Parent/child process snapshot. Missing, reused or cyclic parents appear as roots. Double-click to inspect a process; this view never stops a process group."), treePage);
+    treeInfo->setWordWrap(true);
+    treeLayout->addWidget(treeInfo);
+    auto *treeToolbar = new QHBoxLayout;
+    treeSearch_ = new QLineEdit(treePage);
+    treeSearch_->setObjectName(QStringLiteral("processTreeSearch"));
+    treeSearch_->setPlaceholderText(tr("Find a process, user or PID in the tree"));
+    treeSearch_->setClearButtonEnabled(true);
+    treeToolbar->addWidget(treeSearch_, 1);
+    auto *expand = new QPushButton(tr("Expand all"), treePage);
+    auto *collapse = new QPushButton(tr("Collapse all"), treePage);
+    treeToolbar->addWidget(expand); treeToolbar->addWidget(collapse);
+    treeLayout->addLayout(treeToolbar);
+    tree_ = new QTreeWidget(treePage);
+    tree_->setObjectName(QStringLiteral("processTree"));
+    tree_->setHeaderLabels({tr("Process"), tr("PID"), tr("CPU %"), tr("Memory"), tr("User")});
+    tree_->setUniformRowHeights(true);
+    tree_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+    treeLayout->addWidget(tree_, 1);
+    tabs->addTab(treePage, tr("Process tree"));
+    connect(expand, &QPushButton::clicked, tree_, &QTreeWidget::expandAll);
+    connect(collapse, &QPushButton::clicked, tree_, &QTreeWidget::collapseAll);
+    connect(treeSearch_, &QLineEdit::textChanged, this, [this]() { filterProcessTree(); });
+    connect(tree_, &QTreeWidget::itemDoubleClicked, this, [this](QTreeWidgetItem *item, int) {
+        const qint64 pid = item->data(0, Qt::UserRole).toLongLong();
+        const auto *entry = model_->find(pid);
+        if (entry == nullptr || entry->startTicks != item->data(0, Qt::UserRole + 1).toULongLong()) return;
+        const auto source = model_->indexForPid(pid);
+        // A tree selection should be inspectable even when the list is filtered.
+        search_->clear();
+        table_->selectRow(proxy_->mapFromSource(source).row());
+        showProcessDetails();
+    });
 }
 
 void ProcessManagerWidget::showEvent(QShowEvent *event)
 {
     QWidget::showEvent(event);
-    refreshProcesses();
-    timer_->start();
+    if (!paused_) { refreshProcesses(); timer_->start(); }
 }
 
 void ProcessManagerWidget::hideEvent(QHideEvent *event)
@@ -584,8 +656,11 @@ void ProcessManagerWidget::refreshProcesses()
 {
     const qint64 selected = selectedPid();
     model_->refresh();
-    status_->setText(tr("%1 processes  ·  refreshes every 2 seconds  ·  CPU is shown as a share of total system capacity")
-                         .arg(model_->rowCount()));
+    refreshProcessTree();
+    status_->setText(paused_
+        ? tr("%1 processes · paused snapshot · resource tabs remain independent").arg(model_->rowCount())
+        : tr("%1 processes · refresh interval %2 seconds · CPU is a share of total system capacity")
+            .arg(model_->rowCount()).arg(timer_->interval() / 1000));
     if (selected > 0) {
         const QModelIndex sourceIndex = model_->indexForPid(selected);
         if (sourceIndex.isValid()) {
@@ -597,15 +672,86 @@ void ProcessManagerWidget::refreshProcesses()
     }
 }
 
+
+void ProcessManagerWidget::refreshProcessTree()
+{
+    if (tree_ == nullptr) return;
+    QSet<QString> expanded;
+    QString selected;
+    const auto identity = [](QTreeWidgetItem *item) {
+        return QStringLiteral("%1:%2").arg(item->data(0, Qt::UserRole).toLongLong())
+            .arg(item->data(0, Qt::UserRole + 1).toULongLong());
+    };
+    const bool initial = tree_->topLevelItemCount() == 0;
+    for (QTreeWidgetItemIterator it(tree_); *it; ++it) {
+        if ((*it)->isExpanded()) expanded.insert(identity(*it));
+        if ((*it)->isSelected()) selected = identity(*it);
+    }
+    tree_->clear();
+    const auto &snapshot = model_->snapshot();
+    QVector<ProcessTreeIdentity> nodes;
+    for (const auto &entry : snapshot) nodes.append({entry.pid, entry.parentPid, entry.startTicks});
+    const auto parents = processTreeParents(nodes);
+    QVector<QTreeWidgetItem *> items;
+    for (const auto &entry : snapshot) {
+        auto *item = new QTreeWidgetItem({entry.name, QString::number(entry.pid),
+            QString::number(entry.cpuPercent, 'f', 1), memoryText(entry.residentBytes, entry.memoryPercent), entry.owner});
+        item->setData(0, Qt::UserRole, entry.pid);
+        item->setData(0, Qt::UserRole + 1, QVariant::fromValue(entry.startTicks));
+        items.append(item);
+    }
+    for (int i = 0; i < items.size(); ++i) {
+        if (parents[i] >= 0) items[parents[i]]->addChild(items[i]);
+        else tree_->addTopLevelItem(items[i]);
+    }
+    for (auto *item : items) {
+        item->setExpanded(expanded.contains(identity(item)) || (initial && item->parent() == nullptr));
+        if (identity(item) == selected) tree_->setCurrentItem(item);
+    }
+    filterProcessTree();
+}
+
+void ProcessManagerWidget::filterProcessTree()
+{
+    if (tree_ == nullptr) return;
+    const QString query = treeSearch_->text().trimmed();
+    QSet<QTreeWidgetItem *> shown;
+    for (QTreeWidgetItemIterator it(tree_); *it; ++it) {
+        auto *item = *it;
+        bool matches = query.isEmpty();
+        for (int column = 0; !matches && column < tree_->columnCount(); ++column)
+            matches = item->text(column).contains(query, Qt::CaseInsensitive);
+        if (!matches) continue;
+        if (query.isEmpty()) shown.insert(item);
+        else {
+            for (auto *ancestor = item; ancestor != nullptr && !shown.contains(ancestor); ancestor = ancestor->parent()) {
+                shown.insert(ancestor);
+                if (ancestor != item) ancestor->setExpanded(true);
+            }
+        }
+    }
+    for (QTreeWidgetItemIterator it(tree_); *it; ++it) (*it)->setHidden(!shown.contains(*it));
+}
+
 void ProcessManagerWidget::exportProcessReport()
 {
-    const auto answer = QMessageBox::warning(
-        this, tr("Review report privacy"),
-        tr("This report can include process names, user names, command-line arguments, and file paths. It is saved only on this computer. Review it before sharing."),
-        QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Cancel);
-    if (answer != QMessageBox::Yes) {
-        return;
-    }
+    QDialog privacy(this);
+    privacy.setObjectName(QStringLiteral("processReportPrivacy"));
+    privacy.setWindowTitle(tr("Choose report details"));
+    auto *layout = new QVBoxLayout(&privacy);
+    auto *warning = new QLabel(tr("The standard report omits usernames and command lines. Process names, PIDs and metrics can still reveal activity. Review any report before sharing. Files are saved locally; nothing is uploaded."), &privacy);
+    warning->setWordWrap(true);
+    layout->addWidget(warning);
+    auto *privateDetails = new QCheckBox(tr("Include usernames and command lines (may contain paths or secrets)"), &privacy);
+    privateDetails->setObjectName(QStringLiteral("includePrivateProcessDetails"));
+    privateDetails->setChecked(false);
+    layout->addWidget(privateDetails);
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, &privacy);
+    buttons->button(QDialogButtonBox::Cancel)->setDefault(true);
+    connect(buttons, &QDialogButtonBox::accepted, &privacy, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &privacy, &QDialog::reject);
+    layout->addWidget(buttons);
+    if (privacy.exec() != QDialog::Accepted) return;
     const QString path = QFileDialog::getSaveFileName(
         this, tr("Export process report"), QStringLiteral("tux-process-report.json"),
         tr("JSON report (*.json)"));
@@ -616,7 +762,8 @@ void ProcessManagerWidget::exportProcessReport()
     QJsonObject report;
     report.insert(QStringLiteral("created_at"), QDateTime::currentDateTime().toString(Qt::ISODate));
     report.insert(QStringLiteral("process_count"), model_->rowCount());
-    report.insert(QStringLiteral("processes"), model_->reportRows());
+    report.insert(QStringLiteral("includes_private_details"), privateDetails->isChecked());
+    report.insert(QStringLiteral("processes"), model_->reportRows(privateDetails->isChecked()));
     const QByteArray bytes = QJsonDocument(report).toJson(QJsonDocument::Indented);
     QSaveFile file(path);
     if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size() || !file.commit()) {

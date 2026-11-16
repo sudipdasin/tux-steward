@@ -7,7 +7,7 @@
 #include <functional>
 
 namespace tux {
-inline constexpr auto Version = "0.4.0";
+inline constexpr auto Version = "0.5.0";
 inline constexpr int OutputLimit = 250000;
 struct Action {
     QString id, group, title, description;

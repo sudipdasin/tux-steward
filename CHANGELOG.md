@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0 — 2026-11-17
+
+Added a read-only Process tree with PID/start-time-aware parent relationships, orphan/cycle handling, search, expand/collapse and details access. Added process snapshot pause/resume and 1/2/5-second refresh choices. Process reports now omit usernames and command lines by default, with an explicit opt-in for detailed local reports. Added deterministic tree fixtures and offscreen integration coverage for snapshots, controls and both export modes.
+
+
 - Unreleased: Fixed resource charts remaining static: live read-only tabs now refresh every two seconds while visible, pause when hidden, and reset Performance sampling after a visibility/page gap. Added timer lifecycle regression coverage; validation pending CI.
 
 - Unreleased: Added direct BlueZ Bluetooth scanning and device actions (pair, connect, disconnect, trust, forget), with pairing prompts, bounded scan duration, and a desktop-settings fallback.

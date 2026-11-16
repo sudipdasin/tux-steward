@@ -12,3 +12,7 @@ Keep private computer information out of the repository:
 Before public visibility, review the tracked files and complete Git history, branches, tags, issues, pull requests and CI artifacts. Review new contributions for private data. Publishing the source does not publish the original reference attachments or local files unless they are explicitly added or uploaded.
 
 The initial source review used private reference scripts without copying their contents or diagnostic logs into this repository. No automatic telemetry or report-upload feature is implemented.
+
+## Process report defaults
+
+Task Manager's standard export omits usernames and command lines. A detailed report requires an explicit opt-in for each export and may contain local paths or secrets in arguments. Process names, PIDs, timestamps and activity metrics remain in standard reports; standard does not mean anonymous. No report is uploaded automatically.

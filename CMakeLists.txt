@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(TuxSteward VERSION 0.4.0 LANGUAGES CXX)
+project(TuxSteward VERSION 0.5.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -42,6 +42,18 @@ if(BUILD_TESTING)
     set_tests_properties(task-manager-tabs PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
         TIMEOUT 20
+    )
+    add_executable(tux-process-explorer-tests
+        tests/test_process_explorer.cpp
+        src/process_manager.cpp
+    )
+    target_include_directories(tux-process-explorer-tests PRIVATE include)
+    target_link_libraries(tux-process-explorer-tests PRIVATE Qt5::Widgets)
+    target_compile_options(tux-process-explorer-tests PRIVATE -Wall -Wextra -Wpedantic)
+    add_test(NAME process-explorer COMMAND tux-process-explorer-tests)
+    set_tests_properties(process-explorer PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+        TIMEOUT 30
     )
 endif()
 include(GNUInstallDirs)
