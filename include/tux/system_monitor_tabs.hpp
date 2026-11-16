@@ -129,6 +129,7 @@ public:
         addReportTab(tr("Bluetooth"), nullptr);
         addReportTab(tr("Startup apps"), &startup_);
         addReportTab(tr("Services"), &services_);
+        addReportTab(tr("GPU"), &gpu_);
 
         autoRefresh_ = new QTimer(tabs_);
         autoRefresh_->setInterval(2000);
@@ -275,6 +276,7 @@ private:
             layout->addLayout(row);
         }
         auto *text = new QPlainTextEdit(page);
+        if (name == tr("GPU")) text->setObjectName(QStringLiteral("gpuSummary"));
         text->setReadOnly(true);
         text->setLineWrapMode(QPlainTextEdit::NoWrap);
         text->setPlaceholderText(tr("Reading system information…"));
@@ -461,6 +463,49 @@ private:
             out += QStringLiteral("%1  ·  %2\n").arg(name, address.isEmpty() ? QObject::tr("address unavailable") : address);
         }
         out += QObject::tr("\nUse Scan to find devices, then Pair or Connect. Pairing confirmation requests appear below.");
+        return out;
+    }
+
+    static QString gpuReport()
+    {
+        const QDir drm(QStringLiteral("/sys/class/drm"));
+        const QRegularExpression cardName(QStringLiteral("^card[0-9]+$"));
+        const QStringList entries = drm.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+        QString out = QObject::tr("Graphics devices (Linux DRM / sysfs)\n\n");
+        int found = 0;
+        for (const QString &entry : entries) {
+            if (!cardName.match(entry).hasMatch()) continue;
+            const QString devicePath = drm.filePath(entry + QStringLiteral("/device"));
+            const QString vendorId = read(devicePath + QStringLiteral("/vendor")).trimmed().toLower();
+            const QString deviceId = read(devicePath + QStringLiteral("/device")).trimmed().toLower();
+            QString vendor = vendorId;
+            if (vendorId == QStringLiteral("0x10de")) vendor = QObject::tr("NVIDIA");
+            else if (vendorId == QStringLiteral("0x1002")) vendor = QObject::tr("AMD");
+            else if (vendorId == QStringLiteral("0x8086")) vendor = QObject::tr("Intel");
+            else if (vendorId == QStringLiteral("0x1af4")) vendor = QObject::tr("Virtio");
+            out += QObject::tr("%1 · %2 · device %3\n").arg(entry, vendor,
+                deviceId.isEmpty() ? QObject::tr("unavailable") : deviceId);
+
+            const QString busy = read(devicePath + QStringLiteral("/gpu_busy_percent")).trimmed();
+            bool busyOk = false;
+            const int busyPercent = busy.toInt(&busyOk);
+            if (busyOk && busyPercent >= 0 && busyPercent <= 100)
+                out += QObject::tr("  GPU utilization: %1%\n").arg(busyPercent);
+
+            bool totalOk = false;
+            bool usedOk = false;
+            const quint64 total = read(devicePath + QStringLiteral("/mem_info_vram_total")).trimmed().toULongLong(&totalOk);
+            const quint64 used = read(devicePath + QStringLiteral("/mem_info_vram_used")).trimmed().toULongLong(&usedOk);
+            if (totalOk && usedOk)
+                out += QObject::tr("  Video memory: %1 used of %2\n").arg(formatBytes(used), formatBytes(total));
+            if (!busyOk && !(totalOk && usedOk))
+                out += QObject::tr("  Utilization and dedicated video-memory counters are not exposed by this driver.\n");
+            ++found;
+        }
+        if (found == 0)
+            out += QObject::tr("No graphics devices are exposed through /sys/class/drm. Some drivers require vendor tools for detailed metrics.");
+        else
+            out += QObject::tr("\nMetrics depend on the active kernel driver; unavailable values are omitted rather than estimated.");
         return out;
     }
 
@@ -807,7 +852,7 @@ private:
                 services_->setPlainText(servicesReport(filter));
                 serviceRefresh_.restart();
             }
-        }
+        } else if (index == 9) gpu_->setPlainText(gpuReport());
         if (index == 7 && actionStatusByTab_.value(tr("Startup apps")) != nullptr)
             actionStatusByTab_.value(tr("Startup apps"))->setText(statusMessage_);
         if (index == 8 && actionStatusByTab_.value(tr("Services")) != nullptr)
@@ -924,6 +969,7 @@ private:
     QTimer *bluetoothScanTimer_ = nullptr;
     QPlainTextEdit *startup_ = nullptr;
     QPlainTextEdit *services_ = nullptr;
+    QPlainTextEdit *gpu_ = nullptr;
     QTimer *autoRefresh_ = nullptr;
     QElapsedTimer serviceRefresh_;
 };
