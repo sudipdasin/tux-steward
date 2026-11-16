@@ -30,5 +30,13 @@ int main(int argc, char **argv)
             return 1;
         }
     }
+    const QStringList charts{QStringLiteral("cpuUsageChart"), QStringLiteral("memoryUsageChart"),
+                             QStringLiteral("diskIoChart"), QStringLiteral("networkIoChart")};
+    for (const QString &name : charts) {
+        if (manager.findChild<QWidget *>(name) == nullptr) {
+            std::cerr << "Missing live performance chart: " << name.toStdString() << '\n';
+            return 1;
+        }
+    }
     return 0;
 }

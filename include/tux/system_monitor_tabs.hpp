@@ -2,28 +2,113 @@
 #pragma once
 
 #include <QComboBox>
+#include <QColor>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QHash>
 #include <QHBoxLayout>
+#include <QGridLayout>
 #include <QElapsedTimer>
 #include <QLabel>
+#include <QPainter>
+#include <QPainterPath>
 #include <QPlainTextEdit>
 #include <QProcess>
 #include <QPushButton>
 #include <QMessageBox>
 #include <QSaveFile>
+#include <QSizePolicy>
 #include <QObject>
 #include <QStandardPaths>
 #include <QStorageInfo>
+#include <QSet>
 #include <QTabWidget>
 #include <QTimer>
 #include <QVBoxLayout>
+#include <QVector>
 #include <QWidget>
 
 #include <algorithm>
+#include <utility>
 #include <unistd.h>
+
+class ResourceHistoryChart final : public QWidget {
+public:
+    ResourceHistoryChart(QString title, QString unit, double fixedMaximum, QWidget *parent = nullptr)
+        : QWidget(parent), title_(std::move(title)), unit_(std::move(unit)), fixedMaximum_(fixedMaximum)
+    {
+        setMinimumSize(260, 150);
+        setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    }
+
+    void addSample(double value)
+    {
+        samples_.append(qMax(0.0, value));
+        if (samples_.size() > 90) samples_.remove(0, samples_.size() - 90);
+        update();
+    }
+
+protected:
+    void paintEvent(QPaintEvent *) override
+    {
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing);
+        const QRect area = rect().adjusted(1, 1, -1, -1);
+        painter.setPen(palette().color(QPalette::Mid));
+        painter.setBrush(palette().color(QPalette::Base));
+        painter.drawRoundedRect(area, 8, 8);
+
+        const double current = samples_.isEmpty() ? 0.0 : samples_.back();
+        painter.setPen(palette().color(QPalette::Text));
+        QFont titleFont = painter.font();
+        titleFont.setBold(true);
+        painter.setFont(titleFont);
+        painter.drawText(QRect(14, 9, width() - 28, 24), Qt::AlignLeft | Qt::AlignVCenter, title_);
+        QFont valueFont = painter.font();
+        valueFont.setBold(false);
+        painter.setFont(valueFont);
+        const QString value = QStringLiteral("%1 %2").arg(current, 0, 'f', unit_ == QStringLiteral("%") ? 0 : 1).arg(unit_);
+        painter.drawText(QRect(14, 9, width() - 28, 24), Qt::AlignRight | Qt::AlignVCenter, value);
+
+        const QRectF plot = QRectF(area).adjusted(14, 38, -14, -13);
+        const QColor gridColor = palette().color(QPalette::Mid);
+        painter.setPen(QPen(gridColor, 1, Qt::DotLine));
+        for (int i = 0; i <= 3; ++i) {
+            const qreal y = plot.top() + plot.height() * i / 3.0;
+            painter.drawLine(QPointF(plot.left(), y), QPointF(plot.right(), y));
+        }
+        if (samples_.size() < 2 || plot.width() <= 0 || plot.height() <= 0) return;
+        double maximum = fixedMaximum_;
+        if (maximum <= 0.0) {
+            maximum = 1.0;
+            for (double sample : samples_) maximum = qMax(maximum, sample);
+            maximum *= 1.2;
+        }
+        QPainterPath line;
+        for (qsizetype i = 0; i < samples_.size(); ++i) {
+            const qreal x = plot.left() + plot.width() * static_cast<qreal>(i) / static_cast<qreal>(samples_.size() - 1);
+            const qreal y = plot.bottom() - plot.height() * qMin(samples_.at(i), maximum) / maximum;
+            if (i == 0) line.moveTo(x, y); else line.lineTo(x, y);
+        }
+        QPainterPath fill = line;
+        fill.lineTo(plot.bottomRight());
+        fill.lineTo(plot.bottomLeft());
+        fill.closeSubpath();
+        QColor accent = palette().color(QPalette::Highlight);
+        QColor translucent = accent;
+        translucent.setAlpha(42);
+        painter.fillPath(fill, translucent);
+        painter.setPen(QPen(accent, 2));
+        painter.drawPath(line);
+    }
+
+private:
+    QString title_;
+    QString unit_;
+    double fixedMaximum_ = 0.0;
+    QVector<double> samples_;
+};
 
 // Lightweight Linux resource views for the Task Manager. Data comes directly
 // from procfs/sysfs and standard Qt APIs; optional service/Bluetooth tools are
@@ -32,7 +117,7 @@ class SystemMonitorTabs final : public QObject {
 public:
     explicit SystemMonitorTabs(QTabWidget *tabs) : QObject(tabs), tabs_(tabs), firstIndex_(tabs->count())
     {
-        addReportTab(tr("Performance"), &performance_);
+        addReportTab(tr("Performance"), nullptr);
         addReportTab(tr("App history"), &history_);
         addReportTab(tr("Users"), &users_);
         addReportTab(tr("Details"), &details_);
@@ -54,6 +139,27 @@ private:
     {
         QWidget *page = new QWidget(tabs_);
         auto *layout = new QVBoxLayout(page);
+        if (name == tr("Performance")) {
+            performanceSummary_ = new QLabel(page);
+            performanceSummary_->setWordWrap(true);
+            layout->addWidget(performanceSummary_);
+            auto *grid = new QGridLayout;
+            cpuChart_ = new ResourceHistoryChart(tr("CPU"), QStringLiteral("%"), 100.0, page);
+            memoryChart_ = new ResourceHistoryChart(tr("Memory"), QStringLiteral("%"), 100.0, page);
+            diskChart_ = new ResourceHistoryChart(tr("Disk I/O"), tr("MiB/s"), 0.0, page);
+            networkChart_ = new ResourceHistoryChart(tr("Network I/O"), tr("Mbit/s"), 0.0, page);
+            cpuChart_->setObjectName(QStringLiteral("cpuUsageChart"));
+            memoryChart_->setObjectName(QStringLiteral("memoryUsageChart"));
+            diskChart_->setObjectName(QStringLiteral("diskIoChart"));
+            networkChart_->setObjectName(QStringLiteral("networkIoChart"));
+            grid->addWidget(cpuChart_, 0, 0);
+            grid->addWidget(memoryChart_, 0, 1);
+            grid->addWidget(diskChart_, 1, 0);
+            grid->addWidget(networkChart_, 1, 1);
+            layout->addLayout(grid, 1);
+            tabs_->addTab(page, name);
+            return;
+        }
         QComboBox *filter = nullptr;
         if (name == tr("Startup apps")) {
             filter = new QComboBox(page);
@@ -137,56 +243,94 @@ private:
         return QString::fromLocal8Bit(file.readAll());
     }
 
-    static QString performanceReport()
+    void refreshPerformance()
     {
-        const QString stat = read(QStringLiteral("/proc/stat"));
-        QString cpu = QObject::tr("CPU usage: unavailable");
-        const QStringList lines = stat.split(QLatin1Char('\n'));
-        if (!lines.isEmpty() && lines.front().startsWith(QStringLiteral("cpu "))) {
-            static quint64 previousTotal = 0;
-            static quint64 previousIdle = 0;
-            const QStringList values = lines.front().simplified().split(QLatin1Char(' '));
-            quint64 total = 0;
-            bool ok = false;
-            for (qsizetype i = 1; i < values.size(); ++i) {
-                const quint64 value = values.at(i).toULongLong(&ok);
-                if (ok) total += value;
-            }
-            const quint64 idle = values.value(4).toULongLong();
-            if (previousTotal != 0 && total > previousTotal) {
-                const quint64 deltaTotal = total - previousTotal;
-                const quint64 deltaIdle = idle - previousIdle;
-                const double usage = 100.0 * static_cast<double>(deltaTotal - qMin(deltaTotal, deltaIdle))
-                                     / static_cast<double>(deltaTotal);
-                cpu = QObject::tr("CPU usage: %1%").arg(usage, 0, 'f', 1);
-            } else {
-                cpu = QObject::tr("CPU usage: collecting first sample…");
-            }
-            previousTotal = total;
-            previousIdle = idle;
-        }
+        double cpuPercent = 0.0;
+        const QStringList cpuFields = read(QStringLiteral("/proc/stat")).section(QLatin1Char('\n'), 0, 0)
+            .simplified().split(QLatin1Char(' '));
+        quint64 totalTicks = 0;
+        for (qsizetype i = 1; i < cpuFields.size(); ++i) totalTicks += cpuFields.at(i).toULongLong();
+        const quint64 idleTicks = cpuFields.value(4).toULongLong() + cpuFields.value(5).toULongLong();
 
-        QString memory;
+        quint64 totalKiB = 0;
+        quint64 availableKiB = 0;
         const QStringList memLines = read(QStringLiteral("/proc/meminfo")).split(QLatin1Char('\n'));
-        quint64 totalKiB = 0, availableKiB = 0;
         for (const QString &line : memLines) {
             if (line.startsWith(QStringLiteral("MemTotal:"))) totalKiB = line.simplified().split(QLatin1Char(' ')).value(1).toULongLong();
             if (line.startsWith(QStringLiteral("MemAvailable:"))) availableKiB = line.simplified().split(QLatin1Char(' ')).value(1).toULongLong();
         }
-        if (totalKiB > 0) {
-            const quint64 usedKiB = totalKiB - qMin(totalKiB, availableKiB);
-            memory = QObject::tr("Memory: %1 GiB used of %2 GiB (%3%)")
+        const quint64 usedKiB = totalKiB - qMin(totalKiB, availableKiB);
+        const double memoryPercent = totalKiB > 0
+            ? 100.0 * static_cast<double>(usedKiB) / static_cast<double>(totalKiB) : 0.0;
+
+        QSet<QString> blockDevices;
+        const QDir blockDirectory(QStringLiteral("/sys/block"));
+        for (const QString &name : blockDirectory.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) blockDevices.insert(name);
+        quint64 diskSectorsRead = 0;
+        quint64 diskSectorsWritten = 0;
+        const QStringList diskLines = read(QStringLiteral("/proc/diskstats")).split(QLatin1Char('\n'));
+        for (const QString &line : diskLines) {
+            const QStringList fields = line.simplified().split(QLatin1Char(' '));
+            if (fields.size() < 10 || !blockDevices.contains(fields.at(2))) continue;
+            diskSectorsRead += fields.at(5).toULongLong();
+            diskSectorsWritten += fields.at(9).toULongLong();
+        }
+
+        quint64 networkReceived = 0;
+        quint64 networkSent = 0;
+        const QStringList networkLines = read(QStringLiteral("/proc/net/dev")).split(QLatin1Char('\n'));
+        for (qsizetype i = 2; i < networkLines.size(); ++i) {
+            const qsizetype colon = networkLines.at(i).indexOf(QLatin1Char(':'));
+            if (colon < 0) continue;
+            const QStringList fields = networkLines.at(i).mid(colon + 1).simplified().split(QLatin1Char(' '));
+            if (fields.size() < 9) continue;
+            networkReceived += fields.at(0).toULongLong();
+            networkSent += fields.at(8).toULongLong();
+        }
+
+        double diskMiBPerSecond = 0.0;
+        double networkMbitPerSecond = 0.0;
+        double elapsedSeconds = 0.0;
+        if (performanceClock_.isValid()) {
+            elapsedSeconds = static_cast<double>(performanceClock_.nsecsElapsed()) / 1.0e9;
+            if (elapsedSeconds > 0.0) {
+                if (previousTotalTicks_ > 0 && totalTicks > previousTotalTicks_) {
+                    const quint64 deltaTotal = totalTicks - previousTotalTicks_;
+                    const quint64 deltaIdle = idleTicks >= previousIdleTicks_ ? idleTicks - previousIdleTicks_ : 0;
+                    cpuPercent = 100.0 * static_cast<double>(deltaTotal - qMin(deltaTotal, deltaIdle))
+                                 / static_cast<double>(deltaTotal);
+                }
+                const quint64 diskSectors = (diskSectorsRead - qMin(diskSectorsRead, previousDiskSectorsRead_))
+                    + (diskSectorsWritten - qMin(diskSectorsWritten, previousDiskSectorsWritten_));
+                diskMiBPerSecond = static_cast<double>(diskSectors) * 512.0 / 1048576.0 / elapsedSeconds;
+                const quint64 received = networkReceived - qMin(networkReceived, previousNetworkReceived_);
+                const quint64 sent = networkSent - qMin(networkSent, previousNetworkSent_);
+                networkMbitPerSecond = static_cast<double>(received + sent) * 8.0 / 1.0e6 / elapsedSeconds;
+            }
+        }
+        previousTotalTicks_ = totalTicks;
+        previousIdleTicks_ = idleTicks;
+        previousDiskSectorsRead_ = diskSectorsRead;
+        previousDiskSectorsWritten_ = diskSectorsWritten;
+        previousNetworkReceived_ = networkReceived;
+        previousNetworkSent_ = networkSent;
+        performanceClock_.restart();
+
+        cpuChart_->addSample(cpuPercent);
+        memoryChart_->addSample(memoryPercent);
+        diskChart_->addSample(diskMiBPerSecond);
+        networkChart_->addSample(networkMbitPerSecond);
+        const QString load = read(QStringLiteral("/proc/loadavg")).trimmed().section(QLatin1Char(' '), 0, 2);
+        const QString memoryText = totalKiB > 0
+            ? tr("%1 GiB of %2 GiB memory used (%3%)")
                 .arg(static_cast<double>(usedKiB) / 1048576.0, 0, 'f', 2)
                 .arg(static_cast<double>(totalKiB) / 1048576.0, 0, 'f', 2)
-                .arg(100.0 * static_cast<double>(usedKiB) / static_cast<double>(totalKiB), 0, 'f', 1);
-        } else memory = QObject::tr("Memory: unavailable");
-
-        const QString load = read(QStringLiteral("/proc/loadavg")).trimmed();
-        const QStringList cpuDirs = QDir(QStringLiteral("/sys/devices/system/cpu"))
-            .entryList({QStringLiteral("cpu[0-9]*")}, QDir::Dirs);
-        return QStringLiteral("%1\n%2\n%3\n\n%4")
-            .arg(cpu, memory, QObject::tr("Logical processors: %1").arg(cpuDirs.size()),
-                 QObject::tr("System load averages (1, 5, 15 min): %1").arg(load.isEmpty() ? QObject::tr("unavailable") : load));
+                .arg(memoryPercent, 0, 'f', 1)
+            : tr("Memory data unavailable");
+        performanceSummary_->setText(tr("CPU %1%  ·  %2  ·  Disk %3 MiB/s  ·  Network %4 Mbit/s  ·  Load %5")
+            .arg(cpuPercent, 0, 'f', 1).arg(memoryText)
+            .arg(diskMiBPerSecond, 0, 'f', 2).arg(networkMbitPerSecond, 0, 'f', 2)
+            .arg(load.isEmpty() ? tr("unavailable") : load));
     }
 
     static QString networkReport()
@@ -469,7 +613,7 @@ private:
     void refreshCurrent()
     {
         const int index = tabs_->currentIndex() - firstIndex_;
-        if (index == 0) performance_->setPlainText(performanceReport());
+        if (index == 0) refreshPerformance();
         else if (index == 1) history_->setPlainText(appHistoryReport());
         else if (index == 2) users_->setPlainText(usersReport());
         else if (index == 3) details_->setPlainText(detailsReport());
@@ -579,7 +723,18 @@ private:
     QComboBox *startupSelection_ = nullptr;
     QComboBox *serviceSelection_ = nullptr;
     QString statusMessage_;
-    QPlainTextEdit *performance_ = nullptr;
+    QLabel *performanceSummary_ = nullptr;
+    ResourceHistoryChart *cpuChart_ = nullptr;
+    ResourceHistoryChart *memoryChart_ = nullptr;
+    ResourceHistoryChart *diskChart_ = nullptr;
+    ResourceHistoryChart *networkChart_ = nullptr;
+    QElapsedTimer performanceClock_;
+    quint64 previousTotalTicks_ = 0;
+    quint64 previousIdleTicks_ = 0;
+    quint64 previousDiskSectorsRead_ = 0;
+    quint64 previousDiskSectorsWritten_ = 0;
+    quint64 previousNetworkReceived_ = 0;
+    quint64 previousNetworkSent_ = 0;
     QPlainTextEdit *history_ = nullptr;
     QPlainTextEdit *users_ = nullptr;
     QPlainTextEdit *details_ = nullptr;
