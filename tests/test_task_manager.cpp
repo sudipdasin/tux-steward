@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QStringList>
 #include <QTabWidget>
+#include <QTableView>
 
 #include <iostream>
 
@@ -22,6 +23,11 @@ int main(int argc, char **argv)
         QStringLiteral("Disk"), QStringLiteral("Bluetooth"), QStringLiteral("Startup apps"),
         QStringLiteral("Services"), QStringLiteral("GPU")
     };
+    const auto *processTable = manager.findChild<QTableView *>(QStringLiteral("processTable"));
+    if (processTable == nullptr || processTable->model() == nullptr || processTable->model()->columnCount() != 7) {
+        std::cerr << "Process list is missing the parent-process column\n";
+        return 1;
+    }
     for (const QString &name : expected) {
         bool found = false;
         for (int i = 0; i < tabs->count(); ++i) found = found || tabs->tabText(i) == name;
