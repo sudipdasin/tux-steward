@@ -38,5 +38,17 @@ int main(int argc, char **argv)
             return 1;
         }
     }
+    const QStringList bluetoothControls{
+        QStringLiteral("bluetoothDeviceSelect"), QStringLiteral("bluetoothScanButton"),
+        QStringLiteral("bluetoothPairButton"), QStringLiteral("bluetoothAction_connect"),
+        QStringLiteral("bluetoothAction_disconnect"), QStringLiteral("bluetoothAction_trust"),
+        QStringLiteral("bluetoothAction_remove"), QStringLiteral("bluetoothSettingsButton")
+    };
+    for (const QString &name : bluetoothControls) {
+        if (manager.findChild<QWidget *>(name) == nullptr) {
+            std::cerr << "Missing Bluetooth control: " << name.toStdString() << '\n';
+            return 1;
+        }
+    }
     return 0;
 }
