@@ -206,7 +206,7 @@ QString processStateName(const QString &state)
 
 class ProcessTableModel final : public QAbstractTableModel {
 public:
-    enum Column { Name, Cpu, Memory, Pid, Owner, State, ColumnCount };
+    enum Column { Name, Cpu, Memory, Pid, ParentPid, Owner, State, ColumnCount };
     enum Role { PidRole = Qt::UserRole + 1, StartTimeRole, UidRole, CpuRole, MemoryRole };
 
     explicit ProcessTableModel(QObject *parent = nullptr)
@@ -253,6 +253,7 @@ public:
         case Cpu: return QStringLiteral("%1%").arg(entry.cpuPercent, 0, 'f', 1);
         case Memory: return memoryText(entry.residentBytes, entry.memoryPercent);
         case Pid: return entry.pid;
+        case ParentPid: return entry.parentPid;
         case Owner: return entry.owner;
         case State: return processStateName(entry.state);
         default: return {};
@@ -269,6 +270,7 @@ public:
         case Cpu: return QObject::tr("CPU");
         case Memory: return QObject::tr("Memory");
         case Pid: return QObject::tr("PID");
+        case ParentPid: return QObject::tr("Parent PID");
         case Owner: return QObject::tr("User");
         case State: return QObject::tr("Status");
         default: return {};
@@ -344,6 +346,7 @@ public:
         for (const ProcessEntry &entry : entries_) {
             QJsonObject row;
             row.insert(QStringLiteral("pid"), entry.pid);
+            row.insert(QStringLiteral("parent_pid"), entry.parentPid);
             row.insert(QStringLiteral("name"), entry.name);
             row.insert(QStringLiteral("user"), entry.owner);
             row.insert(QStringLiteral("state"), entry.state);
@@ -472,6 +475,7 @@ ProcessManagerWidget::ProcessManagerWidget(QWidget *parent)
     table_->setColumnWidth(ProcessTableModel::Cpu, 90);
     table_->setColumnWidth(ProcessTableModel::Memory, 160);
     table_->setColumnWidth(ProcessTableModel::Pid, 90);
+    table_->setColumnWidth(ProcessTableModel::ParentPid, 110);
     table_->setColumnWidth(ProcessTableModel::Owner, 100);
     table_->setColumnWidth(ProcessTableModel::State, 110);
     processLayout->addWidget(table_, 1);
