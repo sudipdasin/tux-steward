@@ -3,6 +3,7 @@
 - Unreleased: Added direct BlueZ Bluetooth scanning and device actions (pair, connect, disconnect, trust, forget), with pairing prompts, bounded scan duration, and a desktop-settings fallback.
 - Unreleased: Added a GPU tab that reads DRM/sysfs device identity, utilization, and video-memory counters when the active driver exposes them.
 - Unreleased: Added Parent PID to the process table and exported process report so parent/child relationships are visible and reusable in diagnostics.
+- Unreleased: Added per-process disk read/write rates from `/proc/<pid>/io`, with unavailable values identified and rates included in JSON exports.
 
 ## 0.4.0 — 2026-11-16
 

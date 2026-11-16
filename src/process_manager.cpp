@@ -57,6 +57,9 @@ struct ProcessEntry {
     quint64 startTicks = 0;
     quint64 cpuTicks = 0;
     quint64 residentBytes = 0;
+    double diskReadBytesPerSecond = 0.0;
+    double diskWriteBytesPerSecond = 0.0;
+    bool diskIoAvailable = false;
     double cpuPercent = 0.0;
     double memoryPercent = 0.0;
     uint uid = std::numeric_limits<uint>::max();
@@ -107,6 +110,22 @@ bool parseProcessStat(const QString &pidText, ProcessEntry *entry)
         entry->residentBytes = static_cast<quint64>(residentPages) * static_cast<quint64>(pageSize);
     }
     return true;
+}
+
+struct ProcessIoCounters { quint64 readBytes = 0; quint64 writeBytes = 0; };
+
+bool parseProcessIo(const QString &pidText, ProcessIoCounters *counters)
+{
+    QFile file(QStringLiteral("/proc/%1/io").arg(pidText));
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return false;
+    bool readOk = false;
+    bool writeOk = false;
+    while (!file.atEnd()) {
+        const QByteArray line = file.readLine();
+        if (line.startsWith("read_bytes:")) counters->readBytes = line.mid(sizeof("read_bytes:") - 1).trimmed().toULongLong(&readOk);
+        else if (line.startsWith("write_bytes:")) counters->writeBytes = line.mid(sizeof("write_bytes:") - 1).trimmed().toULongLong(&writeOk);
+    }
+    return readOk && writeOk;
 }
 
 QString processOwner(const QString &pidText, uint *uidOut)
@@ -193,6 +212,13 @@ QString memoryText(quint64 bytes, double percent)
     return QStringLiteral("%1 MiB (%2%)").arg(mebibytes, 0, 'f', 1).arg(percent, 0, 'f', 1);
 }
 
+QString ioRateText(double bytesPerSecond)
+{
+    if (bytesPerSecond < 1024.0) return QStringLiteral("%1 B/s").arg(bytesPerSecond, 0, 'f', 0);
+    if (bytesPerSecond < 1024.0 * 1024.0) return QStringLiteral("%1 KiB/s").arg(bytesPerSecond / 1024.0, 0, 'f', 1);
+    return QStringLiteral("%1 MiB/s").arg(bytesPerSecond / (1024.0 * 1024.0), 0, 'f', 1);
+}
+
 QString processStateName(const QString &state)
 {
     if (state == QStringLiteral("R")) return QObject::tr("Running");
@@ -206,8 +232,8 @@ QString processStateName(const QString &state)
 
 class ProcessTableModel final : public QAbstractTableModel {
 public:
-    enum Column { Name, Cpu, Memory, Pid, ParentPid, Owner, State, ColumnCount };
-    enum Role { PidRole = Qt::UserRole + 1, StartTimeRole, UidRole, CpuRole, MemoryRole };
+    enum Column { Name, Cpu, Memory, DiskRead, DiskWrite, Pid, ParentPid, Owner, State, ColumnCount };
+    enum Role { PidRole = Qt::UserRole + 1, StartTimeRole, UidRole, CpuRole, MemoryRole, DiskReadRole, DiskWriteRole };
 
     explicit ProcessTableModel(QObject *parent = nullptr)
         : QAbstractTableModel(parent), cpuClockTicks_(static_cast<double>(::sysconf(_SC_CLK_TCK)))
@@ -243,6 +269,8 @@ public:
         if (role == UidRole) return entry.uid;
         if (role == CpuRole) return entry.cpuPercent;
         if (role == MemoryRole) return QVariant::fromValue(entry.residentBytes);
+        if (role == DiskReadRole) return entry.diskReadBytesPerSecond;
+        if (role == DiskWriteRole) return entry.diskWriteBytesPerSecond;
         if (role == Qt::ToolTipRole) {
             const QString command = processCommand(QString::number(entry.pid));
             return command.isEmpty() ? entry.name : command;
@@ -252,6 +280,8 @@ public:
         case Name: return entry.name;
         case Cpu: return QStringLiteral("%1%").arg(entry.cpuPercent, 0, 'f', 1);
         case Memory: return memoryText(entry.residentBytes, entry.memoryPercent);
+        case DiskRead: return entry.diskIoAvailable ? ioRateText(entry.diskReadBytesPerSecond) : QObject::tr("Unavailable");
+        case DiskWrite: return entry.diskIoAvailable ? ioRateText(entry.diskWriteBytesPerSecond) : QObject::tr("Unavailable");
         case Pid: return entry.pid;
         case ParentPid: return entry.parentPid;
         case Owner: return entry.owner;
@@ -269,6 +299,8 @@ public:
         case Name: return QObject::tr("Process");
         case Cpu: return QObject::tr("CPU");
         case Memory: return QObject::tr("Memory");
+        case DiskRead: return QObject::tr("Disk read");
+        case DiskWrite: return QObject::tr("Disk write");
         case Pid: return QObject::tr("PID");
         case ParentPid: return QObject::tr("Parent PID");
         case Owner: return QObject::tr("User");
@@ -281,6 +313,7 @@ public:
     {
         const qint64 elapsedMs = qMax<qint64>(1, elapsed_.restart());
         QHash<QString, quint64> nextCpuTicks;
+        QHash<QString, ProcessIoCounters> nextIoCounters;
         QList<ProcessEntry> nextEntries;
         QDir proc(QStringLiteral("/proc"));
         const QStringList pids = proc.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
@@ -294,6 +327,17 @@ public:
             }
             const QString identity = QStringLiteral("%1:%2").arg(entry.pid).arg(entry.startTicks);
             nextCpuTicks.insert(identity, entry.cpuTicks);
+            ProcessIoCounters io;
+            if (parseProcessIo(pidText, &io)) {
+                entry.diskIoAvailable = true;
+                if (previousIoCounters_.contains(identity)) {
+                    const ProcessIoCounters previous = previousIoCounters_.value(identity);
+                    const double seconds = static_cast<double>(elapsedMs) / 1000.0;
+                    entry.diskReadBytesPerSecond = static_cast<double>(io.readBytes >= previous.readBytes ? io.readBytes - previous.readBytes : 0) / seconds;
+                    entry.diskWriteBytesPerSecond = static_cast<double>(io.writeBytes >= previous.writeBytes ? io.writeBytes - previous.writeBytes : 0) / seconds;
+                }
+                nextIoCounters.insert(identity, io);
+            }
             if (previousCpuTicks_.contains(identity)) {
                 const quint64 delta = entry.cpuTicks - previousCpuTicks_.value(identity);
                 const double cpuSeconds = static_cast<double>(delta) / cpuClockTicks_;
@@ -311,6 +355,7 @@ public:
         beginResetModel();
         entries_ = std::move(nextEntries);
         previousCpuTicks_ = std::move(nextCpuTicks);
+        previousIoCounters_ = std::move(nextIoCounters);
         endResetModel();
     }
 
@@ -347,6 +392,10 @@ public:
             QJsonObject row;
             row.insert(QStringLiteral("pid"), entry.pid);
             row.insert(QStringLiteral("parent_pid"), entry.parentPid);
+            if (entry.diskIoAvailable) {
+                row.insert(QStringLiteral("disk_read_bytes_per_second"), entry.diskReadBytesPerSecond);
+                row.insert(QStringLiteral("disk_write_bytes_per_second"), entry.diskWriteBytesPerSecond);
+            }
             row.insert(QStringLiteral("name"), entry.name);
             row.insert(QStringLiteral("user"), entry.owner);
             row.insert(QStringLiteral("state"), entry.state);
@@ -364,12 +413,14 @@ public:
     void resetCpuBaseline()
     {
         previousCpuTicks_.clear();
+        previousIoCounters_.clear();
         elapsed_.restart();
     }
 
 private:
     QList<ProcessEntry> entries_;
     QHash<QString, quint64> previousCpuTicks_;
+    QHash<QString, ProcessIoCounters> previousIoCounters_;
     QElapsedTimer elapsed_;
     double cpuClockTicks_ = 100.0;
     double coreCount_ = 1.0;
@@ -393,6 +444,12 @@ protected:
             return source->data(left, ProcessTableModel::MemoryRole).toULongLong()
                 < source->data(right, ProcessTableModel::MemoryRole).toULongLong();
         }
+        if (left.column() == ProcessTableModel::DiskRead)
+            return source->data(left, ProcessTableModel::DiskReadRole).toDouble()
+                < source->data(right, ProcessTableModel::DiskReadRole).toDouble();
+        if (left.column() == ProcessTableModel::DiskWrite)
+            return source->data(left, ProcessTableModel::DiskWriteRole).toDouble()
+                < source->data(right, ProcessTableModel::DiskWriteRole).toDouble();
         if (left.column() == ProcessTableModel::Pid) {
             return source->data(left, ProcessTableModel::PidRole).toLongLong()
                 < source->data(right, ProcessTableModel::PidRole).toLongLong();
@@ -474,6 +531,8 @@ ProcessManagerWidget::ProcessManagerWidget(QWidget *parent)
     table_->horizontalHeader()->setSectionResizeMode(ProcessTableModel::Name, QHeaderView::Stretch);
     table_->setColumnWidth(ProcessTableModel::Cpu, 90);
     table_->setColumnWidth(ProcessTableModel::Memory, 160);
+    table_->setColumnWidth(ProcessTableModel::DiskRead, 110);
+    table_->setColumnWidth(ProcessTableModel::DiskWrite, 110);
     table_->setColumnWidth(ProcessTableModel::Pid, 90);
     table_->setColumnWidth(ProcessTableModel::ParentPid, 110);
     table_->setColumnWidth(ProcessTableModel::Owner, 100);
