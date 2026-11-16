@@ -10,6 +10,7 @@
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QElapsedTimer>
+#include <QEvent>
 #include <QLabel>
 #include <QInputDialog>
 #include <QLineEdit>
@@ -132,10 +133,16 @@ public:
         addReportTab(tr("GPU"), &gpu_);
 
         autoRefresh_ = new QTimer(tabs_);
+        autoRefresh_->setObjectName(QStringLiteral("taskManagerResourceRefreshTimer"));
         autoRefresh_->setInterval(2000);
         connect(autoRefresh_, &QTimer::timeout, tabs_, [this]() { refreshCurrent(); });
-        connect(tabs_, &QTabWidget::currentChanged, tabs_, [this]() { refreshCurrent(); });
-        refreshCurrent();
+        connect(tabs_, &QTabWidget::currentChanged, tabs_, [this]() {
+            updateRefreshSchedule();
+            if (tabs_->isVisible()) refreshCurrent();
+        });
+        tabs_->installEventFilter(this);
+        updateRefreshSchedule();
+        if (tabs_->isVisible()) refreshCurrent();
     }
 
     ~SystemMonitorTabs() override
@@ -149,6 +156,36 @@ public:
     }
 
 private:
+    bool eventFilter(QObject *watched, QEvent *event) override
+    {
+        if (watched == tabs_) {
+            if (event->type() == QEvent::Show) {
+                updateRefreshSchedule();
+                refreshCurrent();
+            } else if (event->type() == QEvent::Hide) {
+                autoRefresh_->stop();
+                performanceClock_.invalidate();
+            }
+        }
+        return QObject::eventFilter(watched, event);
+    }
+
+    void updateRefreshSchedule()
+    {
+        const int index = tabs_->currentIndex() - firstIndex_;
+        // Poll only live, read-only resource views. Opening Startup, Services
+        // or Bluetooth refreshes that view once without recurring commands.
+        const bool liveView = (index >= 0 && index <= 5) || index == 9;
+        if (tabs_->isVisible() && liveView) {
+            if (!autoRefresh_->isActive()) autoRefresh_->start();
+        } else {
+            autoRefresh_->stop();
+        }
+        // Return to Performance with a fresh baseline rather than averaging
+        // counters over time spent hidden or on another page.
+        if (index != 0 || !tabs_->isVisible()) performanceClock_.invalidate();
+    }
+
     void addReportTab(const QString &name, QPlainTextEdit **view)
     {
         QWidget *page = new QWidget(tabs_);

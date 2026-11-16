@@ -1,5 +1,7 @@
 # Changelog
 
+- Unreleased: Fixed resource charts remaining static: live read-only tabs now refresh every two seconds while visible, pause when hidden, and reset Performance sampling after a visibility/page gap. Added timer lifecycle regression coverage; validation pending CI.
+
 - Unreleased: Added direct BlueZ Bluetooth scanning and device actions (pair, connect, disconnect, trust, forget), with pairing prompts, bounded scan duration, and a desktop-settings fallback.
 - Unreleased: Added a GPU tab that reads DRM/sysfs device identity, utilization, and video-memory counters when the active driver exposes them.
 - Unreleased: Added Parent PID to the process table and exported process report so parent/child relationships are visible and reusable in diagnostics.
