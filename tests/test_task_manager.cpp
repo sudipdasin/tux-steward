@@ -20,7 +20,7 @@ int main(int argc, char **argv)
         QStringLiteral("Processes"), QStringLiteral("Performance"), QStringLiteral("App history"),
         QStringLiteral("Users"), QStringLiteral("Details"), QStringLiteral("Network"),
         QStringLiteral("Disk"), QStringLiteral("Bluetooth"), QStringLiteral("Startup apps"),
-        QStringLiteral("Services")
+        QStringLiteral("Services"), QStringLiteral("GPU")
     };
     for (const QString &name : expected) {
         bool found = false;
@@ -49,6 +49,10 @@ int main(int argc, char **argv)
             std::cerr << "Missing Bluetooth control: " << name.toStdString() << '\n';
             return 1;
         }
+    }
+    if (manager.findChild<QWidget *>(QStringLiteral("gpuSummary")) == nullptr) {
+        std::cerr << "Missing GPU metrics view\n";
+        return 1;
     }
     return 0;
 }
