@@ -225,7 +225,6 @@ private:
             connect(pair, &QPushButton::clicked, tabs_, [this]() { runBluetoothAction(QStringLiteral("pair")); });
             connect(settings, &QPushButton::clicked, tabs_, [this, page]() { openBluetoothSettings(page); });
             tabs_->addTab(page, name);
-            *view = nullptr;
             return;
         }
         QComboBox *filter = nullptr;
@@ -507,7 +506,7 @@ private:
             if (bluetoothStatus_ != nullptr && QStandardPaths::findExecutable(QStringLiteral("bluetoothctl")).isEmpty())
                 bluetoothStatus_->setText(tr("Bluetooth control client exited."));
         });
-        bluetoothClient_->start(executable, {});
+        bluetoothClient_->start(executable, QStringList{});
     }
 
     void sendBluetoothCommand(const QString &command)
