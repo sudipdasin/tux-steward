@@ -1,6 +1,6 @@
 # ◉ Tux Steward
 
-**A calmer way to care for Linux.** Native C++17 / Qt Widgets desktop tools, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **0.2.0** is a development alpha under GPL-3.0-or-later. The repository is initially private; a public release requires the owner's instruction.
+**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **0.3.0** is a development alpha under GPL-3.0-or-later. The repository is initially private; a public release requires the owner's instruction.
 
 ## Build and run
 
@@ -12,6 +12,7 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j2
 ctest --test-dir build --output-on-failure
 ./build/tux-steward
+./build/tux-task-manager
 ```
 
 CMake 3.16+, a C++17 compiler, and Qt 5.15+ Core/Widgets development packages are required. There is **no Python application, build or test dependency**. `./run.sh` configures, builds, then starts the C++ application. Limit parallel build jobs on low-memory machines.
@@ -30,6 +31,8 @@ Ensure the install prefix's `bin` directory is on PATH for the desktop menu laun
 
 Seven tabs retain all 25 tools from the original application: Diagnostics, Storage, Maintenance, Performance, Input, Gaming, and Schedules. Search by tool name, group or description. Each tab scrolls; a resizable output pane streams task output. File and Help menus provide JSON export and project information.
 
+The separately launched **Tux Task Manager** monitors Linux processes without needing administrator access. It shows CPU share, resident memory, PID, account name, and process state; search and sort the list; and refreshes every two seconds while visible. End Task sends `SIGTERM`; Force stop sends `SIGKILL` after its own warning. Both controls are limited to the current user's processes, exclude the task manager itself, and recheck process start identity before signaling to guard against PID reuse. Optional JSON reports are saved locally with an explicit warning that command lines and paths may be sensitive.
+
 Tools include storage and mount inspection, journal diagnostics, failed services, APT removal simulation and cache cleaning, journal retention, RAM/zRAM/TLP inspection, reversible XFCE compositor controls, X11 device inspection, Wine/Lutris/Vulkan checks, timer inspection and the distribution SSD trim timer.
 
 Every command is shown in a default-cancel review dialog. Commands execute as argument arrays using `posix_spawnp`, never through a shell. A bounded background worker captures merged stdout/stderr. Reports retain the latest 250,000 output bytes per task and 20 completed tasks. UTF-8 tails can begin with a replacement character when truncation cuts a code point. The live display may skip bursts when its buffer fills; the report retains the independently collected output tail. Export uses an atomic file replacement.
@@ -47,6 +50,7 @@ Reports contain real computer information. Export is local; there is no automati
 - `src/core.cpp`: action catalog, search, dependency checks, confirmation boundary and JSON schema.
 - `src/runner.cpp`: bounded POSIX subprocess runner with deadlines and scoped cleanup.
 - `src/window.cpp`: Qt Widgets GUI; a timer drains bounded worker output without accessing widgets from the worker.
+- `src/process_manager.cpp`: standalone process table, same-user signal controls, and local report export for Tux Task Manager.
 - `tests/test_core.cpp`: real subprocess integration tests and isolated fake PolicyKit checks.
 - `tests/test_ui.cpp`: offscreen GUI construction, search, review cancellation, tab and render checks.
 

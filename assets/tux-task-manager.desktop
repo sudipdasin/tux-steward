@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Tux Task Manager
+Comment=Monitor and manage Linux processes
+Exec=tux-task-manager
+Icon=utilities-system-monitor
+Terminal=false
+Categories=System;Monitor;Utility;
+StartupNotify=true
