@@ -1,10 +1,6 @@
 # Changelog
 
-## Unreleased
-
-- Add live CPU, memory, disk, and network performance charts with two-second sampling.
-- Add Task Manager tabs for performance, app session history, users, process details, network, disks, Bluetooth, startup apps, and services.
-- Add per-user startup toggles and confirmed systemd service controls with Polkit for system-wide actions.
+- Unreleased: Added direct BlueZ Bluetooth scanning and device actions (pair, connect, disconnect, trust, forget), with pairing prompts, bounded scan duration, and a desktop-settings fallback.
 
 ## 0.4.0 — 2026-11-16
 

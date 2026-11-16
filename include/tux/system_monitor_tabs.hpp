@@ -11,10 +11,13 @@
 #include <QGridLayout>
 #include <QElapsedTimer>
 #include <QLabel>
+#include <QInputDialog>
+#include <QLineEdit>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPlainTextEdit>
 #include <QProcess>
+#include <QRegularExpression>
 #include <QPushButton>
 #include <QMessageBox>
 #include <QSaveFile>
@@ -123,7 +126,7 @@ public:
         addReportTab(tr("Details"), &details_);
         addReportTab(tr("Network"), &network_);
         addReportTab(tr("Disk"), &disk_);
-        addReportTab(tr("Bluetooth"), &bluetooth_);
+        addReportTab(tr("Bluetooth"), nullptr);
         addReportTab(tr("Startup apps"), &startup_);
         addReportTab(tr("Services"), &services_);
 
@@ -132,6 +135,16 @@ public:
         connect(autoRefresh_, &QTimer::timeout, tabs_, [this]() { refreshCurrent(); });
         connect(tabs_, &QTabWidget::currentChanged, tabs_, [this]() { refreshCurrent(); });
         refreshCurrent();
+    }
+
+    ~SystemMonitorTabs() override
+    {
+        if (bluetoothClient_ != nullptr && bluetoothClient_->state() != QProcess::NotRunning) {
+            bluetoothClient_->write("scan off\nquit\n");
+            bluetoothClient_->waitForBytesWritten(250);
+            bluetoothClient_->terminate();
+            if (!bluetoothClient_->waitForFinished(500)) bluetoothClient_->kill();
+        }
     }
 
 private:
@@ -157,6 +170,60 @@ private:
             grid->addWidget(diskChart_, 1, 0);
             grid->addWidget(networkChart_, 1, 1);
             layout->addLayout(grid, 1);
+            tabs_->addTab(page, name);
+            return;
+        }
+        if (name == tr("Bluetooth")) {
+            bluetoothStatus_ = new QLabel(page);
+            bluetoothStatus_->setWordWrap(true);
+            layout->addWidget(bluetoothStatus_);
+            auto *deviceRow = new QHBoxLayout;
+            bluetoothDevices_ = new QComboBox(page);
+            bluetoothDevices_->setObjectName(QStringLiteral("bluetoothDeviceSelect"));
+            bluetoothDevices_->setMinimumWidth(240);
+            deviceRow->addWidget(bluetoothDevices_, 1);
+            auto *scan = new QPushButton(tr("Scan"), page);
+            scan->setObjectName(QStringLiteral("bluetoothScanButton"));
+            auto *pair = new QPushButton(tr("Pair"), page);
+            pair->setObjectName(QStringLiteral("bluetoothPairButton"));
+            deviceRow->addWidget(scan);
+            deviceRow->addWidget(pair);
+            layout->addLayout(deviceRow);
+            auto *controlRow = new QHBoxLayout;
+            const auto addBluetoothAction = [this, page, controlRow](const QString &label, const QString &action) {
+                auto *button = new QPushButton(label, page);
+                button->setObjectName(QStringLiteral("bluetoothAction_%1").arg(action));
+                controlRow->addWidget(button);
+                connect(button, &QPushButton::clicked, tabs_, [this, action]() { runBluetoothAction(action); });
+            };
+            addBluetoothAction(tr("Connect"), QStringLiteral("connect"));
+            addBluetoothAction(tr("Disconnect"), QStringLiteral("disconnect"));
+            addBluetoothAction(tr("Trust"), QStringLiteral("trust"));
+            addBluetoothAction(tr("Forget"), QStringLiteral("remove"));
+            auto *settings = new QPushButton(tr("Open Bluetooth settings…"), page);
+            settings->setObjectName(QStringLiteral("bluetoothSettingsButton"));
+            controlRow->addWidget(settings);
+            layout->addLayout(controlRow);
+            bluetoothLog_ = new QPlainTextEdit(page);
+            bluetoothLog_->setReadOnly(true);
+            bluetoothLog_->setMaximumBlockCount(300);
+            bluetoothLog_->setPlaceholderText(tr("Bluetooth events and pairing prompts will appear here."));
+            layout->addWidget(bluetoothLog_, 1);
+            bluetoothScanTimer_ = new QTimer(this);
+            bluetoothScanTimer_->setSingleShot(true);
+            connect(scan, &QPushButton::clicked, tabs_, [this]() {
+                ensureBluetoothClient();
+                sendBluetoothCommand(QStringLiteral("scan on"));
+                if (bluetoothScanTimer_ != nullptr) bluetoothScanTimer_->start(15000);
+                if (bluetoothStatus_ != nullptr) bluetoothStatus_->setText(tr("Scanning for nearby devices for 15 seconds…"));
+            });
+            connect(bluetoothScanTimer_, &QTimer::timeout, tabs_, [this]() {
+                sendBluetoothCommand(QStringLiteral("scan off"));
+                sendBluetoothCommand(QStringLiteral("devices"));
+                if (bluetoothStatus_ != nullptr) bluetoothStatus_->setText(bluetoothReport());
+            });
+            connect(pair, &QPushButton::clicked, tabs_, [this]() { runBluetoothAction(QStringLiteral("pair")); });
+            connect(settings, &QPushButton::clicked, tabs_, [this, page]() { openBluetoothSettings(page); });
             tabs_->addTab(page, name);
             return;
         }
@@ -393,16 +460,121 @@ private:
             const QString address = read(adapters.filePath(name + QStringLiteral("/address"))).trimmed();
             out += QStringLiteral("%1  ·  %2\n").arg(name, address.isEmpty() ? QObject::tr("address unavailable") : address);
         }
-        const QString tool = QStandardPaths::findExecutable(QStringLiteral("bluetoothctl"));
-        if (!tool.isEmpty()) {
-            QProcess process;
-            process.start(tool, {QStringLiteral("show")});
-            if (process.waitForFinished(800) && process.exitStatus() == QProcess::NormalExit) {
-                out += QStringLiteral("\n") + QString::fromLocal8Bit(process.readAllStandardOutput());
+        out += QObject::tr("\nUse Scan to find devices, then Pair or Connect. Pairing confirmation requests appear below.");
+        return out;
+    }
+
+    void openBluetoothSettings(QWidget *parent)
+    {
+        const QString blueman = QStandardPaths::findExecutable(QStringLiteral("blueman-manager"));
+        const QString gnome = QStandardPaths::findExecutable(QStringLiteral("gnome-control-center"));
+        const QString xfce = QStandardPaths::findExecutable(QStringLiteral("xfce4-settings-manager"));
+        if (!blueman.isEmpty()) QProcess::startDetached(blueman, {});
+        else if (!gnome.isEmpty()) QProcess::startDetached(gnome, {QStringLiteral("bluetooth")});
+        else if (!xfce.isEmpty()) QProcess::startDetached(xfce, {});
+        else QMessageBox::information(parent, tr("Bluetooth settings unavailable"),
+            tr("Install or open the Bluetooth settings app provided by your desktop environment."));
+    }
+
+    void ensureBluetoothClient()
+    {
+        if (bluetoothClient_ != nullptr && bluetoothClient_->state() != QProcess::NotRunning) return;
+        const QString executable = QStandardPaths::findExecutable(QStringLiteral("bluetoothctl"));
+        if (executable.isEmpty()) {
+            if (bluetoothStatus_ != nullptr)
+                bluetoothStatus_->setText(tr("bluetoothctl is unavailable. Use desktop Bluetooth settings to pair devices."));
+            return;
+        }
+        bluetoothClient_ = new QProcess(this);
+        bluetoothClient_->setProcessChannelMode(QProcess::SeparateChannels);
+        connect(bluetoothClient_, &QProcess::started, this, [this]() {
+            sendBluetoothCommand(QStringLiteral("agent on"));
+            sendBluetoothCommand(QStringLiteral("default-agent"));
+            sendBluetoothCommand(QStringLiteral("show"));
+            sendBluetoothCommand(QStringLiteral("devices"));
+            sendBluetoothCommand(QStringLiteral("paired-devices"));
+        });
+        connect(bluetoothClient_, &QProcess::readyReadStandardOutput, this, [this]() {
+            handleBluetoothOutput(QString::fromLocal8Bit(bluetoothClient_->readAllStandardOutput()));
+        });
+        connect(bluetoothClient_, &QProcess::readyReadStandardError, this, [this]() {
+            const QString error = QString::fromLocal8Bit(bluetoothClient_->readAllStandardError()).trimmed();
+            if (!error.isEmpty() && bluetoothLog_ != nullptr) bluetoothLog_->appendPlainText(error);
+        });
+        connect(bluetoothClient_, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this,
+                [this](int, QProcess::ExitStatus) {
+            if (bluetoothStatus_ != nullptr && QStandardPaths::findExecutable(QStringLiteral("bluetoothctl")).isEmpty())
+                bluetoothStatus_->setText(tr("Bluetooth control client exited."));
+        });
+        bluetoothClient_->start(executable, QStringList{});
+    }
+
+    void sendBluetoothCommand(const QString &command)
+    {
+        ensureBluetoothClient();
+        if (bluetoothClient_ == nullptr || bluetoothClient_->state() == QProcess::NotRunning) return;
+        bluetoothClient_->write(command.toLocal8Bit() + '\n');
+        if (bluetoothLog_ != nullptr) bluetoothLog_->appendPlainText(QStringLiteral("> %1").arg(command));
+    }
+
+    QString selectedBluetoothAddress() const
+    {
+        if (bluetoothDevices_ == nullptr) return {};
+        const QString address = bluetoothDevices_->currentData().toString();
+        static const QRegularExpression validAddress(QStringLiteral("^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$"));
+        return validAddress.match(address).hasMatch() ? address : QString();
+    }
+
+    void runBluetoothAction(const QString &action)
+    {
+        const QString address = selectedBluetoothAddress();
+        if (address.isEmpty()) {
+            if (bluetoothStatus_ != nullptr) bluetoothStatus_->setText(tr("Select a Bluetooth device first."));
+            return;
+        }
+        if (action == QStringLiteral("pair")) {
+            const QString name = bluetoothDevices_->currentText();
+            const auto answer = QMessageBox::question(tabs_, tr("Pair Bluetooth device"),
+                tr("Pair with %1 (%2)? Make sure this is the device you intend to use.").arg(name, address),
+                QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Cancel);
+            if (answer != QMessageBox::Yes) return;
+        } else if (action == QStringLiteral("remove")) {
+            const auto answer = QMessageBox::warning(tabs_, tr("Forget Bluetooth device"),
+                tr("Remove the pairing for %1? You will need to pair it again to reconnect.").arg(address),
+                QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Cancel);
+            if (answer != QMessageBox::Yes) return;
+        }
+        sendBluetoothCommand(action + QLatin1Char(' ') + address);
+    }
+
+    void handleBluetoothOutput(const QString &output)
+    {
+        const QStringList lines = output.split(QRegularExpression(QStringLiteral("[\\r\\n]+")), Qt::SkipEmptyParts);
+        static const QRegularExpression deviceLine(QStringLiteral("(?:\\[[A-Z]+\\]\\s*)?Device\\s+([0-9A-Fa-f:]{17})\\s+(.+)"));
+        for (const QString &line : lines) {
+            if (bluetoothLog_ != nullptr) bluetoothLog_->appendPlainText(line.trimmed());
+            const auto match = deviceLine.match(line.trimmed());
+            if (match.hasMatch() && bluetoothDevices_ != nullptr) {
+                const QString address = match.captured(1);
+                const QString name = match.captured(2).trimmed();
+                const int existing = bluetoothDevices_->findData(address);
+                if (existing < 0) bluetoothDevices_->addItem(QStringLiteral("%1  ·  %2").arg(name, address), address);
+                else bluetoothDevices_->setItemText(existing, QStringLiteral("%1  ·  %2").arg(name, address));
+            }
+            if (line.contains(QStringLiteral("Confirm passkey"), Qt::CaseInsensitive)
+                || line.contains(QStringLiteral("Authorize service"), Qt::CaseInsensitive)
+                || line.contains(QStringLiteral("confirm value"), Qt::CaseInsensitive)) {
+                const auto answer = QMessageBox::question(tabs_, tr("Confirm Bluetooth pairing"), line.trimmed(),
+                    QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+                sendBluetoothCommand(answer == QMessageBox::Yes ? QStringLiteral("yes") : QStringLiteral("no"));
+            } else if (line.contains(QStringLiteral("Enter PIN code"), Qt::CaseInsensitive)
+                       || line.contains(QStringLiteral("Enter passkey"), Qt::CaseInsensitive)) {
+                bool accepted = false;
+                const QString pin = QInputDialog::getText(tabs_, tr("Bluetooth PIN"), line.trimmed(),
+                    QLineEdit::Normal, {}, &accepted);
+                sendBluetoothCommand(accepted ? pin : QStringLiteral("no"));
             }
         }
-        out += QObject::tr("\nPairing and device controls are provided by the desktop Bluetooth manager.");
-        return out;
     }
 
     static QString startupReport(int filter)
@@ -619,7 +791,11 @@ private:
         else if (index == 3) details_->setPlainText(detailsReport());
         else if (index == 4) network_->setPlainText(networkReport());
         else if (index == 5) disk_->setPlainText(diskReport());
-        else if (index == 6) bluetooth_->setPlainText(bluetoothReport());
+        else if (index == 6) {
+            ensureBluetoothClient();
+            if (bluetoothStatus_ != nullptr && QStandardPaths::findExecutable(QStringLiteral("bluetoothctl")).isEmpty())
+                bluetoothStatus_->setText(bluetoothReport() + tr("\n\nInstall BlueZ tools or use desktop Bluetooth settings to manage devices."));
+        }
         else if (index == 7) {
             const int filter = filters_.value(tr("Startup apps"))->currentIndex();
             refreshStartupChoices(filter);
@@ -741,6 +917,11 @@ private:
     QPlainTextEdit *network_ = nullptr;
     QPlainTextEdit *disk_ = nullptr;
     QPlainTextEdit *bluetooth_ = nullptr;
+    QComboBox *bluetoothDevices_ = nullptr;
+    QLabel *bluetoothStatus_ = nullptr;
+    QPlainTextEdit *bluetoothLog_ = nullptr;
+    QProcess *bluetoothClient_ = nullptr;
+    QTimer *bluetoothScanTimer_ = nullptr;
     QPlainTextEdit *startup_ = nullptr;
     QPlainTextEdit *services_ = nullptr;
     QTimer *autoRefresh_ = nullptr;
