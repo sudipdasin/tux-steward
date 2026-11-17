@@ -1,0 +1,24 @@
+version: 2.1
+jobs:
+  cpp-smoke:
+    docker:
+      - image: ubuntu:22.04
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Install Qt5 and CMake
+          command: apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y cmake g++ qtbase5-dev
+      - run:
+          name: Compile and run tests with one compiler
+          command: |
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=g++
+            cmake --build build --parallel 2
+            ctest --test-dir build --output-on-failure
+workflows:
+  cpp-ci:
+    jobs:
+      - cpp-smoke:
+          filters:
+            branches:
+              only: ci/dual-provider-free-tier-20261117
