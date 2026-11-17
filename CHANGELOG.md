@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0 — 2026-11-17
+
+Replaced blocking, duplicate service-list queries with bounded asynchronous queries shared by the report and action selector. Added three-second query deadlines, 512 KiB scope limits, cancellation on page exit/hide, generation checks against stale results, disabled controls while loading and correct unit/scope selection restoration. Added a reusable one-shot async query helper and responsiveness/lifecycle integration tests using synthetic service executables.
+
+
 ## 0.5.0 — 2026-11-17
 
 Added a read-only Process tree with PID/start-time-aware parent relationships, orphan/cycle handling, search, expand/collapse and details access. Added process snapshot pause/resume and 1/2/5-second refresh choices. Process reports now omit usernames and command lines by default, with an explicit opt-in for detailed local reports. Added deterministic tree fixtures and offscreen integration coverage for snapshots, controls and both export modes.

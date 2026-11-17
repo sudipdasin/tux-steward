@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(TuxSteward VERSION 0.5.0 LANGUAGES CXX)
+project(TuxSteward VERSION 0.6.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -52,6 +52,15 @@ if(BUILD_TESTING)
     target_compile_options(tux-process-explorer-tests PRIVATE -Wall -Wextra -Wpedantic)
     add_test(NAME process-explorer COMMAND tux-process-explorer-tests)
     set_tests_properties(process-explorer PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+        TIMEOUT 30
+    )
+    add_executable(tux-service-query-tests tests/test_service_queries.cpp)
+    target_include_directories(tux-service-query-tests PRIVATE include)
+    target_link_libraries(tux-service-query-tests PRIVATE Qt5::Widgets)
+    target_compile_options(tux-service-query-tests PRIVATE -Wall -Wextra -Wpedantic)
+    add_test(NAME service-queries COMMAND tux-service-query-tests)
+    set_tests_properties(service-queries PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
         TIMEOUT 30
     )
