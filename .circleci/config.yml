@@ -2,13 +2,13 @@ version: 2.1
 jobs:
   cpp-smoke:
     docker:
-      - image: cimg/base:stable
+      - image: ubuntu:22.04
     resource_class: small
     steps:
       - checkout
       - run:
           name: Install Qt5 and CMake
-          command: sudo apt-get update -qq && sudo apt-get install -y cmake g++ qtbase5-dev
+          command: apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y cmake g++ qtbase5-dev
       - run:
           name: Compile and run tests with one compiler
           command: |
