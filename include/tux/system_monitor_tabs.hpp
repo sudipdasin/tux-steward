@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
+#include "tux/async_command.hpp"
+#include <QPointer>
+#include <QMap>
 
 #include <QComboBox>
 #include <QColor>
@@ -137,6 +140,7 @@ public:
         autoRefresh_->setInterval(2000);
         connect(autoRefresh_, &QTimer::timeout, tabs_, [this]() { refreshCurrent(); });
         connect(tabs_, &QTabWidget::currentChanged, tabs_, [this]() {
+            if (tabs_->currentIndex() - firstIndex_ != 8) cancelServiceQueries();
             updateRefreshSchedule();
             if (tabs_->isVisible()) refreshCurrent();
         });
@@ -165,6 +169,7 @@ private:
             } else if (event->type() == QEvent::Hide) {
                 autoRefresh_->stop();
                 performanceClock_.invalidate();
+                cancelServiceQueries();
             }
         }
         return QObject::eventFilter(watched, event);
@@ -272,6 +277,7 @@ private:
         } else if (name == tr("Services")) {
             filter = new QComboBox(page);
             filter->addItems({tr("All services"), tr("System services"), tr("User services")});
+            filter->setObjectName(QStringLiteral("serviceScopeFilter"));
             filter->setCurrentIndex(1);
         }
         if (filter != nullptr) {
@@ -298,11 +304,15 @@ private:
         }
         if (name == tr("Services")) {
             serviceSelection_ = new QComboBox(page);
+            serviceSelection_->setObjectName(QStringLiteral("serviceSelection"));
             serviceSelection_->setMinimumWidth(250);
             auto *row = new QHBoxLayout;
             row->addWidget(serviceSelection_, 1);
             const auto addAction = [this, page, row](const QString &label, const QString &action) {
                 auto *button = new QPushButton(label, page);
+                button->setObjectName(QStringLiteral("serviceAction_%1").arg(action));
+                serviceActionButtons_.append(button);
+                button->setEnabled(false);
                 row->addWidget(button);
                 connect(button, &QPushButton::clicked, tabs_, [this, action]() { changeService(action); });
             };
@@ -314,6 +324,7 @@ private:
         }
         auto *text = new QPlainTextEdit(page);
         if (name == tr("GPU")) text->setObjectName(QStringLiteral("gpuSummary"));
+        if (name == tr("Services")) text->setObjectName(QStringLiteral("serviceReport"));
         text->setReadOnly(true);
         text->setLineWrapMode(QPlainTextEdit::NoWrap);
         text->setPlaceholderText(tr("Reading system information…"));
@@ -756,39 +767,6 @@ private:
         refreshCurrent();
     }
 
-    static QString servicesReport(int filter)
-    {
-        if (!QFileInfo::exists(QStringLiteral("/run/systemd/system")) && filter != 2) {
-            return QObject::tr("This system does not appear to use systemd. Services are managed by the active init system and are not exposed here.");
-        }
-        const QString executable = QStandardPaths::findExecutable(QStringLiteral("systemctl"));
-        if (executable.isEmpty()) return QObject::tr("systemctl is unavailable on this system.");
-        QString out;
-        const auto appendScope = [&out, &executable](bool user) {
-            QProcess process;
-            QStringList args;
-            if (user) args << QStringLiteral("--user");
-            args << QStringLiteral("list-unit-files") << QStringLiteral("--type=service")
-                 << QStringLiteral("--no-legend") << QStringLiteral("--no-pager");
-            process.start(executable, args);
-            if (!process.waitForFinished(1200)) {
-                process.kill();
-                out += QObject::tr("%1 services: query timed out.\n").arg(user ? QObject::tr("User") : QObject::tr("System"));
-                return;
-            }
-            if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
-                out += QObject::tr("%1 services: %2\n").arg(user ? QObject::tr("User") : QObject::tr("System"),
-                    QString::fromLocal8Bit(process.readAllStandardError()).trimmed());
-                return;
-            }
-            out += QObject::tr("%1 services\n\n").arg(user ? QObject::tr("User") : QObject::tr("System"));
-            out += QString::fromLocal8Bit(process.readAllStandardOutput()) + QLatin1Char('\n');
-        };
-        if (filter == 0 || filter == 1) appendScope(false);
-        if (filter == 0 || filter == 2) appendScope(true);
-        return out.isEmpty() ? QObject::tr("No service entries are available.") : out;
-    }
-
     static QString usersReport()
     {
         QString out = QObject::tr("User accounts\n\n");
@@ -885,9 +863,7 @@ private:
         } else if (index == 8) {
             if (!serviceRefresh_.isValid() || serviceRefresh_.elapsed() >= 10000) {
                 const int filter = filters_.value(tr("Services"))->currentIndex();
-                refreshServiceChoices(filter);
-                services_->setPlainText(servicesReport(filter));
-                serviceRefresh_.restart();
+                refreshServices(filter);
             }
         } else if (index == 9) gpu_->setPlainText(gpuReport());
         if (index == 7 && actionStatusByTab_.value(tr("Startup apps")) != nullptr)
@@ -896,40 +872,106 @@ private:
             actionStatusByTab_.value(tr("Services"))->setText(statusMessage_);
     }
 
-    void refreshServiceChoices(int filter)
+    void setServiceActionsEnabled(bool enabled)
     {
-        if (serviceSelection_ == nullptr) return;
-        const QString selected = serviceSelection_->currentData().toMap().value(QStringLiteral("unit")).toString();
+        if (serviceSelection_ != nullptr) serviceSelection_->setEnabled(enabled);
+        for (auto *button : serviceActionButtons_) button->setEnabled(enabled);
+    }
+
+    void cancelServiceQueries()
+    {
+        if (!serviceLoading_) return;
+        ++serviceGeneration_;
+        serviceLoading_ = false;
+        serviceRefresh_.invalidate();
+        const auto queries = serviceQueries_;
+        serviceQueries_.clear();
+        for (const auto &query : queries) if (query != nullptr) query->cancel();
+        setServiceActionsEnabled(false);
+    }
+
+    void refreshServices(int filter)
+    {
+        if (!tabs_->isVisible()) return;
+        if (serviceLoading_ && serviceActiveFilter_ == filter) return;
+        cancelServiceQueries();
+        const auto previousSelection = serviceSelection_->currentData().toMap();
         serviceSelection_->clear();
-        const QString systemctl = QStandardPaths::findExecutable(QStringLiteral("systemctl"));
-        if (systemctl.isEmpty()) return;
+        setServiceActionsEnabled(false);
+        const auto executable = QStandardPaths::findExecutable(QStringLiteral("systemctl"));
+        if (executable.isEmpty()) {
+            services_->setPlainText(tr("systemctl is unavailable on this system."));
+            serviceRefresh_.restart();
+            return;
+        }
+        const int generation = ++serviceGeneration_;
+        serviceActiveFilter_ = filter;
+        serviceLoading_ = true;
+        serviceReports_.clear();
+        serviceChoices_.clear();
+        servicePending_ = filter == 0 ? 2 : 1;
+        services_->setPlainText(tr("Loading services… You can keep using the other tabs."));
+        serviceRefresh_.restart();
         for (bool user : {false, true}) {
             if ((filter == 1 && user) || (filter == 2 && !user)) continue;
-            QProcess process;
             QStringList args;
             if (user) args << QStringLiteral("--user");
             args << QStringLiteral("list-unit-files") << QStringLiteral("--type=service")
                  << QStringLiteral("--no-legend") << QStringLiteral("--no-pager");
-            process.start(systemctl, args);
-            if (!process.waitForFinished(700) || process.exitCode() != 0) { process.kill(); continue; }
-            const QStringList lines = QString::fromLocal8Bit(process.readAllStandardOutput()).split(QLatin1Char('\n'));
-            for (const QString &line : lines) {
-                const QString unit = line.simplified().section(QLatin1Char(' '), 0, 0);
-                if (!unit.endsWith(QStringLiteral(".service"))) continue;
-                QVariantMap data;
-                data.insert(QStringLiteral("unit"), unit);
-                data.insert(QStringLiteral("user"), user);
-                serviceSelection_->addItem(filter == 0
-                    ? QStringLiteral("%1  ·  %2").arg(unit, user ? tr("User") : tr("System")) : unit, data);
-            }
+            auto *query = AsyncCommand::run(this, executable, args, 3000, 512 * 1024,
+                [this, generation, user, filter, previousSelection](AsyncCommandResult result) {
+                    if (generation != serviceGeneration_) return;
+                    const auto scope = user ? tr("User") : tr("System");
+                    QString report = scope + tr(" services\n\n");
+                    if (result.ok()) {
+                        report += QString::fromLocal8Bit(result.output);
+                        const auto lines = QString::fromLocal8Bit(result.output).split(QLatin1Char('\n'));
+                        for (const auto &line : lines) {
+                            const auto unit = line.simplified().section(QLatin1Char(' '), 0, 0);
+                            if (!unit.endsWith(QStringLiteral(".service"))) continue;
+                            QVariantMap data;
+                            data.insert(QStringLiteral("unit"), unit);
+                            data.insert(QStringLiteral("user"), user);
+                            serviceChoices_.append(qMakePair(unit, data));
+                        }
+                    } else if (result.timedOut) report += tr("Query timed out after 3 seconds.");
+                    else if (result.truncated) report += tr("Service output exceeded 512 KiB; this scope's actions are unavailable.");
+                    else report += tr("Query failed: %1\n%2").arg(result.error.isEmpty()
+                        ? tr("exit code %1").arg(result.exitCode) : result.error,
+                        QString::fromLocal8Bit(result.output));
+                    serviceReports_.insert(user ? 1 : 0, report);
+                    if (--servicePending_ != 0) return;
+                    serviceLoading_ = false;
+                    serviceQueries_.clear();
+                    QStringList reports;
+                    for (int scopeIndex : {0, 1}) if (serviceReports_.contains(scopeIndex))
+                        reports.append(serviceReports_.value(scopeIndex));
+                    services_->setPlainText(reports.join(QStringLiteral("\n\n")));
+                    std::sort(serviceChoices_.begin(), serviceChoices_.end(),
+                        [](const QPair<QString, QVariantMap> &left, const QPair<QString, QVariantMap> &right) {
+                            if (left.first == right.first)
+                                return left.second.value(QStringLiteral("user")).toBool()
+                                    < right.second.value(QStringLiteral("user")).toBool();
+                            return left.first < right.first;
+                        });
+                    for (const auto &choice : serviceChoices_) {
+                        const bool isUser = choice.second.value(QStringLiteral("user")).toBool();
+                        serviceSelection_->addItem(filter == 0
+                            ? QStringLiteral("%1  ·  %2").arg(choice.first, isUser ? tr("User") : tr("System"))
+                            : choice.first, choice.second);
+                    }
+                    for (int index = 0; index < serviceSelection_->count(); ++index)
+                        if (serviceSelection_->itemData(index).toMap() == previousSelection)
+                            serviceSelection_->setCurrentIndex(index);
+                    setServiceActionsEnabled(serviceSelection_->count() > 0);
+                });
+            serviceQueries_.append(query);
         }
-        const int restore = serviceSelection_->findData(selected);
-        if (restore >= 0) serviceSelection_->setCurrentIndex(restore);
     }
 
     void changeService(const QString &action)
     {
-        if (serviceSelection_ == nullptr || serviceSelection_->currentIndex() < 0) return;
+        if (serviceLoading_ || serviceSelection_ == nullptr || serviceSelection_->currentIndex() < 0) return;
         const QVariantMap data = serviceSelection_->currentData().toMap();
         const QString unit = data.value(QStringLiteral("unit")).toString();
         const bool user = data.value(QStringLiteral("user")).toBool();
@@ -980,6 +1022,14 @@ private:
     QHash<QString, QLabel *> actionStatusByTab_;
     QComboBox *startupSelection_ = nullptr;
     QComboBox *serviceSelection_ = nullptr;
+    QVector<QPushButton *> serviceActionButtons_;
+    QVector<QPointer<AsyncCommand>> serviceQueries_;
+    QMap<int, QString> serviceReports_;
+    QVector<QPair<QString, QVariantMap>> serviceChoices_;
+    int serviceGeneration_ = 0;
+    int servicePending_ = 0;
+    int serviceActiveFilter_ = -1;
+    bool serviceLoading_ = false;
     QString statusMessage_;
     QLabel *performanceSummary_ = nullptr;
     ResourceHistoryChart *cpuChart_ = nullptr;

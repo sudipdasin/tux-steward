@@ -1,6 +1,6 @@
 # ◉ Tux Steward
 
-**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **0.5.0** is a development alpha under GPL-3.0-or-later. The repository is initially private; a public release requires the owner's instruction.
+**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **0.6.0** is a development alpha under GPL-3.0-or-later. The repository is initially private; a public release requires the owner's instruction.
 
 ## Build and run
 
@@ -39,6 +39,8 @@ Every command is shown in a default-cancel review dialog. Commands execute as ar
 
 Tasks have a 120-second deadline. Timeout cleanup targets only that invocation's process group. Elevated descendants may resist termination and remain running. System changes can be partially applied; a timeout does not undo them. The GUI blocks normal closing while a task is active.
 
+Service lists load asynchronously with one query per requested scope. The report and selector share results; controls are disabled during loading. Queries have a three-second timeout and a 512 KiB output limit per scope. Leaving the page, hiding the window or changing scope cancels obsolete queries. Truncated or failed scope results do not populate action choices. These limits apply to read-only listing; service mutations and Bluetooth workflows have separate lifecycles.
+
 ## Scope and privacy
 
 Input toggling, game installation/removal, custom weekly maintenance plans and filesystem repair remain **planned**, as in the previous version. No broad deletion, process killing by name, kernel purge, third-party repository setup, or security-update disabling is added. Journal retention permanently removes archived logs after explicit review. Capability and permissions vary by distribution and session.
@@ -56,4 +58,4 @@ Reports contain real computer information. Export is local; there is no automati
 - `tests/test_process_explorer.cpp`: hierarchy fixtures, real snapshots, pause/speed lifecycle and both export modes.
 - `tests/test_ui.cpp`: offscreen GUI construction, search, review cancellation, tab and render checks.
 
-`ctest` runs all four test executables. GUI tests use Qt's offscreen platform; they do not prove real desktop PolicyKit or hardware compatibility. See [validation](docs/VALIDATION.md), [roadmap](docs/ROADMAP.md), and [contributing](CONTRIBUTING.md).
+`ctest` runs all five test executables. GUI tests use Qt's offscreen platform; they do not prove real desktop PolicyKit or hardware compatibility. See [validation](docs/VALIDATION.md), [roadmap](docs/ROADMAP.md), and [contributing](CONTRIBUTING.md).
