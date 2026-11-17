@@ -17,6 +17,8 @@ jobs:
             ctest --test-dir build --output-on-failure
 workflows:
   cpp-ci:
+    # CI_MASTER_TOGGLE: managed by scripts/ci-master-toggle.py
+    when: true
     jobs:
       - cpp-smoke:
           filters:
