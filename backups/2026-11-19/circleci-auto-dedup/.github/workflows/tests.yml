@@ -1,0 +1,89 @@
+name: C++ VM validation
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        default: ""
+permissions:
+  contents: read
+jobs:
+  vm-validation:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            compiler: g++
+            mode: Release
+          - os: ubuntu-24.04
+            compiler: clang++
+            mode: Debug
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          fetch-depth: 0
+      - name: Retain the tested public foundation
+        run: git merge-base --is-ancestor cdfdf7c0867e41af1220854306224dfa058aef89 HEAD
+      - name: Use official Ubuntu mirrors on the disposable VM
+        run: |
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt
+          fi
+          if [ -f /etc/apt/apt-mirrors-security.txt ]; then
+            printf '%s\n' 'https://security.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors-security.txt
+          fi
+      - name: Install VM build and virtual desktop dependencies
+        timeout-minutes: 8
+        run: sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq && sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y cmake g++ clang qtbase5-dev dpkg-dev file desktop-file-utils xvfb xauth
+      - name: Build and test on the VM virtual X desktop
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DTUX_TEST_QPA_PLATFORM=xcb
+          cmake --build build --parallel 2
+          xvfb-run -a ctest --test-dir build --output-on-failure
+      - name: Package and verify
+        run: |
+          cpack --config build/CPackConfig.cmake
+          cmake -DPACKAGE_DIR="$PWD/build/packages" -DRELEASE_VERSION="$(./build/tux-steward --version | awk '{print $NF}')" -P tests/verify_packages.cmake
+      - name: Verify upgrade from the previous public beta
+        run: |
+          curl --fail --location --retry 3 --output /tmp/tux-steward-baseline.deb https://github.com/sudipdasin/tux-steward/releases/download/v0.9.0-beta.1/tux-steward_0.9.0.beta1_amd64.deb
+          echo 'ad638c2fd1910b9886f031ee71546cef93b08bb3111447f81d38961c8b2c13f0  /tmp/tux-steward-baseline.deb' | sha256sum -c -
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-baseline.deb
+          tux-steward --version | grep -F '0.9.0-beta.1'
+      - name: Verify upgrade through the 1.0 public beta
+        run: |
+          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --output /tmp/tux-steward-v1.deb https://github.com/sudipdasin/tux-steward/releases/download/v1.0.0-beta.1/tux-steward_1.0.0.beta1_amd64.deb
+          echo 'a14d946cbf8cea118f7d8b1ef11c44c42f794412bcbb55cbf73621adc1be41fb  /tmp/tux-steward-v1.deb' | sha256sum -c -
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-v1.deb
+          tux-steward --version | grep -F '1.0.0-beta.1'
+      - name: Install and launch all three native applications
+        run: |
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y ./build/packages/*.deb
+          for app in tux-steward tux-task-manager tux-setup; do
+            "$app" --version
+            result=0
+            timeout 4s xvfb-run -a "$app" > "/tmp/${app}-smoke.log" 2>&1 || result=$?
+            if [ "$result" -ne 124 ]; then cat "/tmp/${app}-smoke.log"; exit 1; fi
+          done
+          sudo apt-get remove -y tux-steward
+          hash -r
+          test ! -e /usr/bin/tux-steward
+          test ! -e /usr/bin/tux-task-manager
+          test ! -e /usr/bin/tux-setup
+      - name: Retain test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vm-results-${{ matrix.os }}-${{ matrix.mode }}
+          path: |
+            build/Testing/Temporary/
+            build/ui-preview.png
+            build/ui-preview.png.report.png
