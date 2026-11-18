@@ -81,6 +81,7 @@ int main(int argc,char** argv) {
             reviewed=reviewed && preview->toPlainText().contains("Filesystem");
             details->setChecked(false);
             reviewed=reviewed && preview->toPlainText()==summary;
+            if (argc>1) reviewed=reviewed && widget->grab().save(QString::fromLocal8Bit(argv[1])+".report.png");
             QTimer::singleShot(0,[&]{
                 for (auto* candidate:QApplication::topLevelWidgets())
                     if (auto* dialog=qobject_cast<QFileDialog*>(candidate)) {
@@ -98,6 +99,15 @@ int main(int argc,char** argv) {
     const auto records=QJsonDocument::fromJson(saved.readAll()).object().value("results").toArray();
     if (records.size()!=1 || records.first().toObject().value("code").toInt()!=0 ||
         records.first().toObject().contains("output") || records.first().toObject().contains("command")) return 7;
+    // Cancelling a detailed preview must not remember consent or overwrite the saved summary.
+    QTimer::singleShot(0,[&]{
+        for (auto* widget:QApplication::topLevelWidgets()) if (widget->objectName()=="reportReview") {
+            widget->findChild<QCheckBox*>("reportDetails")->setChecked(true);
+            qobject_cast<QDialog*>(widget)->reject(); break;
+        }
+    });
+    for (auto* item:window.findChildren<QAction*>())
+        if (item->text().startsWith("Export session")) { item->trigger(); break; }
     bool reset=false;
     QTimer::singleShot(0,[&]{
         for (auto* widget:QApplication::topLevelWidgets()) if (widget->objectName()=="reportReview") {

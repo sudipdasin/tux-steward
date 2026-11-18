@@ -71,3 +71,4 @@ jobs:
           path: |
             build/Testing/Temporary/
             build/ui-preview.png
+            build/ui-preview.png.report.png
