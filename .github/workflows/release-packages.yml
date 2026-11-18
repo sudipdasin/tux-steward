@@ -5,7 +5,7 @@ on:
       tag:
         description: Existing published prerelease tag
         required: true
-        default: v0.8.0-beta.3
+        default: v0.9.0-beta.1
 permissions:
   contents: write
 jobs:
@@ -24,12 +24,12 @@ jobs:
           [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]
           test "$(git describe --tags --exact-match HEAD)" = "$RELEASE_TAG"
           sudo apt-get update -qq
-          sudo apt-get install -y cmake g++ qtbase5-dev dpkg-dev file
+          sudo apt-get install -y cmake g++ qtbase5-dev dpkg-dev file desktop-file-utils xvfb xauth
       - name: Build and test
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DTUX_TEST_QPA_PLATFORM=xcb
           cmake --build build --parallel 2
-          ctest --test-dir build --output-on-failure
+          xvfb-run -a ctest --test-dir build --output-on-failure
           test "v$(./build/tux-steward --version | awk '{print $NF}')" = "$RELEASE_TAG"
       - name: Package and verify
         run: |
@@ -47,15 +47,16 @@ jobs:
           sudo apt-get install -y ./build/packages/*.deb
           tux-steward --version
           tux-task-manager --version
-          for app in tux-steward tux-task-manager; do
+          for app in tux-steward tux-task-manager tux-setup; do
             result=0
-            timeout 3s env QT_QPA_PLATFORM=offscreen "$app" > "/tmp/${app}-smoke.log" 2>&1 || result=$?
+            timeout 4s xvfb-run -a "$app" > "/tmp/${app}-smoke.log" 2>&1 || result=$?
             if [ "$result" -ne 124 ]; then cat "/tmp/${app}-smoke.log"; exit 1; fi
           done
           sudo apt-get remove -y tux-steward
           hash -r
           test ! -e /usr/bin/tux-steward
           test ! -e /usr/bin/tux-task-manager
+          test ! -e /usr/bin/tux-setup
           ! command -v tux-steward
       - name: Attach verified packages to existing prerelease
         env:

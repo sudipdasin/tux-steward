@@ -25,7 +25,7 @@ execute_process(COMMAND "${DPKG_DEB}" --extract "${deb}" "${extracted}" RESULT_V
 if(NOT result EQUAL 0)
     message(FATAL_ERROR "Cannot extract Debian package")
 endif()
-foreach(program IN ITEMS tux-steward tux-task-manager)
+foreach(program IN ITEMS tux-steward tux-task-manager tux-setup)
     set(binary "${extracted}/usr/bin/${program}")
     execute_process(COMMAND "${binary}" --version RESULT_VARIABLE result OUTPUT_VARIABLE version)
     string(FIND "${version}" "${RELEASE_VERSION}" found)

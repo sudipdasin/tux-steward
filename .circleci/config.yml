@@ -8,7 +8,7 @@ jobs:
       - checkout
       - run:
           name: Install Qt5 and CMake
-          command: apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y cmake g++ qtbase5-dev dpkg-dev file
+          command: apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y cmake g++ qtbase5-dev dpkg-dev file desktop-file-utils
       - run:
           name: Compile and run tests with one compiler
           command: |

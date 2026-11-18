@@ -1,15 +1,45 @@
-name: C++ build and tests
+name: C++ VM validation
 on:
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  vm-validation:
     strategy:
+      fail-fast: false
       matrix:
-        compiler: [g++, clang++]
+        include:
+          - os: ubuntu-22.04
+            compiler: g++
+            mode: Release
+          - os: ubuntu-24.04
+            compiler: clang++
+            mode: Debug
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get install -y cmake qtbase5-dev
-      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
-      - run: cmake --build build -j2
-      - run: ctest --test-dir build --output-on-failure
+      - name: Install VM build and virtual desktop dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y cmake g++ clang qtbase5-dev dpkg-dev file desktop-file-utils xvfb xauth
+      - name: Build and test on the VM virtual X desktop
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DTUX_TEST_QPA_PLATFORM=xcb
+          cmake --build build --parallel 2
+          xvfb-run -a ctest --test-dir build --output-on-failure
+      - name: Package and verify
+        run: |
+          cpack --config build/CPackConfig.cmake
+          cmake -DPACKAGE_DIR="$PWD/build/packages" -DRELEASE_VERSION="$(./build/tux-steward --version | awk '{print $NF}')" -P tests/verify_packages.cmake
+      - name: Install and launch all three native applications
+        run: |
+          sudo apt-get install -y ./build/packages/*.deb
+          for app in tux-steward tux-task-manager tux-setup; do
+            "$app" --version
+            result=0
+            timeout 4s xvfb-run -a "$app" > "/tmp/${app}-smoke.log" 2>&1 || result=$?
+            if [ "$result" -ne 124 ]; then cat "/tmp/${app}-smoke.log"; exit 1; fi
+          done
+          sudo apt-get remove -y tux-steward
+          hash -r
+          test ! -e /usr/bin/tux-steward
+          test ! -e /usr/bin/tux-task-manager
+          test ! -e /usr/bin/tux-setup
