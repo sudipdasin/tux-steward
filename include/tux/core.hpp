@@ -7,7 +7,7 @@
 #include <functional>
 
 namespace tux {
-inline constexpr auto Version = "0.6.0";
+inline constexpr auto Version = "0.7.0";
 inline constexpr int OutputLimit = 250000;
 struct Action {
     QString id, group, title, description;
@@ -32,3 +32,4 @@ using Output = std::function<void(const QByteArray&)>;
 Result runCommand(const QStringList& command, int timeoutMs=120000, Output output={});
 Result execute(const QString& id, bool confirmed=false, int timeoutMs=120000, Output output={});
 }
+

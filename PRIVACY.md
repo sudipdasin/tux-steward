@@ -16,3 +16,8 @@ The initial source review used private reference scripts without copying their c
 ## Process report defaults
 
 Task Manager's standard export omits usernames and command lines. A detailed report requires an explicit opt-in for each export and may contain local paths or secrets in arguments. Process names, PIDs, timestamps and activity metrics remain in standard reports; standard does not mean anonymous. No report is uploaded automatically.
+
+
+## Startup undo data
+
+Startup changes create owner-only undo records under the user's Tux Steward configuration directory. These records contain original desktop-entry contents and can include local paths or command arguments. Keep this directory private and do not add its contents to source control or support attachments. No startup data is uploaded automatically. Developer attribution remains intentional.

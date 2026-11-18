@@ -1,16 +1,13 @@
-# Validation — 0.2.0 C++ migration
+# Validation — 0.7.0 Startup Apps upgrade
 
-Executed on Linux with GCC 14.2, Qt 5.15.15 and CMake 3.31.6:
+Executed locally on Linux with GCC 14.2 and Qt 5.15.15:
 
-- C++17 Debug build completed for the application, core library, UI library and both native test executables.
-- CTest: 2/2 suites passed. The core executable reported 55 checks, including actual subprocess integration tests and a real storage diagnostic.
-- Core coverage: all 25 action IDs, mutation confirmation, admin classification, missing tools, Wayland gating, case-insensitive search, merged stderr, nonzero/signal exits, large-output bounds, live output before completion, partial results on timeout, descendants holding the output pipe, closed output streams, split UTF-8, callback errors, literal arguments, invalid commands and exact fake PolicyKit argument handling.
-- Offscreen Qt GUI tests passed: 25 tools, seven tabs, search filtering, default-cancel review, cancellation without execution, real read-only diagnostic completion, local JSON export and widget rendering. The rendered default window was visually inspected.
-- Installation into a temporary prefix succeeded for the executable, desktop entry, license and privacy document.
-- AddressSanitizer + UndefinedBehaviorSanitizer build: both CTest suites passed. Leak detection was disabled for this run; this is not a leak-free certification.
-- Application dynamic dependencies resolved; no Python dependency was found. Current source and test files are C++.
+- C++ build succeeded for both applications and all native test targets.
+- All six CTest suites passed: core, ui, task-manager-tabs, process-explorer, service-queries and autostart. Total local CTest duration: 7.46 seconds; this is test runtime, not a performance benchmark.
+- The startup executable reported 104 backend/GUI checks when also rendering its fixture view. Coverage includes XDG priority, section-scoped Hidden parsing, user-only overrides, exact-content undo including CRLF/BOM, desktop restrictions, TryExec, duplicate keys, bounded reads, corrupt journals, external edits, backup failure, symbolic paths, confirmation cancellation, source filters and search.
+- The startup fixture view was rendered offscreen and visually inspected. All mutation tests used temporary directories and synthetic desktop entries, without changing real sign-in configuration or executing desktop-entry commands.
 
-Reproduce the normal checks:
+Reproduce:
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
@@ -18,10 +15,6 @@ cmake --build build -j2
 ctest --test-dir build --output-on-failure
 ```
 
-For sanitizer checks, configure a separate build directory with `-DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"` and `-DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"`, then build and run CTest with `ASAN_OPTIONS=detect_leaks=0`.
+CI policy is preserved: CircleCI is primary on main; GitHub Actions is a manual fallback. A local pass does not imply a remote pass. The pull request records subsequent primary-pipeline status.
 
-Not executed: real Linux Mint/XFCE display-server sessions, real PolicyKit prompts, privileged system mutations, hardware tuning or real Wine game lifecycle. The offscreen render does not establish real desktop or hardware compatibility. GitHub Actions is configured for GCC and Clang; local results are not a claim that remote CI has passed.
-
-The standalone Tux Task Manager and its process details dialog are not covered by the existing offscreen UI test suite. Its process sampling, details view and signal behavior still need interactive validation on a disposable test account. Do not treat the system-tools UI tests as validation of the standalone process manager.
-
-The repository remains a development alpha. Reports can contain private system data; only synthetic test fixtures belong in source control. No public release has been published.
+Limitations: no real desktop sign-in was exercised; eligibility is not proof of successful launch. Real PolicyKit, service mutations, Bluetooth/GPU hardware, disk-full/power-loss interruption and full Linux Mint/XFCE sessions remain unverified. The one-step undo journal is not a complete backup system and refuses changed targets rather than overwriting them. Keep undo contents private.

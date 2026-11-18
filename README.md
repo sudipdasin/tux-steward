@@ -1,6 +1,6 @@
 # ◉ Tux Steward
 
-**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **0.6.0** is a development alpha under GPL-3.0-or-later. The repository is initially private; a public release requires the owner's instruction.
+**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **0.7.0** is a development alpha under GPL-3.0-or-later. The repository is initially private; a public release requires the owner's instruction.
 
 ## Build and run
 
@@ -41,6 +41,14 @@ Tasks have a 120-second deadline. Timeout cleanup targets only that invocation's
 
 Service lists load asynchronously with one query per requested scope. The report and selector share results; controls are disabled during loading. Queries have a three-second timeout and a 512 KiB output limit per scope. Leaving the page, hiding the window or changing scope cancels obsolete queries. Truncated or failed scope results do not populate action choices. These limits apply to read-only listing; service mutations and Bluetooth workflows have separate lifecycles.
 
+## Startup applications
+
+The Startup Apps tab has a searchable, sortable table, effective user/system source filters, eligibility explanations, details, enable/disable and **Undo last change**. It honors absolute `XDG_CONFIG_HOME` / `XDG_CONFIG_DIRS`, filename precedence, section-scoped `Hidden`, `OnlyShowIn`, `NotShowIn` and `TryExec`. It also identifies GNOME's disabled-autostart extension. These are eligibility checks, not proof that a program will start successfully. Enable/disable changes `Hidden`; other desktop restrictions stay in effect. Entries are never launched by this manager.
+
+Changes affect only the user's override directory; original system defaults are not edited. Each successful change replaces that entry's previous one-step undo record. Records contain private configuration contents and are stored with owner-only access under the user's Tux Steward configuration directory. Undo restores prior contents or removes a newly created override, and refuses a target edited outside the app. Symlink write targets, malformed entries and files above 256 KiB are refused. A failed/interrupted write can require manual recovery from the retained journal; this is not a full configuration backup system.
+
+The implementation follows the [Desktop Application Autostart Specification](https://specifications.freedesktop.org/autostart/latest/). User entries and system overrides are distinguished by source; source does not establish an application's vendor or trustworthiness.
+
 ## Scope and privacy
 
 Input toggling, game installation/removal, custom weekly maintenance plans and filesystem repair remain **planned**, as in the previous version. No broad deletion, process killing by name, kernel purge, third-party repository setup, or security-update disabling is added. Journal retention permanently removes archived logs after explicit review. Capability and permissions vary by distribution and session.
@@ -53,9 +61,12 @@ Reports contain real computer information. Export is local; there is no automati
 - `src/runner.cpp`: bounded POSIX subprocess runner with deadlines and scoped cleanup.
 - `src/window.cpp`: Qt Widgets GUI; a timer drains bounded worker output without accessing widgets from the worker.
 - `src/process_manager.cpp`: standalone process table, same-user signal controls, and local report export for Tux Task Manager.
+- `src/autostart.cpp`: bounded XDG entry discovery, user overrides and conservative one-step undo.
+- `tests/test_autostart.cpp`: startup parsing, override/undo edge cases and offscreen GUI tests.
 - `tests/test_core.cpp`: real subprocess integration tests and isolated fake PolicyKit checks.
 - `include/tux/process_tree.hpp`: iterative parent resolution with cycle, duplicate and reused-parent protection.
 - `tests/test_process_explorer.cpp`: hierarchy fixtures, real snapshots, pause/speed lifecycle and both export modes.
 - `tests/test_ui.cpp`: offscreen GUI construction, search, review cancellation, tab and render checks.
 
-`ctest` runs all five test executables. GUI tests use Qt's offscreen platform; they do not prove real desktop PolicyKit or hardware compatibility. See [validation](docs/VALIDATION.md), [roadmap](docs/ROADMAP.md), and [contributing](CONTRIBUTING.md).
+`ctest` runs all six test executables. GUI tests use Qt's offscreen platform; they do not prove real desktop PolicyKit or hardware compatibility. See [validation](docs/VALIDATION.md), [roadmap](docs/ROADMAP.md), and [contributing](CONTRIBUTING.md).
+
