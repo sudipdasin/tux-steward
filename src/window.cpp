@@ -200,7 +200,9 @@ void Window::exportReport() {
     auto* notice=new QLabel("Summary includes tool names, exit codes and timings. Command lines and raw diagnostics are omitted. Review the preview before sharing; nothing is uploaded.");
     notice->setWordWrap(true); layout->addWidget(notice);
     auto* details=new QCheckBox("Include commands and diagnostic output (may contain private data)");
-    details->setObjectName("reportDetails"); layout->addWidget(details);
+    details->setObjectName("reportDetails");
+    details->setStyleSheet("QCheckBox::indicator{width:16px;height:16px;} QCheckBox::indicator:unchecked{border:1px solid #9aacc5;background:#0b1220;}");
+    layout->addWidget(details);
     auto* preview=new QPlainTextEdit; preview->setObjectName("reportPreview");
     preview->setReadOnly(true); preview->setAccessibleName("Exact JSON report preview"); layout->addWidget(preview,1);
     QByteArray bytes;
