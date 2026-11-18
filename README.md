@@ -1,6 +1,6 @@
 # ◉ Tux Steward
 
-**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **0.8.0-beta.1** is a beta preparation checkpoint under GPL-3.0-or-later. The repository is initially private; a public release requires the owner's instruction.
+**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **0.8.0-beta.2** is a beta development checkpoint under GPL-3.0-or-later. The repository remains private. The published beta preview is tagged v0.8.0-beta.1; this branch continues development.
 
 ## Build and run
 
@@ -74,3 +74,5 @@ Reports contain real computer information. Export is local; there is no automati
 ## Beta packages and readiness
 
 See [Beta readiness](docs/BETA_READINESS.md) for the validation matrix, package instructions and remaining desktop gates. `cpack --config build/CPackConfig.cmake` creates DEB and TGZ artifacts after a Release build. These packages are distribution-specific and unsigned. Both executables support display-free `--help` and `--version`. The generated version header keeps the GUI, CLI and package version aligned. CI remains CircleCI on main, with GitHub Actions as a manual fallback.
+
+Task Manager blocks normal window closing while a service mutation is active. Complete or cancel pending desktop authorization, then wait for the command result. Session shutdown or forced termination can still interrupt the interface; this is not an undo guarantee.

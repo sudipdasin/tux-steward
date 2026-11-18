@@ -1,7 +1,7 @@
-# Beta readiness — 0.8.0-beta.1
+# Beta readiness — 0.8.0-beta.2
 
-This is a private beta preparation checkpoint, not a certified release candidate.
-No release, tag, repository visibility change or automatic upload is performed by packaging.
+This is the next private beta development checkpoint. The published v0.8.0-beta.1 preview is available for evaluation; real desktop gates remain unverified.
+Packaging does not publish a release, create tags or change repository visibility.
 
 ## Evidence and remaining gates
 
@@ -27,7 +27,7 @@ cpack --config build/CPackConfig.cmake
 cmake -DPACKAGE_DIR="$PWD/build/packages" -DRELEASE_VERSION="$(./build/tux-steward --version | awk '{print $NF}')" -P tests/verify_packages.cmake
 ```
 
-Packages appear in `build/packages`. The Debian version is `0.8.0~beta1`, allowing a later stable 0.8.0 upgrade. Dependencies are detected from the build distribution: a Debian-built package is not automatically compatible with Mint. The TGZ also needs compatible Qt/system libraries; it is not a standalone application. CI stores final packages and SHA256SUMS as private job artifacts. Checksums verify file integrity, not publisher authenticity; packages are unsigned.
+Packages appear in `build/packages`. The Debian version is `0.8.0~beta2`, allowing a later stable 0.8.0 upgrade. Dependencies are detected from the build distribution: a Debian-built package is not automatically compatible with Mint. The TGZ also needs compatible Qt/system libraries; it is not a standalone application. CI stores final packages and SHA256SUMS as private job artifacts. Checksums verify file integrity, not publisher authenticity; packages are unsigned.
 
 Run either installed binary with `--version` or `--help` without a display. Run the actual GUI as a normal desktop user. Never run the GUI as root.
 
@@ -35,7 +35,7 @@ Run either installed binary with `--version` or `--help` without a display. Run 
 
 Process termination requires kernel pidfd support and permission. Unsupported or blocked facilities refuse the action; there is no numeric-PID fallback. A stable handle prevents signaling a replacement process after PID reuse, while the kernel still checks signaling permissions.
 
-Service mutations disable overlapping actions and retain only a bounded output tail. They do not have a forced authentication timeout: a desktop authentication agent must complete or cancel the request. Maintenance timeouts cannot guarantee that an elevated descendant stopped or that partial changes were undone.
+Service mutations disable overlapping actions, retain only a bounded output tail and block normal window closing until completion or failure. Forced termination or session shutdown is outside this guard. They do not have a forced authentication timeout: a desktop authentication agent must complete or cancel the request. Maintenance timeouts cannot guarantee that an elevated descendant stopped or that partial changes were undone.
 
 Keep exports and startup undo records private. Default report redaction does not make all process names or metrics anonymous. Review diagnostics before sharing. Developer attribution remains in the project; machine logs, personal configuration and local source paths must not be shipped.
 

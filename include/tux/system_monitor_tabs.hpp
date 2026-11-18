@@ -18,6 +18,7 @@
 #include <QGridLayout>
 #include <QElapsedTimer>
 #include <QEvent>
+#include <QCloseEvent>
 #include <QLabel>
 #include <QInputDialog>
 #include <QLineEdit>
@@ -150,6 +151,7 @@ public:
             if (tabs_->isVisible()) refreshCurrent();
         });
         tabs_->installEventFilter(this);
+        watchCloseWindow();
         updateRefreshSchedule();
         if (tabs_->isVisible()) refreshCurrent();
     }
@@ -165,10 +167,31 @@ public:
     }
 
 private:
+    void watchCloseWindow()
+    {
+        QWidget *window = tabs_->window();
+        if (closeWindow_ == window) return;
+        if (closeWindow_ != nullptr && closeWindow_ != tabs_)
+            closeWindow_->removeEventFilter(this);
+        closeWindow_ = window;
+        if (window != tabs_) window->installEventFilter(this);
+    }
+
     bool eventFilter(QObject *watched, QEvent *event) override
     {
+        if ((watched == closeWindow_ || watched == tabs_) && event->type() == QEvent::Close
+            && serviceMutationBusy_) {
+            static_cast<QCloseEvent *>(event)->ignore();
+            // Normal closing must not destroy a command awaiting PolicyKit or
+            // detach the interface from a partially applied service operation.
+            QMessageBox::information(tabs_, tr("Service action still running"),
+                tr("Wait for the service action to finish before closing Task Manager. "
+                   "If authorization is open, complete or cancel it in your desktop authentication dialog."));
+            return true;
+        }
         if (watched == tabs_) {
             if (event->type() == QEvent::Show) {
+                watchCloseWindow();
                 updateRefreshSchedule();
                 refreshCurrent();
             } else if (event->type() == QEvent::Hide) {
@@ -1091,6 +1114,7 @@ private:
     }
 
     QTabWidget *tabs_ = nullptr;
+    QPointer<QWidget> closeWindow_;
     int firstIndex_ = 0;
     QHash<QString, QComboBox *> filters_;
     QHash<QString, QLabel *> actionStatusByTab_;

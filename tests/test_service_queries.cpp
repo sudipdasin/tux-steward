@@ -5,6 +5,7 @@
 #include <QElapsedTimer>
 #include <QTemporaryDir>
 #include <QThread>
+#include <QMainWindow>
 #include <cstdio>
 #include <iostream>
 #include <stdexcept>
@@ -103,9 +104,11 @@ int main(int argc, char **argv) {
         }
         qputenv("PATH",temp.path().toUtf8());
         qputenv("TUX_SERVICE_TEST_MODE","slow");
-        QTabWidget tabs;
+        QMainWindow window;
+        QTabWidget tabs(&window);
+        window.setCentralWidget(&tabs);
         new SystemMonitorTabs(&tabs);
-        tabs.resize(1000,700); tabs.show(); app.processEvents();
+        window.resize(1000,700); window.show(); app.processEvents();
         auto *scope=tabs.findChild<QComboBox *>("serviceScopeFilter");
         auto *selection=tabs.findChild<QComboBox *>("serviceSelection");
         auto *report=tabs.findChild<QPlainTextEdit *>("serviceReport");
@@ -158,6 +161,14 @@ int main(int argc, char **argv) {
         });
         start->click();
         require(!start->isEnabled() && !selection->isEnabled(),"service mutation is single-flight");
+        bool closeWarningSeen=false;
+        QTimer::singleShot(0,[&] {
+            if (auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget())) {
+                closeWarningSeen=box->windowTitle()=="Service action still running";
+                box->button(QMessageBox::Ok)->click();
+            }
+        });
+        require(!window.close() && closeWarningSeen && window.isVisible(),"window close refused while service action is running");
         start->click(); // Disabled controls cannot enqueue a second mutation.
         require(spin([&]{return start->isEnabled();}),"mutation completion refreshes list");
         require(calls.open(QIODevice::ReadOnly) && calls.readAll()=="user\nuser\n","one mutation plus one refresh, without duplicate action"); calls.close();
@@ -181,7 +192,8 @@ int main(int argc, char **argv) {
         scope->setCurrentIndex(2);
         require(spin([&]{return report->toPlainText().contains("512 KiB");}),"oversized service output reported");
         require(selection->count()==0 && !start->isEnabled(),"truncated results cannot drive actions");
-        tabs.hide(); heartbeat.stop();
+        require(window.close() && !window.isVisible(),"window closes after service action completion and failed-start recovery");
+        heartbeat.stop();
         qputenv("PATH",oldPath);
         std::cout<<"Async query lifecycle, responsiveness, bounds, scope cancellation and shared service results passed\n";
         return 0;
