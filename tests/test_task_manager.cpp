@@ -32,12 +32,18 @@ int main(int argc, char **argv)
     }
     for (const QString &name : expected) {
         bool found = false;
-        for (int i = 0; i < tabs->count(); ++i) found = found || tabs->tabText(i) == name;
+        for (const auto *group : manager.findChildren<QTabWidget *>())
+            for (int i = 0; i < group->count(); ++i) found = found || group->tabText(i) == name;
         if (!found) {
             std::cerr << "Missing Task Manager tab: " << name.toStdString() << '\n';
             return 1;
         }
     }
+    const auto *experimental=manager.findChild<QTabWidget *>("experimentalResourceTabs");
+    if (!experimental || tabs->indexOf(const_cast<QTabWidget *>(experimental))<0 || experimental->count()!=4) return 20;
+    if (!experimental->isAncestorOf(manager.findChild<QWidget *>("serviceAction_start"))
+        || !experimental->isAncestorOf(manager.findChild<QWidget *>("startupDisable"))
+        || !experimental->isAncestorOf(manager.findChild<QWidget *>("bluetoothScanButton"))) return 21;
     const QStringList charts{QStringLiteral("cpuUsageChart"), QStringLiteral("memoryUsageChart"),
                              QStringLiteral("diskIoChart"), QStringLiteral("networkIoChart")};
     for (const QString &name : charts) {
@@ -112,3 +118,4 @@ int main(int argc, char **argv)
     manager.hide();
     return 0;
 }
+

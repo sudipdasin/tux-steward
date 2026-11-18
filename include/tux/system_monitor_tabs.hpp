@@ -141,12 +141,32 @@ public:
         addReportTab(tr("Services"), &services_);
         addReportTab(tr("GPU"), &gpu_);
 
+        // Keep page identities stable when grouping unfinished workflows.
+        for (int i=0;i<10;++i) resourcePages_.append(tabs_->widget(firstIndex_+i));
+        experimentalTabs_ = new QTabWidget(tabs_);
+        experimentalTabs_->setObjectName(QStringLiteral("experimentalResourceTabs"));
+        for (int i : {6,7,8,9}) {
+            QWidget *page=resourcePages_[i];
+            const int oldIndex=tabs_->indexOf(page);
+            const QString title=tabs_->tabText(oldIndex);
+            tabs_->removeTab(oldIndex);
+            auto *notice=new QLabel(tr("Experimental beta feature — desktop/hardware validation is incomplete. Review changes carefully and report problems."),page);
+            notice->setWordWrap(true);
+            static_cast<QVBoxLayout *>(page->layout())->insertWidget(0,notice);
+            experimentalTabs_->addTab(page,title);
+        }
+        tabs_->addTab(experimentalTabs_,tr("Experimental"));
         autoRefresh_ = new QTimer(tabs_);
         autoRefresh_->setObjectName(QStringLiteral("taskManagerResourceRefreshTimer"));
         autoRefresh_->setInterval(2000);
         connect(autoRefresh_, &QTimer::timeout, tabs_, [this]() { refreshCurrent(); });
         connect(tabs_, &QTabWidget::currentChanged, tabs_, [this]() {
-            if (tabs_->currentIndex() - firstIndex_ != 8) cancelServiceQueries();
+            if (currentView() != 8) cancelServiceQueries();
+            updateRefreshSchedule();
+            if (tabs_->isVisible()) refreshCurrent();
+        });
+        connect(experimentalTabs_, &QTabWidget::currentChanged, this, [this]() {
+            if (currentView()!=8) cancelServiceQueries();
             updateRefreshSchedule();
             if (tabs_->isVisible()) refreshCurrent();
         });
@@ -167,6 +187,13 @@ public:
     }
 
 private:
+    int currentView() const
+    {
+        QWidget *page=tabs_->currentWidget();
+        if (page==experimentalTabs_) page=experimentalTabs_->currentWidget();
+        return resourcePages_.indexOf(page);
+    }
+
     void watchCloseWindow()
     {
         QWidget *window = tabs_->window();
@@ -205,7 +232,7 @@ private:
 
     void updateRefreshSchedule()
     {
-        const int index = tabs_->currentIndex() - firstIndex_;
+        const int index = currentView();
         // Poll only live, read-only resource views. Opening Startup, Services
         // or Bluetooth refreshes that view once without recurring commands.
         const bool liveView = (index >= 0 && index <= 5) || index == 9;
@@ -912,7 +939,7 @@ private:
 
     void refreshCurrent()
     {
-        const int index = tabs_->currentIndex() - firstIndex_;
+        const int index = currentView();
         if (index == 0) refreshPerformance();
         else if (index == 1) history_->setPlainText(appHistoryReport());
         else if (index == 2) users_->setPlainText(usersReport());
@@ -1115,6 +1142,8 @@ private:
 
     QTabWidget *tabs_ = nullptr;
     QPointer<QWidget> closeWindow_;
+    QTabWidget *experimentalTabs_ = nullptr;
+    QVector<QWidget *> resourcePages_;
     int firstIndex_ = 0;
     QHash<QString, QComboBox *> filters_;
     QHash<QString, QLabel *> actionStatusByTab_;

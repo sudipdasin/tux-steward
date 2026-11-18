@@ -1,0 +1,58 @@
+name: Build release packages
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing published prerelease tag
+        required: true
+        default: v0.8.0-beta.3
+permissions:
+  contents: write
+jobs:
+  packages:
+    runs-on: ubuntu-22.04
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+      - name: Verify release tag and install build dependencies
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]
+          test "$(git describe --tags --exact-match HEAD)" = "$RELEASE_TAG"
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake g++ qtbase5-dev dpkg-dev file
+      - name: Build and test
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel 2
+          ctest --test-dir build --output-on-failure
+          test "v$(./build/tux-steward --version | awk '{print $NF}')" = "$RELEASE_TAG"
+      - name: Package and verify
+        run: |
+          export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          cpack --config build/CPackConfig.cmake
+          cmake -DPACKAGE_DIR="$PWD/build/packages" -DRELEASE_VERSION="${RELEASE_TAG#v}" -P tests/verify_packages.cmake
+          cd build/packages
+          sha256sum *.deb *.tar.gz > SHA256SUMS
+      - name: Install, launch and uninstall package
+        run: |
+          sudo apt-get install -y ./build/packages/*.deb
+          tux-steward --version
+          tux-task-manager --version
+          for app in tux-steward tux-task-manager; do
+            result=0
+            timeout 3s env QT_QPA_PLATFORM=offscreen "$app" > "/tmp/${app}-smoke.log" 2>&1 || result=$?
+            if [ "$result" -ne 124 ]; then cat "/tmp/${app}-smoke.log"; exit 1; fi
+          done
+          sudo apt-get remove -y tux-steward
+          ! command -v tux-steward
+      - name: Attach verified packages to existing prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(gh release view "$RELEASE_TAG" --json isPrerelease --jq .isPrerelease)" = true
+          gh release upload "$RELEASE_TAG" build/packages/*.deb build/packages/*.tar.gz build/packages/SHA256SUMS

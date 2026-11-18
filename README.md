@@ -1,6 +1,6 @@
 # ◉ Tux Steward
 
-**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **0.8.0-beta.2** is a beta development checkpoint under GPL-3.0-or-later. The repository remains private. The published beta preview is tagged v0.8.0-beta.1; this branch continues development.
+**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **0.8.0-beta.3** is a beta development checkpoint under GPL-3.0-or-later. This public testing beta is experimental; report issues and contribute improvements through GitHub.
 
 ## Build and run
 
@@ -29,7 +29,7 @@ Ensure the install prefix's `bin` directory is on PATH for the desktop menu laun
 
 ## Tools and interface
 
-Seven tabs retain all 25 tools from the original application: Diagnostics, Storage, Maintenance, Performance, Input, Gaming, and Schedules. Search by tool name, group or description. Each tab scrolls; a resizable output pane streams task output. File and Help menus provide JSON export and project information.
+Eight tabs retain all 25 tools from the original application: Diagnostics, Storage, Maintenance, Performance, Input, Gaming, and Schedules. Search by tool name, group or description. Each tab scrolls; a resizable output pane streams task output. File and Help menus provide JSON export and project information.
 
 The separately launched **Tux Task Manager** monitors Linux processes without needing administrator access. It shows CPU share, resident memory, PID, account name, and process state; search and sort the list; and offers 1-, 2- or 5-second refresh while visible, plus pause/resume and one-shot manual refresh. The Process tree tab groups the same snapshot by parent/child identity, supports search and expand/collapse, and opens details on double-click. Missing or reused parents become roots; the tree never offers recursive process termination. Open process details with the Details button or double-click a row to inspect its parent, executable, working directory, and command line. End Task sends `SIGTERM`; Force stop sends `SIGKILL` after its own warning. Both controls are limited to the current user's processes, exclude the task manager itself, and recheck process start identity and all UID fields, then signal through a stable kernel pidfd handle. Unsupported pidfd facilities refuse termination safely. Standard local JSON reports omit usernames and command lines. Detailed exports require an explicit checkbox on each export. Process names and metrics can still reveal activity; review reports before sharing.
 
@@ -76,3 +76,22 @@ Reports contain real computer information. Export is local; there is no automati
 See [Beta readiness](docs/BETA_READINESS.md) for the validation matrix, package instructions and remaining desktop gates. `cpack --config build/CPackConfig.cmake` creates DEB and TGZ artifacts after a Release build. These packages are distribution-specific and unsigned. Both executables support display-free `--help` and `--version`. The generated version header keeps the GUI, CLI and package version aligned. CI remains CircleCI on main, with GitHub Actions as a manual fallback.
 
 Task Manager blocks normal window closing while a service mutation is active. Complete or cancel pending desktop authorization, then wait for the command result. Session shutdown or forced termination can still interrupt the interface; this is not an undo guarantee.
+
+## Download, install and give feedback
+
+Download the amd64 `.deb` from [GitHub Releases](https://github.com/sudipdasin/tux-steward/releases). The package is built on Ubuntu 22.04 and targets compatible Ubuntu/Mint systems; compatibility with other distributions is not guaranteed.
+
+```sh
+grep 'amd64.deb$' SHA256SUMS | sha256sum -c -
+sudo apt install ./tux-steward_0.8.0~beta3_amd64.deb
+tux-steward
+tux-task-manager
+# Uninstall the applications (your private user configuration is retained):
+sudo apt remove tux-steward
+```
+
+Check the package checksum from the same release. SHA256SUMS covers both binary assets; download both or check only the matching line. Packages are unsigned. The TGZ is an alternative for compatible systems with Qt 5.15 runtime libraries; extract it and run `usr/bin/tux-steward` or `usr/bin/tux-task-manager` within the extracted directory. It is not a self-contained AppImage.
+
+Regular tabs focus on inspection and monitoring. Settings-changing maintenance tools are grouped in **Experimental**. Task Manager's **Experimental** tab contains Bluetooth, Startup apps, Services and GPU pages, with explicit incomplete-validation notices. Process End Task remains available with confirmation and identity checks.
+
+Use **Help → Send feedback** or [open an issue](https://github.com/sudipdasin/tux-steward/issues/new/choose). Include version, distribution, desktop, reproduction steps and whether you used an Experimental page. Review and redact diagnostics before sharing. No feedback is sent automatically. See [CONTRIBUTING.md](CONTRIBUTING.md) to build and improve the project.

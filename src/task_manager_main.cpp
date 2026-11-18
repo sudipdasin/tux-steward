@@ -4,6 +4,10 @@
 
 #include <QApplication>
 #include <QMainWindow>
+#include <QMenuBar>
+#include <QAction>
+#include <QDesktopServices>
+#include <QUrl>
 #include <QMessageBox>
 
 #include <unistd.h>
@@ -27,6 +31,13 @@ int main(int argc, char *argv[])
     window.setMinimumSize(620, 420);
     window.resize(1160, 740);
     window.setCentralWidget(new ProcessManagerWidget(&window));
+    auto *help=window.menuBar()->addMenu("Help");
+    QObject::connect(help->addAction("Send feedback…"), &QAction::triggered, &window, [] {
+        QDesktopServices::openUrl(QUrl("https://github.com/sudipdasin/tux-steward/issues/new/choose"));
+    });
+    QObject::connect(help->addAction("Contribute…"), &QAction::triggered, &window, [] {
+        QDesktopServices::openUrl(QUrl("https://github.com/sudipdasin/tux-steward/blob/main/CONTRIBUTING.md"));
+    });
     window.setStyleSheet(
         "QMainWindow,QWidget{background:#101827;color:#e7eef9;font-family:'Sans Serif';}"
         "#pageTitle{color:#f1f5fb;font-size:27px;font-weight:700;}"

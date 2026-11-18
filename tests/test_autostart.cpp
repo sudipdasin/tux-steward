@@ -122,8 +122,10 @@ int main(int argc,char** argv) {
         environment.set("XDG_CONFIG_HOME",paths.configHome.toUtf8());
         write(sys("ui-demo.desktop"),QByteArray(Desktop).replace("Name=Demo","Name=UI Demo"));
         QTabWidget tabs; new SystemMonitorTabs(&tabs); tabs.resize(1100,760); tabs.show(); app.processEvents();
-        int startup=-1; for (int index=0;index<tabs.count();++index) if (tabs.tabText(index)=="Startup apps") startup=index;
-        require(startup>=0,"startup tab exists"); tabs.setCurrentIndex(startup); app.processEvents();
+        auto *experimental=tabs.findChild<QTabWidget *>("experimentalResourceTabs");
+        require(experimental!=nullptr,"experimental group exists");
+        int startup=-1; for (int index=0;index<experimental->count();++index) if (experimental->tabText(index)=="Startup apps") startup=index;
+        require(startup>=0,"startup tab exists"); experimental->setCurrentIndex(startup); tabs.setCurrentWidget(experimental); app.processEvents();
         auto *table=tabs.findChild<QTableWidget *>("startupTable");
         auto *search=tabs.findChild<QLineEdit *>("startupSearch");
         auto *disable=tabs.findChild<QPushButton *>("startupDisable");

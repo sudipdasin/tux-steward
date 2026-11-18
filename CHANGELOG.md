@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.0-beta.3 — 2026-11-18
+
+Public testing beta preparation: grouped unvalidated Bluetooth/startup/service/GPU workflows in Task Manager Experimental tabs and settings-changing maintenance tools in Experimental. Added feedback/contribution menus, issue templates, install/uninstall guidance and contributor code map. Added manual Ubuntu release packaging with verification and asset upload to an existing prerelease. No hardware validation claims.
+
 ## 0.8.0-beta.2 — 2026-11-18
 
 Task Manager now refuses normal window closing during an active service mutation or pending authorization. A clear notice explains completing/cancelling authorization before exit. Added regression coverage using a real top-level window and synthetic service commands, including close recovery after command startup failure. Unified prerelease counters for application and Debian package versions. The published beta.1 tag remains unchanged.

@@ -1,5 +1,7 @@
 #include "tux/window.hpp"
 #include <QAction>
+#include <QDesktopServices>
+#include <QUrl>
 #include <QCloseEvent>
 #include <QFileDialog>
 #include <QHBoxLayout>
@@ -30,6 +32,7 @@ QString guide(const QString& group) {
     if (group=="Input") return "X11 device inspection. Device toggling with timed recovery is planned; permanent disabling is not available.";
     if (group=="Gaming") return "Check Wine, Lutris and graphics support. Managed game prefixes and installers are planned.";
     if (group=="Schedules") return "Inspect timers or enable the distribution SSD trim timer. Custom cleanup plans are planned.";
+    if (group=="Experimental") return "Experimental beta tools that change settings. Real desktop validation is incomplete. Read every command and keep backups before testing.";
     return "Review system health without changing settings. Reports may contain private machine information; review before sharing.";
 }
 }
@@ -47,6 +50,8 @@ Window::Window() {
     connect(exportAction,&QAction::triggered,this,[this]{exportReport();});
     file->addSeparator(); connect(file->addAction("Quit"),&QAction::triggered,this,[this]{close();});
     auto* help=menuBar()->addMenu("&Help");
+    connect(help->addAction("Send feedback…"),&QAction::triggered,this,[]{QDesktopServices::openUrl(QUrl("https://github.com/sudipdasin/tux-steward/issues/new/choose"));});
+    connect(help->addAction("Contribute…"),&QAction::triggered,this,[]{QDesktopServices::openUrl(QUrl("https://github.com/sudipdasin/tux-steward/blob/main/CONTRIBUTING.md"));});
     connect(help->addAction("About & roadmap"),&QAction::triggered,this,[this]{
         QMessageBox::about(this,"Tux Steward",QString("Tux Steward %1\nDeveloped by Sudip Das\nC++17 · Qt Widgets\nGPL-3.0-or-later; no warranty. See LICENSE for terms.\n\nPlanned: managed Wine games, recovery-safe input controls, maintenance plans.").arg(Version));
     });
@@ -54,7 +59,7 @@ Window::Window() {
     auto* layout=new QVBoxLayout(center); layout->setContentsMargins(24,16,24,18); layout->setSpacing(12);
     auto* brand=new QLabel("◉  TUX STEWARD"); brand->setStyleSheet("color:#66dfbf;font-size:16px;font-weight:bold;"); layout->addWidget(brand);
     auto* heading=new QLabel("A calmer way to care for Linux."); heading->setStyleSheet("font-size:27px;font-weight:bold;"); layout->addWidget(heading);
-    layout->addWidget(new QLabel(QString("Version %1 beta preparation · C++17 · Native desktop tools").arg(Version)));
+    layout->addWidget(new QLabel(QString("Version %1 public beta · C++17 · Native desktop tools").arg(Version)));
     status_=new QLabel("Ready · Choose a tool to review its command"); status_->setObjectName("taskStatus"); status_->setStyleSheet("color:#66dfbf;"); layout->addWidget(status_);
     auto* searchRow=new QHBoxLayout;
     searchRow->addWidget(new QLabel("Find tools"));
@@ -63,13 +68,13 @@ Window::Window() {
     connect(clear,&QPushButton::clicked,search_,&QLineEdit::clear);
     auto* splitter=new QSplitter(Qt::Vertical); layout->addWidget(splitter,1);
     tabs_=new QTabWidget; tabs_->setObjectName("toolTabs"); splitter->addWidget(tabs_);
-    const QStringList groups={"Diagnostics","Storage","Maintenance","Performance","Input","Gaming","Schedules"};
+    const QStringList groups={"Diagnostics","Storage","Maintenance","Performance","Input","Gaming","Schedules","Experimental"};
     for (const auto& group:groups) {
         auto* scroll=new QScrollArea; scroll->setWidgetResizable(true); auto* page=new QWidget;
         auto* items=new QVBoxLayout(page); items->setContentsMargins(16,14,16,14);
         auto* intro=new QLabel(guide(group)); intro->setWordWrap(true); intro->setStyleSheet("color:#9aacc5;"); items->addWidget(intro);
         for (int i=0;i<tux::actions().size();++i) {
-            const auto& tool=tux::actions()[i]; if (tool.group!=group) continue;
+            const auto& tool=tux::actions()[i]; if ((group=="Experimental") ? !tool.changes : (tool.changes || tool.group!=group)) continue;
             auto* row=new QWidget; auto* columns=new QHBoxLayout(row); columns->setContentsMargins(0,6,0,6);
             auto* button=new QPushButton(tool.title); button->setObjectName("tool_"+tool.id); button->setMinimumWidth(230); columns->addWidget(button);
             auto* description=new QVBoxLayout; auto* details=new QLabel(tool.description); details->setWordWrap(true); description->addWidget(details);

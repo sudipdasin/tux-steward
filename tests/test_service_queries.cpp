@@ -114,8 +114,12 @@ int main(int argc, char **argv) {
         auto *report=tabs.findChild<QPlainTextEdit *>("serviceReport");
         auto *start=tabs.findChild<QPushButton *>("serviceAction_start");
         require(scope && selection && report && start,"service integration controls");
-        int services=-1;
-        for (int i=0;i<tabs.count();++i) if (tabs.tabText(i)=="Services") services=i;
+        auto *experimental=tabs.findChild<QTabWidget *>("experimentalResourceTabs");
+        require(experimental!=nullptr,"experimental group exists");
+        int services=tabs.indexOf(experimental);
+        int servicePage=-1;
+        for (int i=0;i<experimental->count();++i) if (experimental->tabText(i)=="Services") servicePage=i;
+        require(servicePage>=0,"experimental services page exists"); experimental->setCurrentIndex(servicePage);
         require(services>=0,"services tab exists");
         QFile calls(callsPath); calls.open(QIODevice::WriteOnly | QIODevice::Truncate); calls.close();
         QElapsedTimer navigation; navigation.start(); tabs.setCurrentIndex(services);

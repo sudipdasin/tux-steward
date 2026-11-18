@@ -23,7 +23,11 @@ int main(int argc,char** argv) {
     tux::Window window; window.show(); app.processEvents();
     auto* tabs=window.findChild<QTabWidget*>("toolTabs");
     auto* search=window.findChild<QLineEdit*>("toolSearch");
-    if (window.toolCount()!=25 || !tabs || tabs->count()!=7 || !search) return 1;
+    if (window.toolCount()!=25 || !tabs || tabs->count()!=8 || !search) return 1;
+    int experimental=-1;
+    for (int i=0;i<tabs->count();++i) if (tabs->tabText(i)=="Experimental") experimental=i;
+    if (experimental<0 || !tabs->widget(experimental)->isAncestorOf(window.findChild<QPushButton *>("tool_apt-clean"))) return 20;
+    if (tabs->widget(experimental)->isAncestorOf(window.findChild<QPushButton *>("tool_storage"))) return 21;
     search->setText("Vulkan"); app.processEvents();
     int visible=0;
     for (auto* button:window.findChildren<QPushButton*>())
@@ -77,3 +81,4 @@ int main(int argc,char** argv) {
     std::cout<<"GUI: 25 tools, seven tabs, search, default-cancel review, real diagnostic completion, JSON export and render passed\n";
     return 0;
 }
+
