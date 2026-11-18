@@ -97,7 +97,7 @@ if(BUILD_TESTING)
     add_test(NAME process-control COMMAND tux-process-control-tests)
     set_tests_properties(process-control PROPERTIES TIMEOUT 15)
     add_executable(tux-setup-tests tests/test_setup.cpp)
-    target_link_libraries(tux-setup-tests PRIVATE tux-setup-ui)
+    target_link_libraries(tux-setup-tests PRIVATE tux-setup-ui tux-core)
     add_test(NAME setup-wizard COMMAND tux-setup-tests $<TARGET_FILE:tux-steward> $<TARGET_FILE:tux-task-manager> $<TARGET_FILE:tux-setup> ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/PRIVACY.md)
     set_tests_properties(setup-wizard PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=${TUX_TEST_QPA_PLATFORM}" TIMEOUT 30)
     add_test(NAME install-layout COMMAND ${CMAKE_COMMAND}
