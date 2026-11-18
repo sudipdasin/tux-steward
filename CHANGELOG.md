@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0-beta.1 — 2026-11-19
+
+Added maintenance report review with exact JSON preview, summary-by-default allowlist, explicit per-export detailed consent, cancel and atomic save. Added report privacy fixtures and UI preview/toggle/reset/save coverage. Existing detailed diagnostics remain available locally and by opt-in export. Added bounded network timeouts/retries for VM dependency installation. All prior tools and setup safeguards retained; hardware and authorization limits remain experimental.
+
 ## 1.0.0-beta.1 — 2026-11-18
 
 Public testing milestone retaining the complete 0.9 foundation: cross-tab search counts, automatic result navigation, empty-result guidance and keyboard search. Automatic dual-VM regression validation now runs for pull requests and main. Owner-created beta tags run the same VM matrix before package/publication checks; asset uploads refuse overwriting. Added explicit forward-continuity and release policy. This remains a beta with real hardware, authorization and desktop-session validation outstanding.

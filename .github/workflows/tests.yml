@@ -33,7 +33,7 @@ jobs:
       - name: Retain the tested public foundation
         run: git merge-base --is-ancestor cdfdf7c0867e41af1220854306224dfa058aef89 HEAD
       - name: Install VM build and virtual desktop dependencies
-        run: sudo apt-get update -qq && sudo apt-get install -y cmake g++ clang qtbase5-dev dpkg-dev file desktop-file-utils xvfb xauth
+        run: sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq && sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y cmake g++ clang qtbase5-dev dpkg-dev file desktop-file-utils xvfb xauth
       - name: Build and test on the VM virtual X desktop
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DTUX_TEST_QPA_PLATFORM=xcb
@@ -47,11 +47,11 @@ jobs:
         run: |
           curl --fail --location --retry 3 --output /tmp/tux-steward-baseline.deb https://github.com/sudipdasin/tux-steward/releases/download/v0.9.0-beta.1/tux-steward_0.9.0.beta1_amd64.deb
           echo 'ad638c2fd1910b9886f031ee71546cef93b08bb3111447f81d38961c8b2c13f0  /tmp/tux-steward-baseline.deb' | sha256sum -c -
-          sudo apt-get install -y /tmp/tux-steward-baseline.deb
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-baseline.deb
           tux-steward --version | grep -F '0.9.0-beta.1'
       - name: Install and launch all three native applications
         run: |
-          sudo apt-get install -y ./build/packages/*.deb
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y ./build/packages/*.deb
           for app in tux-steward tux-task-manager tux-setup; do
             "$app" --version
             result=0
