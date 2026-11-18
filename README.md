@@ -1,6 +1,6 @@
 # ◉ Tux Steward
 
-**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **0.9.0-beta.1** is a beta development checkpoint under GPL-3.0-or-later. This public testing beta is experimental; report issues and contribute improvements through GitHub.
+**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **1.0.0-beta.1** is a beta development checkpoint under GPL-3.0-or-later. This public testing beta is experimental; report issues and contribute improvements through GitHub.
 
 ## Build and run
 
@@ -29,7 +29,7 @@ Ensure the install prefix's `bin` directory is on PATH for the desktop menu laun
 
 ## Tools and interface
 
-Eight tabs retain all 25 tools from the original application: Diagnostics, Storage, Maintenance, Performance, Input, Gaming, and Schedules. Search by tool name, group or description. Each tab scrolls; a resizable output pane streams task output. File and Help menus provide JSON export and project information.
+Eight tabs retain all 25 tools: Diagnostics, Storage, Maintenance, Performance, Input, Gaming, Schedules and Experimental. Search by tool name, group or description. Each tab scrolls; a resizable output pane streams task output. File and Help menus provide JSON export and project information.
 
 The separately launched **Tux Task Manager** monitors Linux processes without needing administrator access. It shows CPU share, resident memory, PID, account name, and process state; search and sort the list; and offers 1-, 2- or 5-second refresh while visible, plus pause/resume and one-shot manual refresh. The Process tree tab groups the same snapshot by parent/child identity, supports search and expand/collapse, and opens details on double-click. Missing or reused parents become roots; the tree never offers recursive process termination. Open process details with the Details button or double-click a row to inspect its parent, executable, working directory, and command line. End Task sends `SIGTERM`; Force stop sends `SIGKILL` after its own warning. Both controls are limited to the current user's processes, exclude the task manager itself, and recheck process start identity and all UID fields, then signal through a stable kernel pidfd handle. Unsupported pidfd facilities refuse termination safely. Standard local JSON reports omit usernames and command lines. Detailed exports require an explicit checkbox on each export. Process names and metrics can still reveal activity; review reports before sharing.
 
@@ -68,12 +68,12 @@ Reports contain real computer information. Export is local; there is no automati
 - `tests/test_process_explorer.cpp`: hierarchy fixtures, real snapshots, pause/speed lifecycle and both export modes.
 - `tests/test_ui.cpp`: offscreen GUI construction, search, review cancellation, tab and render checks.
 
-`ctest` runs all six test executables. GUI tests use Qt's offscreen platform; they do not prove real desktop PolicyKit or hardware compatibility. See [validation](docs/VALIDATION.md), [roadmap](docs/ROADMAP.md), and [contributing](CONTRIBUTING.md).
+`ctest` runs nine test suites. GUI tests use Qt's offscreen platform; they do not prove real desktop PolicyKit or hardware compatibility. See [validation](docs/VALIDATION.md), [roadmap](docs/ROADMAP.md), and [contributing](CONTRIBUTING.md).
 
 
 ## Beta packages and readiness
 
-See [Beta readiness](docs/BETA_READINESS.md) for the validation matrix, package instructions and remaining desktop gates. `cpack --config build/CPackConfig.cmake` creates DEB and TGZ artifacts after a Release build. These packages are distribution-specific and unsigned. Both executables support display-free `--help` and `--version`. The generated version header keeps the GUI, CLI and package version aligned. CI remains CircleCI on main, with GitHub Actions as a manual fallback.
+See [Beta readiness](docs/BETA_READINESS.md) for the validation matrix, package instructions and remaining desktop gates. `cpack --config build/CPackConfig.cmake` creates DEB and TGZ artifacts after a Release build. These packages are distribution-specific and unsigned. All three executables support display-free `--help` and `--version`. The generated version header keeps the GUI, CLI and package version aligned. GitHub Actions automatically validates pull requests and main on two hosted VMs; CircleCI also checks main.
 
 Task Manager blocks normal window closing while a service mutation is active. Complete or cancel pending desktop authorization, then wait for the command result. Session shutdown or forced termination can still interrupt the interface; this is not an undo guarantee.
 
@@ -83,7 +83,7 @@ Download the amd64 `.deb` from [GitHub Releases](https://github.com/sudipdasin/t
 
 ```sh
 grep 'amd64.deb$' SHA256SUMS | sha256sum -c -
-sudo apt install ./tux-steward_0.9.0.beta1_amd64.deb
+sudo apt install ./tux-steward_1.0.0.beta1_amd64.deb
 tux-steward
 tux-task-manager
 # Uninstall the applications (your private user configuration is retained):
@@ -104,4 +104,12 @@ Run Setup again and choose **Remove my user installation** to remove those copie
 
 Setup does not uninstall a system DEB. Use `sudo apt remove tux-steward` for that. System and user installations can coexist and have separate menu labels. The archive and copied installation still require compatible Qt/system libraries.
 
-The manual VM validation workflow builds on Ubuntu 22.04/GCC and Ubuntu 24.04/Clang hosted virtual machines, runs every CTest suite under a virtual X server, verifies packages and checks installed GUI startup/removal. This virtual display validates GUI behavior, not physical Bluetooth/GPU hardware or a real desktop authentication agent. See each release's executed results.
+The automatic VM validation workflow builds on Ubuntu 22.04/GCC and Ubuntu 24.04/Clang hosted virtual machines, runs every CTest suite under a virtual X server, verifies packages and checks installed GUI startup/removal. This virtual display validates GUI behavior, not physical Bluetooth/GPU hardware or a real desktop authentication agent. See each release's executed results.
+
+## 1.0 public beta and forward continuity
+
+Tool search now shows counts on each tab, moves to a matching category and explains empty results. Ctrl+F focuses search; Esc clears it. This is a 1.0 **testing beta**, not stable certification. The hardware/authorization limits above still apply.
+
+Every future main-branch change and pull request runs the complete regression suite on two hosted Ubuntu VMs. New versions descend from the tested public foundation and retain its source and regression tests; this is inheritance through Git history, not copying binaries between old releases. Intentional changes still require review. Tags remain immutable checkpoints in the development process. No background self-update or automatic installation happens on users' computers.
+
+An owner-created beta tag on main triggers dual-VM validation and package checks, then publication of DEB/TGZ/checksums. Failed checks block that publication job. Released asset files are not silently overwritten. See [release policy](docs/RELEASE_POLICY.md).

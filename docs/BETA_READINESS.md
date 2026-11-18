@@ -1,7 +1,7 @@
-# Beta readiness — 0.9.0-beta.1
+# Beta readiness — 1.0.0-beta.1
 
 This is a public testing beta. Automated checks cover key behavior, but the real desktop gates below remain unverified. Experimental workflows are grouped separately in both applications.
-Packaging does not publish a release, create tags or change repository visibility.
+Local CPack does not publish. Owner-created beta tags trigger VM-gated prerelease publication; repository visibility is unchanged.
 
 ## Evidence and remaining gates
 
@@ -16,7 +16,7 @@ Packaging does not publish a release, create tags or change repository visibilit
 
 Local development validation uses Debian 13 with GCC 14 and Qt 5.15. This environment lacks the distribution package database, so local DEB dependency metadata cannot be certified; the package verifier rejects it. Primary CI targets Ubuntu 22.04; consult the commit's CI status for its result. Offscreen tests do not establish desktop or hardware compatibility. The nine CTest suites cover fixtures and selected live read-only interfaces; they are not a security audit.
 
-## Build private packages
+## Build packages
 
 ```sh
 sudo apt install build-essential cmake qtbase5-dev dpkg-dev file
@@ -27,7 +27,7 @@ cpack --config build/CPackConfig.cmake
 cmake -DPACKAGE_DIR="$PWD/build/packages" -DRELEASE_VERSION="$(./build/tux-steward --version | awk '{print $NF}')" -P tests/verify_packages.cmake
 ```
 
-Packages appear in `build/packages`. The Debian version is `0.9.0~beta1`, allowing a later stable 0.9.0 upgrade. Dependencies are detected from the build distribution: a Debian-built package is not automatically compatible with Mint. The TGZ also needs compatible Qt/system libraries; it is not a standalone application. CI stores final packages and SHA256SUMS as private job artifacts. Checksums verify file integrity, not publisher authenticity; packages are unsigned.
+Packages appear in `build/packages`. The Debian version is `1.0.0~beta1`, allowing a later stable 1.0.0 upgrade. Dependencies are detected from the build distribution: a Debian-built package is not automatically compatible with Mint. The TGZ also needs compatible Qt/system libraries; it is not a standalone application. The release workflow publishes verified packages and SHA256SUMS as public prerelease assets. Checksums verify file integrity, not publisher authenticity; packages are unsigned.
 
 Run either installed binary with `--version` or `--help` without a display. Run the actual GUI as a normal desktop user. Never run the GUI as root.
 
@@ -45,4 +45,4 @@ Before marking a release candidate, record real desktop results above, resolve d
 
 The native setup wizard manages only a fixed inventory of per-user files. It refuses existing installations and menu collisions, checks hashes before removing any known file, rejects symlink ancestors and retains unrelated files. A missing/corrupt record requires manual inspection; no recursive user-directory deletion is performed. Failed operations report incomplete cleanup and retain records when possible. It does not replace the distribution package manager or change the desktop shell.
 
-The manual GitHub workflow runs all nine suites on separate Ubuntu 22.04/GCC Release and Ubuntu 24.04/Clang Debug VMs with an Xvfb virtual X desktop, then builds/verifies packages and checks actual system installation, GUI startup and removal. Release packaging repeats the VM checks for the published tag. Execution status is recorded in the release/PR; configuration alone is not evidence of a pass. VM virtual desktops do not validate real PolicyKit interaction or hardware behavior.
+The automatic GitHub workflow runs all nine suites on separate Ubuntu 22.04/GCC Release and Ubuntu 24.04/Clang Debug VMs with an Xvfb virtual X desktop, then builds/verifies packages and checks actual system installation, GUI startup and removal. Release packaging repeats the VM checks for the published tag. Execution status is recorded in the release/PR; configuration alone is not evidence of a pass. VM virtual desktops do not validate real PolicyKit interaction or hardware behavior.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.0-beta.1 — 2026-11-18
+
+Public testing milestone retaining the complete 0.9 foundation: cross-tab search counts, automatic result navigation, empty-result guidance and keyboard search. Automatic dual-VM regression validation now runs for pull requests and main. Owner-created beta tags run the same VM matrix before package/publication checks; asset uploads refuse overwriting. Added explicit forward-continuity and release policy. This remains a beta with real hardware, authorization and desktop-session validation outstanding.
+
 ## 0.9.0-beta.1 — 2026-11-18
 
 Added native Setup and removal wizard for per-user archive installs, separate menu entries, explicit consent, hashed fixed-file records, collision/symlink/tamper refusal and retention of user configuration/unrelated files. Added a GUI integration suite that installs and launches copied native programs and tests removal safeguards. Added two hosted-VM validation targets with virtual X desktops; release packaging also validates all three installed GUIs on a virtual X desktop. Hardware and real authorization remain experimental.
