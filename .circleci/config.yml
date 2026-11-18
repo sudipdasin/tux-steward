@@ -1,5 +1,25 @@
 version: 2.1
+parameters:
+  build_toolchain_image:
+    type: boolean
+    default: false
 jobs:
+  validate-toolchain-image:
+    docker:
+      - image: cimg/base:stable
+    resource_class: small
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build and validate reusable cpp-qt5-ubuntu2204 without publishing
+          no_output_timeout: 20m
+          command: |
+            set -euo pipefail
+            docker build --pull --progress=plain -t ci-foundry/cpp-qt5-ubuntu2204:candidate ci/images/cpp-builder
+            docker run --rm ci-foundry/cpp-qt5-ubuntu2204:candidate sh -c 'cmake --version && g++ --version && pkg-config --modversion Qt5Core'
+            docker image inspect ci-foundry/cpp-qt5-ubuntu2204:candidate --format '{{.Id}}'
+            echo 'Validated locally; image NOT published or digest-certified.'
   cpp-smoke:
     docker:
       - image: ubuntu:22.04
@@ -29,6 +49,13 @@ jobs:
           path: artifacts/beta
           destination: beta-packages
 workflows:
+  manual-toolchain-image-validation:
+    when: << pipeline.parameters.build_toolchain_image >>
+    jobs:
+      - validate-toolchain-image:
+          filters:
+            branches:
+              only: main
   cpp-ci:
     # CI_MASTER_TOGGLE: managed by scripts/ci-master-toggle.py
     when: false
