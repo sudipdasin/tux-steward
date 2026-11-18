@@ -36,6 +36,10 @@ jobs:
           export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
           cpack --config build/CPackConfig.cmake
           cmake -DPACKAGE_DIR="$PWD/build/packages" -DRELEASE_VERSION="${RELEASE_TAG#v}" -P tests/verify_packages.cmake
+          for package in build/packages/*.deb; do
+            safe=$(printf '%s' "$package" | tr '~' '.')
+            if [ "$safe" != "$package" ]; then mv "$package" "$safe"; fi
+          done
           cd build/packages
           sha256sum *.deb *.tar.gz > SHA256SUMS
       - name: Install, launch and uninstall package
@@ -58,4 +62,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           test "$(gh release view "$RELEASE_TAG" --json isPrerelease --jq .isPrerelease)" = true
-          gh release upload "$RELEASE_TAG" build/packages/*.deb build/packages/*.tar.gz build/packages/SHA256SUMS
+          gh release upload "$RELEASE_TAG" --clobber build/packages/*.deb build/packages/*.tar.gz build/packages/SHA256SUMS
