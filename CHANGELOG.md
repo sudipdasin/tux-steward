@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.0-beta.2 — 2026-11-18
+
+Task Manager now refuses normal window closing during an active service mutation or pending authorization. A clear notice explains completing/cancelling authorization before exit. Added regression coverage using a real top-level window and synthetic service commands, including close recovery after command startup failure. Unified prerelease counters for application and Debian package versions. The published beta.1 tag remains unchanged.
+
 ## 0.8.0-beta.1 — 2026-11-18
 
 Private beta preparation: process termination now uses stable pidfd handles with start-time and UID verification; unavailable facilities fail closed. Service actions prevent overlap, bound output and recover from failed process startup. Added real owned-child signal tests and synthetic service mutation recovery coverage. Added headless help/version, generated version metadata, staged install checks, stripped DEB/TGZ packaging and private CI artifacts with checksums. Added an explicit desktop readiness matrix; no public release or release-candidate certification.
