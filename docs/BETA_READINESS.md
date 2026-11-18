@@ -19,7 +19,7 @@ Local development validation uses Debian 13 with GCC 14 and Qt 5.15. This enviro
 ## Build private packages
 
 ```sh
-sudo apt install build-essential cmake qtbase5-dev dpkg-dev
+sudo apt install build-essential cmake qtbase5-dev dpkg-dev file
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel 2
 ctest --test-dir build --output-on-failure
