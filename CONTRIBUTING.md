@@ -22,6 +22,8 @@ Build with CMake, run CTest, and verify GUI behavior before merging. Add real su
 - `src/autostart.cpp`: XDG discovery, user overrides and private undo.
 - `tests/`: isolated core, subprocess and offscreen GUI checks.
 
-CircleCI remains primary on main. The existing GitHub Actions test workflow remains a manual fallback. The separate manual **Build release packages** workflow builds an existing published beta tag, verifies tests/dependencies/versions/build-path privacy, and attaches packages plus SHA256SUMS to that prerelease. It does not change repository visibility. Never upload packages rejected by verification.
+CircleCI remains primary on main. The existing GitHub Actions test workflow remains manual and now validates Ubuntu 22.04/GCC and Ubuntu 24.04/Clang VMs with Xvfb, every suite and package install/launch/removal checks. The separate manual **Build release packages** workflow builds an existing published beta tag, verifies tests/dependencies/versions/build-path privacy, and attaches packages plus SHA256SUMS to that prerelease. It does not change repository visibility. Never upload packages rejected by verification.
 
 Use issue templates for bug reports and proposals. Reviewers should verify privacy, permissions, compatibility and failure recovery. Do not put credentials or private machine logs in issues or pull requests.
+
+Setup code lives in `src/setup.cpp` (fixed inventory and removal safeguards), `src/setup_wizard.cpp` (review/consent/result UI) and `src/setup_main.cpp`. Tests must isolate all installation paths and never modify the developer's real user installation.

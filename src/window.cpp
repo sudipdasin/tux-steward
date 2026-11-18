@@ -1,5 +1,7 @@
 #include "tux/window.hpp"
 #include <QAction>
+#include <QProcess>
+#include <QCoreApplication>
 #include <QDesktopServices>
 #include <QUrl>
 #include <QCloseEvent>
@@ -50,6 +52,10 @@ Window::Window() {
     connect(exportAction,&QAction::triggered,this,[this]{exportReport();});
     file->addSeparator(); connect(file->addAction("Quit"),&QAction::triggered,this,[this]{close();});
     auto* help=menuBar()->addMenu("&Help");
+    connect(help->addAction("Setup and removal…"),&QAction::triggered,this,[this]{
+        if (!QProcess::startDetached(QCoreApplication::applicationDirPath()+"/tux-setup",{}))
+            QMessageBox::warning(this,"Setup unavailable","The setup program could not start. Use the complete archive or reinstall the package.");
+    });
     connect(help->addAction("Send feedback…"),&QAction::triggered,this,[]{QDesktopServices::openUrl(QUrl("https://github.com/sudipdasin/tux-steward/issues/new/choose"));});
     connect(help->addAction("Contribute…"),&QAction::triggered,this,[]{QDesktopServices::openUrl(QUrl("https://github.com/sudipdasin/tux-steward/blob/main/CONTRIBUTING.md"));});
     connect(help->addAction("About & roadmap"),&QAction::triggered,this,[this]{

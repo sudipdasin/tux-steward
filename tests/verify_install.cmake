@@ -7,7 +7,7 @@ execute_process(COMMAND "${CMAKE_COMMAND}" --install "${BUILD_DIR}" --prefix "${
 if(NOT installed EQUAL 0)
     message(FATAL_ERROR "Installation failed: ${install_error}")
 endif()
-foreach(program IN ITEMS tux-steward tux-task-manager)
+foreach(program IN ITEMS tux-steward tux-task-manager tux-setup)
     if(NOT EXISTS "${prefix}/bin/${program}" OR NOT EXISTS "${prefix}/share/applications/${program}.desktop")
         message(FATAL_ERROR "Missing installed program or desktop entry: ${program}")
     endif()

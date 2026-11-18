@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.0-beta.1 — 2026-11-18
+
+Added native Setup and removal wizard for per-user archive installs, separate menu entries, explicit consent, hashed fixed-file records, collision/symlink/tamper refusal and retention of user configuration/unrelated files. Added a GUI integration suite that installs and launches copied native programs and tests removal safeguards. Added two hosted-VM validation targets with virtual X desktops; release packaging also validates all three installed GUIs on a virtual X desktop. Hardware and real authorization remain experimental.
+
 ## 0.8.0-beta.3 — 2026-11-18
 
 Public testing beta preparation: grouped unvalidated Bluetooth/startup/service/GPU workflows in Task Manager Experimental tabs and settings-changing maintenance tools in Experimental. Added feedback/contribution menus, issue templates, install/uninstall guidance and contributor code map. Added manual Ubuntu release packaging with verification and asset upload to an existing prerelease. No hardware validation claims.

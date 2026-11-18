@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
-project(TuxSteward VERSION 0.8.0 LANGUAGES CXX)
+project(TuxSteward VERSION 0.9.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(TUX_BETA_NUMBER 3)
+set(TUX_BETA_NUMBER 1)
 set(TUX_RELEASE_VERSION "${PROJECT_VERSION}-beta.${TUX_BETA_NUMBER}")
 configure_file(include/tux/version.hpp.in generated/tux/version.hpp @ONLY)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -11,6 +11,13 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 find_package(Qt5 5.15 REQUIRED COMPONENTS Core Widgets)
 find_package(Threads REQUIRED)
+set(TUX_TEST_QPA_PLATFORM "offscreen" CACHE STRING "Qt platform used by GUI tests")
+add_library(tux-setup-ui src/setup.cpp src/setup_wizard.cpp)
+target_include_directories(tux-setup-ui PUBLIC include)
+target_link_libraries(tux-setup-ui PUBLIC Qt5::Widgets)
+target_compile_options(tux-setup-ui PRIVATE -Wall -Wextra -Wpedantic)
+add_executable(tux-setup src/setup_main.cpp)
+target_link_libraries(tux-setup PRIVATE tux-setup-ui tux-core)
 add_library(tux-process-control src/process_control.cpp)
 target_include_directories(tux-process-control PUBLIC include)
 target_link_libraries(tux-process-control PUBLIC Qt5::Core)
@@ -41,7 +48,7 @@ if(BUILD_TESTING)
     add_executable(tux-ui-tests tests/test_ui.cpp)
     target_link_libraries(tux-ui-tests PRIVATE tux-ui)
     add_test(NAME ui COMMAND tux-ui-tests)
-    set_tests_properties(ui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 20)
+    set_tests_properties(ui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=${TUX_TEST_QPA_PLATFORM}" TIMEOUT 20)
 
     add_executable(tux-task-manager-tests
         tests/test_task_manager.cpp
@@ -54,7 +61,7 @@ if(BUILD_TESTING)
     target_compile_options(tux-task-manager-tests PRIVATE -Wall -Wextra -Wpedantic)
     add_test(NAME task-manager-tabs COMMAND tux-task-manager-tests)
     set_tests_properties(task-manager-tabs PROPERTIES
-        ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+        ENVIRONMENT "QT_QPA_PLATFORM=${TUX_TEST_QPA_PLATFORM}"
         TIMEOUT 20
     )
     add_executable(tux-process-explorer-tests
@@ -66,7 +73,7 @@ if(BUILD_TESTING)
     target_compile_options(tux-process-explorer-tests PRIVATE -Wall -Wextra -Wpedantic)
     add_test(NAME process-explorer COMMAND tux-process-explorer-tests)
     set_tests_properties(process-explorer PROPERTIES
-        ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+        ENVIRONMENT "QT_QPA_PLATFORM=${TUX_TEST_QPA_PLATFORM}"
         TIMEOUT 30
     )
     add_executable(tux-service-query-tests tests/test_service_queries.cpp)
@@ -75,7 +82,7 @@ if(BUILD_TESTING)
     target_compile_options(tux-service-query-tests PRIVATE -Wall -Wextra -Wpedantic)
     add_test(NAME service-queries COMMAND tux-service-query-tests)
     set_tests_properties(service-queries PROPERTIES
-        ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+        ENVIRONMENT "QT_QPA_PLATFORM=${TUX_TEST_QPA_PLATFORM}"
         TIMEOUT 30
     )
     add_executable(tux-autostart-tests tests/test_autostart.cpp)
@@ -83,12 +90,16 @@ if(BUILD_TESTING)
     target_link_libraries(tux-autostart-tests PRIVATE Qt5::Widgets tux-autostart tux-process-control)
     target_compile_options(tux-autostart-tests PRIVATE -Wall -Wextra -Wpedantic)
     add_test(NAME autostart COMMAND tux-autostart-tests)
-    set_tests_properties(autostart PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 30)
+    set_tests_properties(autostart PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=${TUX_TEST_QPA_PLATFORM}" TIMEOUT 30)
     add_executable(tux-process-control-tests tests/test_process_control.cpp)
     target_link_libraries(tux-process-control-tests PRIVATE tux-process-control)
     target_compile_options(tux-process-control-tests PRIVATE -Wall -Wextra -Wpedantic)
     add_test(NAME process-control COMMAND tux-process-control-tests)
     set_tests_properties(process-control PROPERTIES TIMEOUT 15)
+    add_executable(tux-setup-tests tests/test_setup.cpp)
+    target_link_libraries(tux-setup-tests PRIVATE tux-setup-ui)
+    add_test(NAME setup-wizard COMMAND tux-setup-tests $<TARGET_FILE:tux-steward> $<TARGET_FILE:tux-task-manager> $<TARGET_FILE:tux-setup> ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/PRIVACY.md)
+    set_tests_properties(setup-wizard PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=${TUX_TEST_QPA_PLATFORM}" TIMEOUT 30)
     add_test(NAME install-layout COMMAND ${CMAKE_COMMAND}
         -DBUILD_DIR=${CMAKE_BINARY_DIR}
         -DRELEASE_VERSION=${TUX_RELEASE_VERSION}
@@ -96,6 +107,8 @@ if(BUILD_TESTING)
     set_tests_properties(install-layout PROPERTIES TIMEOUT 30)
 endif()
 include(GNUInstallDirs)
+install(TARGETS tux-setup RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES assets/tux-setup.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
 install(TARGETS tux-steward RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(TARGETS tux-task-manager RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES assets/tux-steward.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)

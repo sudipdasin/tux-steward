@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Tux Steward Setup
+Comment=Install or remove an archive installation for your account
+Exec=tux-setup
+Terminal=false
+Categories=System;Utility;

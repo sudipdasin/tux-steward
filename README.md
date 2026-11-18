@@ -1,6 +1,6 @@
 # ◉ Tux Steward
 
-**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **0.8.0-beta.3** is a beta development checkpoint under GPL-3.0-or-later. This public testing beta is experimental; report issues and contribute improvements through GitHub.
+**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **0.9.0-beta.1** is a beta development checkpoint under GPL-3.0-or-later. This public testing beta is experimental; report issues and contribute improvements through GitHub.
 
 ## Build and run
 
@@ -83,7 +83,7 @@ Download the amd64 `.deb` from [GitHub Releases](https://github.com/sudipdasin/t
 
 ```sh
 grep 'amd64.deb$' SHA256SUMS | sha256sum -c -
-sudo apt install ./tux-steward_0.8.0.beta3_amd64.deb
+sudo apt install ./tux-steward_0.9.0.beta1_amd64.deb
 tux-steward
 tux-task-manager
 # Uninstall the applications (your private user configuration is retained):
@@ -95,3 +95,13 @@ Check the package checksum from the same release. SHA256SUMS covers both binary 
 Regular tabs focus on inspection and monitoring. Settings-changing maintenance tools are grouped in **Experimental**. Task Manager's **Experimental** tab contains Bluetooth, Startup apps, Services and GPU pages, with explicit incomplete-validation notices. Process End Task remains available with confirmation and identity checks.
 
 Use **Help → Send feedback** or [open an issue](https://github.com/sudipdasin/tux-steward/issues/new/choose). Include version, distribution, desktop, reproduction steps and whether you used an Experimental page. Review and redact diagnostics before sharing. No feedback is sent automatically. See [CONTRIBUTING.md](CONTRIBUTING.md) to build and improve the project.
+
+## Native setup and removal wizard
+
+Version 0.9 adds **Tux Steward Setup** (`tux-setup`), also available from the maintenance application's Help menu. To install an extracted archive for your account, run `usr/bin/tux-setup` inside its extracted folder. Qt 5 runtime libraries must already be available. The wizard previews the operation and requires confirmation. It copies all three programs into a dedicated user-data directory and creates separate user menu entries. No administrator access is requested.
+
+Run Setup again and choose **Remove my user installation** to remove those copied programs and menu entries. Configuration, startup undo records and unrelated files are retained. Modified files, changed menu entries and symlink targets are refused. Existing user installations are not overwritten: remove an unchanged installation before installing a new archive. Interrupted operations may require retrying removal; this is not a transaction across arbitrary filesystem failures.
+
+Setup does not uninstall a system DEB. Use `sudo apt remove tux-steward` for that. System and user installations can coexist and have separate menu labels. The archive and copied installation still require compatible Qt/system libraries.
+
+The manual VM validation workflow builds on Ubuntu 22.04/GCC and Ubuntu 24.04/Clang hosted virtual machines, runs every CTest suite under a virtual X server, verifies packages and checks installed GUI startup/removal. This virtual display validates GUI behavior, not physical Bluetooth/GPU hardware or a real desktop authentication agent. See each release's executed results.
