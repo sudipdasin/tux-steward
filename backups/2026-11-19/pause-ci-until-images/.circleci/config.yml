@@ -1,0 +1,40 @@
+version: 2.1
+jobs:
+  cpp-smoke:
+    docker:
+      - image: ubuntu:22.04
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Install Qt5 and CMake
+          command: apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y cmake g++ qtbase5-dev dpkg-dev file desktop-file-utils
+      - run:
+          name: Compile and run tests with one compiler
+          command: |
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++
+            cmake --build build --parallel 2
+            ctest --test-dir build --output-on-failure
+      - run:
+          name: Build private beta packages
+          command: |
+            export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+            cpack --config build/CPackConfig.cmake
+            cmake -DPACKAGE_DIR="$PWD/build/packages" -DRELEASE_VERSION="$(./build/tux-steward --version | awk '{print $NF}')" -P tests/verify_packages.cmake
+            mkdir -p artifacts/beta
+            cp build/packages/*.deb build/packages/*.tar.gz artifacts/beta/
+            cd artifacts/beta
+            sha256sum *.deb *.tar.gz > SHA256SUMS
+      - store_artifacts:
+          path: artifacts/beta
+          destination: beta-packages
+workflows:
+  cpp-ci:
+    # CI_MASTER_TOGGLE: managed by scripts/ci-master-toggle.py
+    when: true
+    jobs:
+      - cpp-smoke:
+          filters:
+            branches:
+              only: main
+
