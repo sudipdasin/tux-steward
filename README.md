@@ -1,6 +1,6 @@
 # ◉ Tux Steward
 
-**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **1.0.0-beta.1** is a beta development checkpoint under GPL-3.0-or-later. This public testing beta is experimental; report issues and contribute improvements through GitHub.
+**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **1.1.0-beta.1** is a beta development checkpoint under GPL-3.0-or-later. This public testing beta is experimental; report issues and contribute improvements through GitHub.
 
 ## Build and run
 
@@ -29,13 +29,13 @@ Ensure the install prefix's `bin` directory is on PATH for the desktop menu laun
 
 ## Tools and interface
 
-Eight tabs retain all 25 tools: Diagnostics, Storage, Maintenance, Performance, Input, Gaming, Schedules and Experimental. Search by tool name, group or description. Each tab scrolls; a resizable output pane streams task output. File and Help menus provide JSON export and project information.
+Eight tabs retain all 25 tools: Diagnostics, Storage, Maintenance, Performance, Input, Gaming, Schedules and Experimental. Search by tool name, group or description. Each tab scrolls; a resizable output pane streams task output. File and Help menus provide JSON export with a review preview and project information.
 
 The separately launched **Tux Task Manager** monitors Linux processes without needing administrator access. It shows CPU share, resident memory, PID, account name, and process state; search and sort the list; and offers 1-, 2- or 5-second refresh while visible, plus pause/resume and one-shot manual refresh. The Process tree tab groups the same snapshot by parent/child identity, supports search and expand/collapse, and opens details on double-click. Missing or reused parents become roots; the tree never offers recursive process termination. Open process details with the Details button or double-click a row to inspect its parent, executable, working directory, and command line. End Task sends `SIGTERM`; Force stop sends `SIGKILL` after its own warning. Both controls are limited to the current user's processes, exclude the task manager itself, and recheck process start identity and all UID fields, then signal through a stable kernel pidfd handle. Unsupported pidfd facilities refuse termination safely. Standard local JSON reports omit usernames and command lines. Detailed exports require an explicit checkbox on each export. Process names and metrics can still reveal activity; review reports before sharing.
 
 Tools include storage and mount inspection, journal diagnostics, failed services, APT removal simulation and cache cleaning, journal retention, RAM/zRAM/TLP inspection, reversible XFCE compositor controls, X11 device inspection, Wine/Lutris/Vulkan checks, timer inspection and the distribution SSD trim timer.
 
-Every command is shown in a default-cancel review dialog. Commands execute as argument arrays using `posix_spawnp`, never through a shell. A bounded background worker captures merged stdout/stderr. Reports retain the latest 250,000 output bytes per task and 20 completed tasks. UTF-8 tails can begin with a replacement character when truncation cuts a code point. The live display may skip bursts when its buffer fills; the report retains the independently collected output tail. Export uses an atomic file replacement.
+Every command is shown in a default-cancel review dialog. Commands execute as argument arrays using `posix_spawnp`, never through a shell. A bounded background worker captures merged stdout/stderr. The local session retains the latest 250,000 output bytes per task and 20 completed tasks. Detailed exports include these records; default summary exports omit command lines and output. UTF-8 tails can begin with a replacement character when truncation cuts a code point. The live display may skip bursts when its buffer fills; the report retains the independently collected output tail. Export uses an atomic file replacement.
 
 Tasks have a 120-second deadline. Timeout cleanup targets only that invocation's process group. Elevated descendants may resist termination and remain running. System changes can be partially applied; a timeout does not undo them. The GUI blocks normal closing while a task is active.
 
@@ -68,7 +68,7 @@ Reports contain real computer information. Export is local; there is no automati
 - `tests/test_process_explorer.cpp`: hierarchy fixtures, real snapshots, pause/speed lifecycle and both export modes.
 - `tests/test_ui.cpp`: offscreen GUI construction, search, review cancellation, tab and render checks.
 
-`ctest` runs nine test suites. GUI tests use Qt's offscreen platform; they do not prove real desktop PolicyKit or hardware compatibility. See [validation](docs/VALIDATION.md), [roadmap](docs/ROADMAP.md), and [contributing](CONTRIBUTING.md).
+`ctest` runs ten test suites. GUI tests use Qt's offscreen platform; they do not prove real desktop PolicyKit or hardware compatibility. See [validation](docs/VALIDATION.md), [roadmap](docs/ROADMAP.md), and [contributing](CONTRIBUTING.md).
 
 
 ## Beta packages and readiness
@@ -83,7 +83,7 @@ Download the amd64 `.deb` from [GitHub Releases](https://github.com/sudipdasin/t
 
 ```sh
 grep 'amd64.deb$' SHA256SUMS | sha256sum -c -
-sudo apt install ./tux-steward_1.0.0.beta1_amd64.deb
+sudo apt install ./tux-steward_1.1.0.beta1_amd64.deb
 tux-steward
 tux-task-manager
 # Uninstall the applications (your private user configuration is retained):
@@ -113,3 +113,7 @@ Tool search now shows counts on each tab, moves to a matching category and expla
 Every future main-branch change and pull request runs the complete regression suite on two hosted Ubuntu VMs. New versions descend from the tested public foundation and retain its source and regression tests; this is inheritance through Git history, not copying binaries between old releases. Intentional changes still require review. Tags remain immutable checkpoints in the development process. No background self-update or automatic installation happens on users' computers.
 
 An owner-created beta tag on main triggers dual-VM validation and package checks, then publication of DEB/TGZ/checksums. Failed checks block that publication job. Released asset files are not silently overwritten. See [release policy](docs/RELEASE_POLICY.md).
+
+## Reviewed maintenance reports
+
+File → Export session report opens a snapshot preview. The default summary includes only known tool names, exit codes, timings and truncation flags; command arguments and diagnostic output are omitted entirely. Select **Include commands and diagnostic output** to include full recorded details for this export only. Review the exact JSON before saving. The choice resets on every export. Cancel writes no report. No report is uploaded automatically. Summary still reveals which tools ran and their outcomes; it is not a guarantee of anonymity. Existing integrations needing raw output must explicitly choose detailed mode. The report includes `schema: 1` and `mode: summary` or `detailed`.

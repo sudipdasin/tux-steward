@@ -24,6 +24,8 @@ struct Result {
     QJsonObject json() const;
 };
 const QVector<Action>& actions();
+// Summary is an allowlist, not pattern-based anonymization of diagnostic text.
+QJsonObject sessionReport(const QVector<Result>& results, bool includeDetails = false);
 const Action& action(const QString& id);
 QString unavailable(const Action& tool);
 bool matches(const Action& tool, const QString& query);

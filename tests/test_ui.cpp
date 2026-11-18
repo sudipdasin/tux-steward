@@ -1,5 +1,7 @@
 #include "tux/window.hpp"
 #include <QApplication>
+#include <QCheckBox>
+#include <QDialog>
 #include <QLabel>
 #include <QAction>
 #include <QFile>
@@ -67,19 +69,55 @@ int main(int argc,char** argv) {
     if (!status->text().startsWith("Completed") || !output->toPlainText().contains("Filesystem")) return 5;
     QTemporaryDir temp;
     const auto report=temp.filePath("report.json");
+    bool reviewed=false;
     QTimer::singleShot(0,[&]{
         for (auto* widget:QApplication::topLevelWidgets()) {
-            if (auto* dialog=qobject_cast<QFileDialog*>(widget)) {
-                dialog->selectFile(report); QMetaObject::invokeMethod(dialog,"accept",Qt::DirectConnection);
-            }
+            if (widget->objectName()!="reportReview") continue;
+            auto* details=widget->findChild<QCheckBox*>("reportDetails");
+            auto* preview=widget->findChild<QPlainTextEdit*>("reportPreview");
+            const auto summary=preview->toPlainText();
+            reviewed=!details->isChecked() && summary.contains("summary") && !summary.contains("Filesystem");
+            details->setChecked(true);
+            reviewed=reviewed && preview->toPlainText().contains("Filesystem");
+            details->setChecked(false);
+            reviewed=reviewed && preview->toPlainText()==summary;
+            if (argc>1) reviewed=reviewed && widget->grab().save(QString::fromLocal8Bit(argv[1])+".report.png");
+            QTimer::singleShot(0,[&]{
+                for (auto* candidate:QApplication::topLevelWidgets())
+                    if (auto* dialog=qobject_cast<QFileDialog*>(candidate)) {
+                        dialog->selectFile(report); QMetaObject::invokeMethod(dialog,"accept",Qt::DirectConnection);
+                    }
+            });
+            widget->findChild<QPushButton*>("reportSave")->click();
+            break;
         }
     });
     for (auto* item:window.findChildren<QAction*>())
         if (item->text().startsWith("Export session")) { item->trigger(); break; }
     QFile saved(report);
-    if (!saved.open(QIODevice::ReadOnly)) return 6;
+    if (!reviewed || !saved.open(QIODevice::ReadOnly)) return 6;
     const auto records=QJsonDocument::fromJson(saved.readAll()).object().value("results").toArray();
-    if (records.size()!=1 || records.first().toObject().value("code").toInt()!=0) return 7;
+    if (records.size()!=1 || records.first().toObject().value("code").toInt()!=0 ||
+        records.first().toObject().contains("output") || records.first().toObject().contains("command")) return 7;
+    // Cancelling a detailed preview must not remember consent or overwrite the saved summary.
+    QTimer::singleShot(0,[&]{
+        for (auto* widget:QApplication::topLevelWidgets()) if (widget->objectName()=="reportReview") {
+            widget->findChild<QCheckBox*>("reportDetails")->setChecked(true);
+            qobject_cast<QDialog*>(widget)->reject(); break;
+        }
+    });
+    for (auto* item:window.findChildren<QAction*>())
+        if (item->text().startsWith("Export session")) { item->trigger(); break; }
+    bool reset=false;
+    QTimer::singleShot(0,[&]{
+        for (auto* widget:QApplication::topLevelWidgets()) if (widget->objectName()=="reportReview") {
+            reset=!widget->findChild<QCheckBox*>("reportDetails")->isChecked();
+            qobject_cast<QDialog*>(widget)->reject(); break;
+        }
+    });
+    for (auto* item:window.findChildren<QAction*>())
+        if (item->text().startsWith("Export session")) { item->trigger(); break; }
+    if (!reset) return 25;
     output->setPlainText("Report exported locally. Review diagnostics before sharing.\n");
     for (int i=0;i<tabs->count();++i) { tabs->setCurrentIndex(i); app.processEvents(); }
     tabs->setCurrentIndex(0); app.processEvents();

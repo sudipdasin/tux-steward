@@ -78,4 +78,16 @@ QJsonObject Result::json() const {
             {"code",code},{"output",QString::fromUtf8(output)},
             {"truncated",truncated},{"seconds",seconds}};
 }
+QJsonObject sessionReport(const QVector<Result>& results, bool includeDetails) {
+    QJsonArray records;
+    for (const auto& result:results) {
+        if (includeDetails) { records.append(result.json()); continue; }
+        QString title="Unrecognized task";
+        for (const auto& tool:actions()) if (tool.title==result.action) { title=tool.title; break; }
+        records.append(QJsonObject{{"action",title},{"code",result.code},
+            {"seconds",result.seconds},{"truncated",result.truncated}});
+    }
+    return {{"version",Version},{"schema",1},{"mode",includeDetails?"detailed":"summary"},
+        {"results",records}};
+}
 }
