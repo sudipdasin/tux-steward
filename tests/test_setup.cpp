@@ -9,6 +9,7 @@
 #include <QFileInfo>
 #include <QLabel>
 #include <QProcess>
+#include <QStandardPaths>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QTemporaryDir>
@@ -21,10 +22,11 @@ int main(int argc,char **argv) {
     try {
         require(argc==6,"setup test arguments");
         QTemporaryDir temp;require(temp.isValid(),"temporary configuration");
-        const QString source=temp.path()+"/archive/usr",home=temp.path()+"/user data $cash %item";
+        const QString source=temp.path()+"/archive/usr",home=temp.path()+"/user data $cash %item \\notes";
         QDir().mkpath(source+"/bin");QDir().mkpath(source+"/share/doc/tux-steward");
         const QStringList names={"bin/tux-steward","bin/tux-task-manager","bin/tux-setup","share/doc/tux-steward/LICENSE","share/doc/tux-steward/PRIVACY.md"};
         for(int i=0;i<names.size();++i)require(QFile::copy(QString::fromLocal8Bit(argv[i+1]),source+"/"+names[i]),"fixture archive copy");
+        require(!tux::setup::install(source,home+"=invalid").ok,"unsupported launcher path refused");
         require(!tux::setup::install(source+"/missing",home).ok,"incomplete archive refused");
         tux::SetupWizard wizard(source,home);wizard.show();app.processEvents();
         wizard.next();require(wizard.currentId()==1,"review page");
@@ -45,6 +47,12 @@ int main(int argc,char **argv) {
         const QString menu=home+"/applications/tux-steward-user.desktop";
         QFile entry(menu);require(entry.open(QIODevice::ReadOnly),"menu entry exists");const auto menuBytes=entry.readAll();entry.close();
         require(menuBytes.contains("%%item") && menuBytes.contains("\\$cash"),"desktop arguments escape percent and dollar");
+        const QString validator=QStandardPaths::findExecutable("desktop-file-validate");
+        require(!validator.isEmpty(),"desktop file validator installed on VM");
+        for (const auto &entryName:QStringList{"tux-steward-user.desktop","tux-task-manager-user.desktop","tux-setup-user.desktop"}) {
+            QProcess check;check.start(validator,{home+"/applications/"+entryName});
+            require(check.waitForFinished(5000) && check.exitCode()==0,"generated desktop shortcut validates");
+        }
         put(menu,"edited shortcut");require(!tux::setup::remove(home).ok,"modified menu retained");put(menu,menuBytes);
         require(QFile::remove(altered) && QFile::link(source+"/share/doc/tux-steward/PRIVACY.md",altered),"symlink fixture");
         require(!tux::setup::remove(home).ok,"symlink removal refused");QFile::remove(altered);put(altered,originalBytes);

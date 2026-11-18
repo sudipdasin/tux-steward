@@ -13,7 +13,7 @@ namespace {
 const QStringList files={"bin/tux-steward","bin/tux-task-manager","bin/tux-setup","share/doc/tux-steward/LICENSE","share/doc/tux-steward/PRIVACY.md"};
 const QStringList menus={"tux-steward-user.desktop","tux-task-manager-user.desktop","tux-setup-user.desktop"};
 bool safePath(const QString &path) {
-    if (path!=QDir::cleanPath(path) || !QDir::isAbsolutePath(path) || path.contains('\n') || path.contains('\r')) return false;
+    if (path!=QDir::cleanPath(path) || !QDir::isAbsolutePath(path) || path.contains('\n') || path.contains('\r') || path.contains('\t') || path.contains('=')) return false;
     QString part="/";
     for (const auto &component:QDir::cleanPath(path).split('/',Qt::SkipEmptyParts)) {
         part=QDir(part).filePath(component);
@@ -35,6 +35,9 @@ bool write(const QString &path,const QByteArray &data) {
 QString quoted(QString path) {
     path.replace("\\","\\\\"); path.replace("\"","\\\"");
     path.replace("`","\\`"); path.replace("$","\\$"); path.replace("%","%%");
+    // Desktop string escaping is decoded before Exec argument unquoting.
+    // https://specifications.freedesktop.org/desktop-entry/latest/exec-variables.html
+    path.replace("\\","\\\\");
     return '"'+path+'"';
 }
 QString menuPath(const QString &home,const QString &name) { return QDir(home).filePath("applications/"+name); }
@@ -42,7 +45,7 @@ QString menuPath(const QString &home,const QString &name) { return QDir(home).fi
 QString installRoot(const QString &home) { return QDir(home).filePath("tux-steward/user-install"); }
 Outcome install(const QString &source,const QString &home) {
     const QString root=installRoot(home);
-    if (!safePath(home) || !safePath(root) || !safePath(source)) return {false,"Installation paths must be absolute and contain no symbolic links or newlines."};
+    if (!safePath(home) || !safePath(root) || !safePath(source)) return {false,"Installation paths must be normalized absolute paths without symbolic links, control characters or equals signs."};
     if (QFileInfo::exists(root)) return {false,"A user installation already exists. Remove it first; existing files will not be overwritten."};
     for (const auto &name:menus)
         if (!safePath(menuPath(home,name)) || QFileInfo::exists(menuPath(home,name))) return {false,"A user menu entry already exists or is unsafe. Nothing was overwritten."};

@@ -8,7 +8,7 @@ Build with CMake, run CTest, and verify GUI behavior before merging. Add real su
 ## Development workflow
 
 1. Fork the repository and create a focused feature branch.
-2. Install `build-essential cmake qtbase5-dev`; configure a Debug build, build with two jobs on low-memory computers, and run `ctest --test-dir build --output-on-failure`.
+2. Install `build-essential cmake qtbase5-dev desktop-file-utils`; configure a Debug build, build with two jobs on low-memory computers, and run `ctest --test-dir build --output-on-failure`.
 3. Keep unvalidated settings changes under Experimental. Preserve command review, safe defaults and private report handling. Tests must use isolated configuration and synthetic service executables.
 4. Open a pull request describing the problem, resulting behavior and tests actually executed. Link an issue when available. Small, focused contributions are welcome.
 

@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install VM build and virtual desktop dependencies
-        run: sudo apt-get update -qq && sudo apt-get install -y cmake g++ clang qtbase5-dev dpkg-dev file xvfb xauth
+        run: sudo apt-get update -qq && sudo apt-get install -y cmake g++ clang qtbase5-dev dpkg-dev file desktop-file-utils xvfb xauth
       - name: Build and test on the VM virtual X desktop
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DTUX_TEST_QPA_PLATFORM=xcb

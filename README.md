@@ -7,7 +7,7 @@
 On Linux Mint, Ubuntu or Debian:
 
 ```sh
-sudo apt install build-essential cmake qtbase5-dev
+sudo apt install build-essential cmake qtbase5-dev desktop-file-utils
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j2
 ctest --test-dir build --output-on-failure
