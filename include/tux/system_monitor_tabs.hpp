@@ -42,6 +42,7 @@
 
 #include <algorithm>
 #include <utility>
+#include <memory>
 #include <unistd.h>
 
 class ResourceHistoryChart final : public QWidget {
@@ -365,6 +366,7 @@ private:
         layout->addWidget(text, 1);
         if (name == tr("Startup apps") || name == tr("Services")) {
             auto *actionStatus = new QLabel(page);
+            if (name==tr("Services")) actionStatus->setObjectName(QStringLiteral("serviceActionStatus"));
             actionStatus->setWordWrap(true);
             layout->addWidget(actionStatus);
             actionStatusByTab_.insert(name, actionStatus);
@@ -916,6 +918,7 @@ private:
 
     void setServiceActionsEnabled(bool enabled)
     {
+        enabled = enabled && !serviceMutationBusy_;
         if (serviceSelection_ != nullptr) serviceSelection_->setEnabled(enabled);
         for (auto *button : serviceActionButtons_) button->setEnabled(enabled);
     }
@@ -1013,11 +1016,12 @@ private:
 
     void changeService(const QString &action)
     {
-        if (serviceLoading_ || serviceSelection_ == nullptr || serviceSelection_->currentIndex() < 0) return;
+        if (serviceMutationBusy_ || serviceLoading_ || serviceSelection_ == nullptr || serviceSelection_->currentIndex() < 0) return;
         const QVariantMap data = serviceSelection_->currentData().toMap();
         const QString unit = data.value(QStringLiteral("unit")).toString();
         const bool user = data.value(QStringLiteral("user")).toBool();
-        if (unit.isEmpty()) return;
+        if (unit.isEmpty() || !unit.endsWith(QStringLiteral(".service"))
+            || !QStringList{QStringLiteral("start"),QStringLiteral("stop"),QStringLiteral("enable"),QStringLiteral("disable")}.contains(action)) return;
         const QString scope = user ? tr("your user session") : tr("the whole system");
         const auto answer = QMessageBox::warning(tabs_, tr("Change service"),
             tr("Run ‘%1’ for %2 in %3? Changing system services can affect networking, login, or other apps.")
@@ -1025,9 +1029,15 @@ private:
         if (answer != QMessageBox::Yes) return;
 
         const QString systemctl = QStandardPaths::findExecutable(QStringLiteral("systemctl"));
+        if (systemctl.isEmpty()) {
+            statusMessage_ = tr("systemctl is unavailable; no service action was started.");
+            if (actionStatusByTab_.value(tr("Services")) != nullptr)
+                actionStatusByTab_.value(tr("Services"))->setText(statusMessage_);
+            return;
+        }
         QString program = systemctl;
         QStringList args;
-        if (user) args << QStringLiteral("--user") << action << unit;
+        if (user) args << QStringLiteral("--user") << action << QStringLiteral("--") << unit;
         else {
             const QString pkexec = QStandardPaths::findExecutable(QStringLiteral("pkexec"));
             if (pkexec.isEmpty()) {
@@ -1038,19 +1048,41 @@ private:
                 return;
             }
             program = pkexec;
-            args << systemctl << action << unit;
+            args << systemctl << action << QStringLiteral("--") << unit;
         }
         if (program.isEmpty()) return;
+        serviceMutationBusy_ = true;
+        setServiceActionsEnabled(false);
         auto *process = new QProcess(this);
-        connect(process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this,
-                [this, process, action, unit](int code, QProcess::ExitStatus status) {
-            if (status == QProcess::NormalExit && code == 0)
-                statusMessage_ = tr("‘%1’ completed for %2.").arg(action, unit);
-            else
-                statusMessage_ = tr("Could not %1 %2: %3").arg(action, unit, QString::fromLocal8Bit(process->readAllStandardError()).trimmed());
+        process->setProcessChannelMode(QProcess::MergedChannels);
+        process->setStandardInputFile(QProcess::nullDevice());
+        auto output = std::make_shared<QByteArray>();
+        auto completed = std::make_shared<bool>(false);
+        const auto drain = [process,output]() {
+            output->append(process->readAllStandardOutput());
+            if (output->size()>65536) *output=output->right(65536);
+        };
+        const auto complete = [this,process,output,completed,drain,action,unit](bool success,const QString &error) {
+            if (*completed) return;
+            *completed=true; drain();
+            statusMessage_=success?tr("‘%1’ completed for %2.").arg(action,unit)
+                :tr("Could not %1 %2: %3").arg(action,unit,error.isEmpty()?QString::fromLocal8Bit(*output).trimmed():error);
+            serviceMutationBusy_=false;
             process->deleteLater();
             serviceRefresh_.invalidate();
+            setServiceActionsEnabled(!serviceLoading_ && serviceSelection_->count()>0);
+            if (actionStatusByTab_.value(tr("Services")) != nullptr)
+                actionStatusByTab_.value(tr("Services"))->setText(statusMessage_);
             refreshCurrent();
+        };
+        connect(process,&QProcess::readyReadStandardOutput,this,drain);
+        connect(process,qOverload<int,QProcess::ExitStatus>(&QProcess::finished),this,
+            [complete](int code,QProcess::ExitStatus status) {
+                complete(status==QProcess::NormalExit && code==0,
+                    status==QProcess::NormalExit?QString():QObject::tr("The service command terminated unexpectedly."));
+            });
+        connect(process,&QProcess::errorOccurred,this,[process,complete](QProcess::ProcessError error) {
+            if (error==QProcess::FailedToStart) complete(false,process->errorString());
         });
         statusMessage_ = tr("Waiting for service manager…");
         if (actionStatusByTab_.value(tr("Services")) != nullptr)
@@ -1079,6 +1111,7 @@ private:
     int servicePending_ = 0;
     int serviceActiveFilter_ = -1;
     bool serviceLoading_ = false;
+    bool serviceMutationBusy_ = false;
     QString statusMessage_;
     QLabel *performanceSummary_ = nullptr;
     ResourceHistoryChart *cpuChart_ = nullptr;

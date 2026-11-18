@@ -31,3 +31,6 @@ compile_commands.json
 
 # Private startup undo records
 autostart-undo/
+
+/artifacts/
+*.deb

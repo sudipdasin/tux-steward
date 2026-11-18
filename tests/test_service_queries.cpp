@@ -149,6 +149,34 @@ int main(int argc, char **argv) {
         QMetaObject::invokeMethod(scope,"currentIndexChanged",Qt::DirectConnection,Q_ARG(int,0));
         require(spin([&]{return selection->count()==2 && selection->isEnabled();}),"same-scope refresh");
         require(selection->currentData().toMap()==selectedScope,"selection preserves unit and scope identity");
+        scope->setCurrentIndex(2);
+        require(spin([&]{return selection->count()==1 && selection->isEnabled();}),"user-scope mutation fixture");
+        qputenv("TUX_SERVICE_TEST_MODE","slow");
+        calls.open(QIODevice::WriteOnly|QIODevice::Truncate); calls.close();
+        QTimer::singleShot(0,[] {
+            if (auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget())) box->button(QMessageBox::Yes)->click();
+        });
+        start->click();
+        require(!start->isEnabled() && !selection->isEnabled(),"service mutation is single-flight");
+        start->click(); // Disabled controls cannot enqueue a second mutation.
+        require(spin([&]{return start->isEnabled();}),"mutation completion refreshes list");
+        require(calls.open(QIODevice::ReadOnly) && calls.readAll()=="user\nuser\n","one mutation plus one refresh, without duplicate action"); calls.close();
+        require(QFile::remove(program),"remove only fake executable symlink");
+        QFile invalid(program);
+        require(invalid.open(QIODevice::WriteOnly),"failed-start executable fixture");
+        invalid.write("#!/nonexistent-synthetic-service-interpreter\n"); invalid.close();
+        require(invalid.setPermissions(QFileDevice::ReadOwner|QFileDevice::WriteOwner|QFileDevice::ExeOwner),"fixture executable permissions");
+        QTimer::singleShot(0,[] {
+            if (auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget())) box->button(QMessageBox::Yes)->click();
+        });
+        start->click();
+        auto *actionStatus=tabs.findChild<QLabel *>("serviceActionStatus");
+        require(actionStatus && spin([&]{return actionStatus->text().contains("Could not");}),"failed service start leaves waiting state");
+        require(spin([&]{return report->toPlainText().contains("Query failed");}),"failed-start refresh reported");
+        require(QFile::remove(program) && QFile::link(QCoreApplication::applicationFilePath(),program),"restore fake executable");
+        qputenv("TUX_SERVICE_TEST_MODE","same");
+        scope->setCurrentIndex(0);
+        require(spin([&]{return selection->count()==2 && selection->isEnabled();}),"scope refreshed after command failure");
         qputenv("TUX_SERVICE_TEST_MODE","flood");
         scope->setCurrentIndex(2);
         require(spin([&]{return report->toPlainText().contains("512 KiB");}),"oversized service output reported");
@@ -162,3 +190,4 @@ int main(int argc, char **argv) {
         std::cerr<<"FAILED: "<<error.what()<<'\n'; return 1;
     }
 }
+

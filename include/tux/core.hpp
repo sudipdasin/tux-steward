@@ -1,4 +1,5 @@
 #pragma once
+#include "tux/version.hpp"
 #include <QByteArray>
 #include <QJsonObject>
 #include <QString>
@@ -7,7 +8,6 @@
 #include <functional>
 
 namespace tux {
-inline constexpr auto Version = "0.7.0";
 inline constexpr int OutputLimit = 250000;
 struct Action {
     QString id, group, title, description;
