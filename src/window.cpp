@@ -129,7 +129,7 @@ void Window::filter() {
         tabs_->setTabText(i,searching?QString("%1 (%2)").arg(groups[i]).arg(counts[i]):groups[i]);
     if (searching && total && counts[tabs_->currentIndex()]==0)
         for (int i=0;i<counts.size();++i) if (counts[i]) { tabs_->setCurrentIndex(i); break; }
-    searchStatus_->setText(!searching?"25 tools · Ctrl+F to search · Review every command before running":
+    searchStatus_->setText(!searching?QString("%1 tools · Ctrl+F to search · Review every command before running").arg(rows_.size()):
         total?QString("%1 matching tool(s) across all tabs · Esc clears search").arg(total):
         "No matching tools. Try a shorter name or clear the search.");
 }

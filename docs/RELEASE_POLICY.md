@@ -1,6 +1,6 @@
 # Release and forward-continuity policy
 
-The public main branch is the single source of truth. All future versions start from main and inherit existing features and their regression suites. CI verifies ancestry from the tested 0.9 foundation, compiles with GCC and Clang in separate Ubuntu hosted VMs, and runs every CTest suite plus actual package installation, GUI startup and removal. PR review must preserve working behavior or explain intentional changes. Ancestry alone cannot prove semantic compatibility; regressions need tests and user feedback.
+The public main branch is the single source of truth. All future versions start from main and inherit existing features and their regression suites. CI verifies ancestry from the tested 0.9 foundation, compiles with GCC and Clang in separate Ubuntu hosted VMs, and runs every CTest suite plus an upgrade from the checksum-pinned 0.9 DEB, GUI startup and removal. PR review must preserve working behavior or explain intentional changes. Ancestry alone cannot prove semantic compatibility; regressions need tests and user feedback.
 
 Published tags are historical checkpoints, not branches to update automatically. Fixes flow forward on main. Maintained older branches may receive reviewed backports with their own validation; automation does not rewrite old tags or copy untested code into them. No proprietary repository or cross-repository synchronization is configured by this policy.
 

@@ -47,7 +47,7 @@ if(BUILD_TESTING)
     set_tests_properties(core PROPERTIES TIMEOUT 30)
     add_executable(tux-ui-tests tests/test_ui.cpp)
     target_link_libraries(tux-ui-tests PRIVATE tux-ui)
-    add_test(NAME ui COMMAND tux-ui-tests)
+    add_test(NAME ui COMMAND tux-ui-tests ${CMAKE_CURRENT_BINARY_DIR}/ui-preview.png)
     set_tests_properties(ui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=${TUX_TEST_QPA_PLATFORM}" TIMEOUT 20)
 
     add_executable(tux-task-manager-tests

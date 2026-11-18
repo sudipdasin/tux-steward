@@ -85,7 +85,7 @@ int main(int argc,char** argv) {
     tabs->setCurrentIndex(0); app.processEvents();
     if (argc>1 && !window.grab().save(QString::fromLocal8Bit(argv[1]))) return 4;
     window.close();
-    std::cout<<"GUI: 25 tools, seven tabs, search, default-cancel review, real diagnostic completion, JSON export and render passed\n";
+    std::cout<<"GUI: 25 tools, eight tabs, cross-tab search, default-cancel review, real diagnostic completion, JSON export and render passed\n";
     return 0;
 }
 
