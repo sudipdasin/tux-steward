@@ -32,7 +32,16 @@ jobs:
           fetch-depth: 0
       - name: Retain the tested public foundation
         run: git merge-base --is-ancestor cdfdf7c0867e41af1220854306224dfa058aef89 HEAD
+      - name: Use official Ubuntu mirrors on the disposable VM
+        run: |
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt
+          fi
+          if [ -f /etc/apt/apt-mirrors-security.txt ]; then
+            printf '%s\n' 'https://security.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors-security.txt
+          fi
       - name: Install VM build and virtual desktop dependencies
+        timeout-minutes: 8
         run: sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq && sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y cmake g++ clang qtbase5-dev dpkg-dev file desktop-file-utils xvfb xauth
       - name: Build and test on the VM virtual X desktop
         run: |

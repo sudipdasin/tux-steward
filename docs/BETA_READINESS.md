@@ -27,7 +27,7 @@ cpack --config build/CPackConfig.cmake
 cmake -DPACKAGE_DIR="$PWD/build/packages" -DRELEASE_VERSION="$(./build/tux-steward --version | awk '{print $NF}')" -P tests/verify_packages.cmake
 ```
 
-Packages appear in `build/packages`. The Debian version is `1.1.0~beta1`, allowing a later stable 1.0.0 upgrade. Dependencies are detected from the build distribution: a Debian-built package is not automatically compatible with Mint. The TGZ also needs compatible Qt/system libraries; it is not a standalone application. The release workflow publishes verified packages and SHA256SUMS as public prerelease assets. Checksums verify file integrity, not publisher authenticity; packages are unsigned.
+Packages appear in `build/packages`. The Debian version is `1.1.0~beta1`, allowing a later stable 1.1.0 upgrade. Dependencies are detected from the build distribution: a Debian-built package is not automatically compatible with Mint. The TGZ also needs compatible Qt/system libraries; it is not a standalone application. The release workflow publishes verified packages and SHA256SUMS as public prerelease assets. Checksums verify file integrity, not publisher authenticity; packages are unsigned.
 
 Run all three installed binaries with `--version` or `--help` without a display. Run the actual GUI as a normal desktop user. Never run the GUI as root.
 
