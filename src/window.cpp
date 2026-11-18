@@ -18,6 +18,7 @@
 #include <QSaveFile>
 #include <QScrollArea>
 #include <QSplitter>
+#include <QShortcut>
 #include <QTabWidget>
 #include <QTextCodec>
 #include <QTextCursor>
@@ -70,7 +71,16 @@ Window::Window() {
     auto* searchRow=new QHBoxLayout;
     searchRow->addWidget(new QLabel("Find tools"));
     search_=new QLineEdit; search_->setObjectName("toolSearch"); search_->setPlaceholderText("Search by name, category or description…"); searchRow->addWidget(search_);
+    search_->setAccessibleName("Find tools across all tabs");
+    search_->setClearButtonEnabled(true);
     auto* clear=new QPushButton("Clear"); searchRow->addWidget(clear); layout->addLayout(searchRow);
+    searchStatus_=new QLabel; searchStatus_->setObjectName("searchStatus");
+    searchStatus_->setWordWrap(true); layout->addWidget(searchStatus_);
+    auto* findShortcut=new QShortcut(QKeySequence::Find,this);
+    connect(findShortcut,&QShortcut::activated,this,[this]{search_->setFocus(); search_->selectAll();});
+    auto* escapeShortcut=new QShortcut(QKeySequence(Qt::Key_Escape),search_);
+    escapeShortcut->setContext(Qt::WidgetShortcut);
+    connect(escapeShortcut,&QShortcut::activated,search_,&QLineEdit::clear);
     connect(clear,&QPushButton::clicked,search_,&QLineEdit::clear);
     auto* splitter=new QSplitter(Qt::Vertical); layout->addWidget(splitter,1);
     tabs_=new QTabWidget; tabs_->setObjectName("toolTabs"); splitter->addWidget(tabs_);
@@ -98,11 +108,30 @@ Window::Window() {
     connect(search_,&QLineEdit::textChanged,this,[this]{filter();});
     timer_=new QTimer(this); timer_->setInterval(50); connect(timer_,&QTimer::timeout,this,[this]{poll();}); timer_->start();
     updateButtons();
+    filter();
 }
 Window::~Window() { if (worker_.joinable()) worker_.join(); }
 int Window::toolCount() const { return rows_.size(); }
 void Window::filter() {
-    for (const auto& row:rows_) row.widget->setVisible(matches(tux::actions()[row.index],search_->text()));
+    QVector<int> counts(tabs_->count(),0);
+    int total=0;
+    for (const auto& row:rows_) {
+        const bool found=matches(tux::actions()[row.index],search_->text());
+        row.widget->setVisible(found);
+        if (!found) continue;
+        ++total;
+        for (int i=0;i<tabs_->count();++i)
+            if (tabs_->widget(i)->isAncestorOf(row.widget)) { ++counts[i]; break; }
+    }
+    const bool searching=!search_->text().trimmed().isEmpty();
+    const QStringList groups={"Diagnostics","Storage","Maintenance","Performance","Input","Gaming","Schedules","Experimental"};
+    for (int i=0;i<tabs_->count();++i)
+        tabs_->setTabText(i,searching?QString("%1 (%2)").arg(groups[i]).arg(counts[i]):groups[i]);
+    if (searching && total && counts[tabs_->currentIndex()]==0)
+        for (int i=0;i<counts.size();++i) if (counts[i]) { tabs_->setCurrentIndex(i); break; }
+    searchStatus_->setText(!searching?QString("%1 tools · Ctrl+F to search · Review every command before running").arg(rows_.size()):
+        total?QString("%1 matching tool(s) across all tabs · Esc clears search").arg(total):
+        "No matching tools. Try a shorter name or clear the search.");
 }
 void Window::updateButtons() {
     for (const auto& row:rows_) {

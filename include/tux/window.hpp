@@ -27,6 +27,7 @@ private:
     QTabWidget* tabs_;
     QLineEdit* search_;
     QLabel* status_;
+    QLabel* searchStatus_;
     QPlainTextEdit* output_;
     QTimer* timer_;
     bool busy_=false;

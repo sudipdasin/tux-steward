@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(TuxSteward VERSION 0.9.0 LANGUAGES CXX)
+project(TuxSteward VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -47,7 +47,7 @@ if(BUILD_TESTING)
     set_tests_properties(core PROPERTIES TIMEOUT 30)
     add_executable(tux-ui-tests tests/test_ui.cpp)
     target_link_libraries(tux-ui-tests PRIVATE tux-ui)
-    add_test(NAME ui COMMAND tux-ui-tests)
+    add_test(NAME ui COMMAND tux-ui-tests ${CMAKE_CURRENT_BINARY_DIR}/ui-preview.png)
     set_tests_properties(ui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=${TUX_TEST_QPA_PLATFORM}" TIMEOUT 20)
 
     add_executable(tux-task-manager-tests
@@ -97,7 +97,7 @@ if(BUILD_TESTING)
     add_test(NAME process-control COMMAND tux-process-control-tests)
     set_tests_properties(process-control PROPERTIES TIMEOUT 15)
     add_executable(tux-setup-tests tests/test_setup.cpp)
-    target_link_libraries(tux-setup-tests PRIVATE tux-setup-ui)
+    target_link_libraries(tux-setup-tests PRIVATE tux-setup-ui tux-core)
     add_test(NAME setup-wizard COMMAND tux-setup-tests $<TARGET_FILE:tux-steward> $<TARGET_FILE:tux-task-manager> $<TARGET_FILE:tux-setup> ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/PRIVACY.md)
     set_tests_properties(setup-wizard PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=${TUX_TEST_QPA_PLATFORM}" TIMEOUT 30)
     add_test(NAME install-layout COMMAND ${CMAKE_COMMAND}
@@ -116,7 +116,7 @@ install(FILES assets/tux-task-manager.desktop DESTINATION ${CMAKE_INSTALL_DATADI
 install(FILES LICENSE PRIVACY.md docs/BETA_READINESS.md DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/tux-steward)
 
 
-# Private beta artifacts; CPack creates packages but does not publish a release.
+# Public beta artifacts; publication requires the release workflow.
 set(CPACK_PACKAGE_NAME "tux-steward")
 set(CPACK_PACKAGE_VENDOR "Sudip Das")
 set(CPACK_PACKAGE_CONTACT "Sudip Das <4808490+sudipdasin@users.noreply.github.com>")

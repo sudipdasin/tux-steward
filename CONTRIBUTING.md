@@ -22,7 +22,7 @@ Build with CMake, run CTest, and verify GUI behavior before merging. Add real su
 - `src/autostart.cpp`: XDG discovery, user overrides and private undo.
 - `tests/`: isolated core, subprocess and offscreen GUI checks.
 
-CircleCI remains primary on main. The existing GitHub Actions test workflow remains manual and now validates Ubuntu 22.04/GCC and Ubuntu 24.04/Clang VMs with Xvfb, every suite and package install/launch/removal checks. The separate manual **Build release packages** workflow builds an existing published beta tag, verifies tests/dependencies/versions/build-path privacy, and attaches packages plus SHA256SUMS to that prerelease. It does not change repository visibility. Never upload packages rejected by verification.
+GitHub Actions automatically runs all nine suites and package install/startup/removal checks on Ubuntu 22.04/GCC Release and Ubuntu 24.04/Clang Debug VMs for pull requests and main. CircleCI additionally checks main. Beta tags trigger the same dual-VM checks before release packaging/publication. Do not delete existing regression coverage to obtain a green build. See docs/RELEASE_POLICY.md for forward continuity and publication rules.
 
 Use issue templates for bug reports and proposals. Reviewers should verify privacy, permissions, compatibility and failure recovery. Do not put credentials or private machine logs in issues or pull requests.
 

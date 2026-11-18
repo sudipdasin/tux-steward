@@ -33,7 +33,14 @@ int main(int argc,char** argv) {
     for (auto* button:window.findChildren<QPushButton*>())
         if (button->objectName().startsWith("tool_") && !button->parentWidget()->isHidden()) ++visible;
     if (visible!=1) return 2;
+    // Search must reveal results in another tab, rather than leaving an empty page.
+    if (!tabs->tabText(tabs->currentIndex()).startsWith("Gaming (1)") ||
+        !window.findChild<QLabel*>("searchStatus")->text().startsWith("1 matching")) return 22;
+    search->setText("no-tool-has-this-name"); app.processEvents();
+    if (!window.findChild<QLabel*>("searchStatus")->text().startsWith("No matching")) return 23;
     search->clear(); app.processEvents();
+    if (tabs->tabText(experimental)!="Experimental") return 24;
+    tabs->setCurrentIndex(0);
     bool cancelled=false;
     QTimer::singleShot(0,[&]{
         for (auto* widget:QApplication::topLevelWidgets()) {
@@ -78,7 +85,7 @@ int main(int argc,char** argv) {
     tabs->setCurrentIndex(0); app.processEvents();
     if (argc>1 && !window.grab().save(QString::fromLocal8Bit(argv[1]))) return 4;
     window.close();
-    std::cout<<"GUI: 25 tools, seven tabs, search, default-cancel review, real diagnostic completion, JSON export and render passed\n";
+    std::cout<<"GUI: 25 tools, eight tabs, cross-tab search, default-cancel review, real diagnostic completion, JSON export and render passed\n";
     return 0;
 }
 

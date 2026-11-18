@@ -3,26 +3,36 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing published prerelease tag
+        description: Beta tag on main (created by the owner)
         required: true
-        default: v0.9.0-beta.1
+        default: v1.0.0-beta.1
+  push:
+    tags: ["v*-beta.*"]
 permissions:
   contents: write
 jobs:
+  validate:
+    uses: ./.github/workflows/tests.yml
+    with:
+      ref: ${{ inputs.tag || github.ref_name }}
   packages:
+    needs: validate
     runs-on: ubuntu-22.04
     env:
-      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ inputs.tag || github.ref_name }}
           fetch-depth: 0
+          persist-credentials: false
       - name: Verify release tag and install build dependencies
         run: |
           set -euo pipefail
           [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]
           test "$(git describe --tags --exact-match HEAD)" = "$RELEASE_TAG"
+          git merge-base --is-ancestor HEAD origin/main
+          git merge-base --is-ancestor cdfdf7c0867e41af1220854306224dfa058aef89 HEAD
           sudo apt-get update -qq
           sudo apt-get install -y cmake g++ qtbase5-dev dpkg-dev file desktop-file-utils xvfb xauth
       - name: Build and test
@@ -58,9 +68,12 @@ jobs:
           test ! -e /usr/bin/tux-task-manager
           test ! -e /usr/bin/tux-setup
           ! command -v tux-steward
-      - name: Attach verified packages to existing prerelease
+      - name: Publish verified testing preview
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --verify-tag --prerelease --title "Tux Steward ${RELEASE_TAG#v} — Public Testing Beta" --notes-file docs/RELEASE_NOTES.md
+          fi
           test "$(gh release view "$RELEASE_TAG" --json isPrerelease --jq .isPrerelease)" = true
-          gh release upload "$RELEASE_TAG" --clobber build/packages/*.deb build/packages/*.tar.gz build/packages/SHA256SUMS
+          gh release upload "$RELEASE_TAG" build/packages/*.deb build/packages/*.tar.gz build/packages/SHA256SUMS

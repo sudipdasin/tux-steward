@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "tux/setup.hpp"
+#include "tux/version.hpp"
 #include "tux/setup_wizard.hpp"
 #include <QApplication>
 #include <QCheckBox>
@@ -36,7 +37,7 @@ int main(int argc,char **argv) {
         const auto root=tux::setup::installRoot(home);
         for(int i=0;i<3;++i) {
             QProcess child;child.start(root+"/"+names[i],{"--version"});require(child.waitForFinished(5000) && child.exitCode()==0,"installed program starts");
-            require(child.readAllStandardOutput().contains("0.9.0-beta.1"),"installed version");
+            require(child.readAllStandardOutput().contains(tux::Version),"installed version");
         }
         require(!tux::setup::install(source,home).ok,"existing installation never overwritten");
         const QString unrelated=root+"/my-notes.txt";put(unrelated,"keep me");
