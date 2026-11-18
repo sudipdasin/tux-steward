@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.0-beta.1 — 2026-11-18
+
+Private beta preparation: process termination now uses stable pidfd handles with start-time and UID verification; unavailable facilities fail closed. Service actions prevent overlap, bound output and recover from failed process startup. Added real owned-child signal tests and synthetic service mutation recovery coverage. Added headless help/version, generated version metadata, staged install checks, stripped DEB/TGZ packaging and private CI artifacts with checksums. Added an explicit desktop readiness matrix; no public release or release-candidate certification.
+
 ## 0.7.0 — 2026-11-18
 
 Rebuilt Startup Apps as a searchable, sortable table with effective XDG directory precedence, user/system source filters, sign-in eligibility reasons and plain-text entry details. Added user-only Hidden overrides and a private one-step undo journal. Undo refuses externally changed targets; malformed/oversized entries and symbolic write targets are rejected. Added backend and GUI fixture tests without touching real sign-in configuration.

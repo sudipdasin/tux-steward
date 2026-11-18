@@ -54,7 +54,7 @@ Window::Window() {
     auto* layout=new QVBoxLayout(center); layout->setContentsMargins(24,16,24,18); layout->setSpacing(12);
     auto* brand=new QLabel("◉  TUX STEWARD"); brand->setStyleSheet("color:#66dfbf;font-size:16px;font-weight:bold;"); layout->addWidget(brand);
     auto* heading=new QLabel("A calmer way to care for Linux."); heading->setStyleSheet("font-size:27px;font-weight:bold;"); layout->addWidget(heading);
-    layout->addWidget(new QLabel(QString("Version %1 alpha · C++17 · Native desktop tools").arg(Version)));
+    layout->addWidget(new QLabel(QString("Version %1 beta preparation · C++17 · Native desktop tools").arg(Version)));
     status_=new QLabel("Ready · Choose a tool to review its command"); status_->setObjectName("taskStatus"); status_->setStyleSheet("color:#66dfbf;"); layout->addWidget(status_);
     auto* searchRow=new QHBoxLayout;
     searchRow->addWidget(new QLabel("Find tools"));
@@ -163,3 +163,4 @@ void Window::closeEvent(QCloseEvent* event) {
     else event->accept();
 }
 }
+

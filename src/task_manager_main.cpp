@@ -1,4 +1,5 @@
 #include "tux/core.hpp"
+#include "tux/cli.hpp"
 #include "tux/process_manager.hpp"
 
 #include <QApplication>
@@ -9,6 +10,8 @@
 
 int main(int argc, char *argv[])
 {
+    const int information=tux::handleInformationOptions(argc,argv,"Tux Task Manager");
+    if (information>=0) return information;
     QApplication application(argc, argv);
     application.setApplicationName("Tux Task Manager");
     application.setApplicationVersion(tux::Version);
@@ -41,3 +44,4 @@ int main(int argc, char *argv[])
     window.show();
     return application.exec();
 }
+

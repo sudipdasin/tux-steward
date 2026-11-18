@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "tux/process_manager.hpp"
+#include "tux/process_control.hpp"
 #include "tux/process_tree.hpp"
 #include "tux/system_monitor_tabs.hpp"
 
@@ -876,10 +877,12 @@ void ProcessManagerWidget::stopSelectedProcess(bool force)
         status_->setText(tr("That process has already exited."));
         return;
     }
-    if (::kill(static_cast<pid_t>(pid), force ? SIGKILL : SIGTERM) != 0) {
-        status_->setText(tr("Couldn’t stop %1: %2").arg(processName, QString::fromLocal8Bit(std::strerror(errno))));
+    const auto outcome=tux::signalVerifiedProcess(static_cast<pid_t>(pid),startTicks,static_cast<uid_t>(::geteuid()),force?SIGKILL:SIGTERM);
+    if (!outcome.sent) {
+        status_->setText(tr("Could not stop %1: %2").arg(processName,outcome.message));
         return;
     }
     status_->setText(force ? tr("Force-stop signal sent to %1.").arg(processName)
                            : tr("Close request sent to %1.").arg(processName));
 }
+
