@@ -27,3 +27,7 @@ CMakeUserPresets.json
 compile_commands.json
 *.o
 *.a
+
+
+# Private startup undo records
+autostart-undo/

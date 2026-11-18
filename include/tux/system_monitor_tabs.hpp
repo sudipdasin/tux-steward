@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
+#include "tux/autostart.hpp"
+#include <QTableWidget>
+#include <QHeaderView>
+#include <QSignalBlocker>
 #include "tux/async_command.hpp"
 #include <QPointer>
 #include <QMap>
@@ -131,7 +135,7 @@ public:
         addReportTab(tr("Network"), &network_);
         addReportTab(tr("Disk"), &disk_);
         addReportTab(tr("Bluetooth"), nullptr);
-        addReportTab(tr("Startup apps"), &startup_);
+        addReportTab(tr("Startup apps"), nullptr);
         addReportTab(tr("Services"), &services_);
         addReportTab(tr("GPU"), &gpu_);
 
@@ -273,7 +277,8 @@ private:
         QComboBox *filter = nullptr;
         if (name == tr("Startup apps")) {
             filter = new QComboBox(page);
-            filter->addItems({tr("All apps"), tr("User / third-party apps"), tr("System apps")});
+            filter->addItems({tr("All entries"), tr("User entries / overrides"), tr("System defaults + overrides")});
+            filter->setObjectName(QStringLiteral("startupScopeFilter"));
         } else if (name == tr("Services")) {
             filter = new QComboBox(page);
             filter->addItems({tr("All services"), tr("System services"), tr("User services")});
@@ -290,17 +295,45 @@ private:
             });
         }
         if (name == tr("Startup apps")) {
-            startupSelection_ = new QComboBox(page);
-            startupSelection_->setMinimumWidth(250);
+            auto *intro = new QLabel(tr("Manage sign-in applications for your account. System defaults are never edited. Desktop restrictions and missing programs may prevent an enabled entry from starting."), page);
+            intro->setWordWrap(true); layout->addWidget(intro);
+            startupSearch_ = new QLineEdit(page);
+            startupSearch_->setObjectName(QStringLiteral("startupSearch"));
+            startupSearch_->setPlaceholderText(tr("Search application, filename or command"));
+            startupSearch_->setClearButtonEnabled(true); layout->addWidget(startupSearch_);
             auto *row = new QHBoxLayout;
-            row->addWidget(startupSelection_, 1);
-            auto *enable = new QPushButton(tr("Enable at sign-in"), page);
-            auto *disable = new QPushButton(tr("Disable at sign-in"), page);
-            row->addWidget(enable);
-            row->addWidget(disable);
+            startupEnable_ = new QPushButton(tr("Enable at sign-in"), page);
+            startupDisable_ = new QPushButton(tr("Disable at sign-in"), page);
+            startupUndo_ = new QPushButton(tr("Undo last change"), page);
+            startupDetails_ = new QPushButton(tr("Details"), page);
+            auto *refresh = new QPushButton(tr("Refresh"), page);
+            startupEnable_->setObjectName(QStringLiteral("startupEnable"));
+            startupDisable_->setObjectName(QStringLiteral("startupDisable"));
+            startupUndo_->setObjectName(QStringLiteral("startupUndo"));
+            startupDetails_->setObjectName(QStringLiteral("startupDetails"));
+            refresh->setObjectName(QStringLiteral("startupRefresh"));
+            for (auto *button : {startupEnable_, startupDisable_, startupUndo_, startupDetails_, refresh}) row->addWidget(button);
             layout->addLayout(row);
-            connect(enable, &QPushButton::clicked, tabs_, [this]() { setStartupEnabled(true); });
-            connect(disable, &QPushButton::clicked, tabs_, [this]() { setStartupEnabled(false); });
+            startupTable_ = new QTableWidget(0, 4, page);
+            startupTable_->setObjectName(QStringLiteral("startupTable"));
+            startupTable_->setHorizontalHeaderLabels({tr("Application"),tr("Sign-in status"),tr("Source"),tr("Command")});
+            startupTable_->setSelectionBehavior(QAbstractItemView::SelectRows);
+            startupTable_->setSelectionMode(QAbstractItemView::SingleSelection);
+            startupTable_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+            startupTable_->setSortingEnabled(true);
+            startupTable_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+            startupTable_->verticalHeader()->hide(); layout->addWidget(startupTable_, 1);
+            startupSummary_ = new QLabel(page); startupSummary_->setWordWrap(true); layout->addWidget(startupSummary_);
+            auto *actionStatus = new QLabel(page); actionStatus->setWordWrap(true); layout->addWidget(actionStatus);
+            actionStatusByTab_.insert(name, actionStatus);
+            connect(startupSearch_, &QLineEdit::textChanged, this, [this] { filterStartupEntries(); });
+            connect(startupTable_, &QTableWidget::itemSelectionChanged, this, [this] { updateStartupActions(); });
+            connect(startupEnable_, &QPushButton::clicked, this, [this] { setStartupEnabled(true); });
+            connect(startupDisable_, &QPushButton::clicked, this, [this] { setStartupEnabled(false); });
+            connect(startupUndo_, &QPushButton::clicked, this, [this] { undoStartupChange(); });
+            connect(startupDetails_, &QPushButton::clicked, this, [this] { showStartupDetails(); });
+            connect(refresh, &QPushButton::clicked, this, [this] { refreshCurrent(); });
+            tabs_->addTab(page, name); updateStartupActions(); return;
         }
         if (name == tr("Services")) {
             serviceSelection_ = new QComboBox(page);
@@ -670,101 +703,111 @@ private:
         }
     }
 
-    static QString startupReport(int filter)
+    const tux::autostart::Entry *selectedStartupEntry() const
     {
-        const QString userPath = QDir::home().filePath(QStringLiteral(".config/autostart"));
-        const QStringList systemPaths{QStringLiteral("/etc/xdg/autostart")};
-        QString out = QObject::tr("Autostart entries (user applications may include third-party software)\n\n");
-        QStringList paths;
-        if (filter == 0 || filter == 1) paths << userPath;
-        if (filter == 0 || filter == 2) paths << systemPaths.front();
-        for (const QString &path : paths) {
-            const QStringList files = QDir(path).entryList({QStringLiteral("*.desktop")}, QDir::Files, QDir::Name);
-            for (const QString &fileName : files) {
-                QFile file(QDir(path).filePath(fileName));
-                if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) continue;
-                const QString data = QString::fromLocal8Bit(file.readAll());
-                QString name = fileName;
-                for (const QString &line : data.split(QLatin1Char('\n'))) {
-                    if (line.startsWith(QStringLiteral("Name="))) { name = line.mid(5).trimmed(); break; }
-                }
-                const bool disabled = data.contains(QStringLiteral("Hidden=true"));
-                out += QStringLiteral("%1  ·  %2  ·  %3\n").arg(name, path == userPath ? QObject::tr("User / third-party") : QObject::tr("System default"), disabled ? QObject::tr("disabled") : QObject::tr("enabled"));
-            }
-        }
-        out += QObject::tr("\nEntries are read from standard XDG .desktop autostart locations.");
-        return out;
+        if (startupTable_ == nullptr || startupTable_->currentRow() < 0
+            || startupTable_->isRowHidden(startupTable_->currentRow())) return nullptr;
+        const auto *item = startupTable_->item(startupTable_->currentRow(),0);
+        if (item == nullptr) return nullptr;
+        const auto id=item->data(Qt::UserRole).toString();
+        for (const auto &entry:startupEntries_) if (entry.id==id) return &entry;
+        return nullptr;
     }
 
-    void refreshStartupChoices(int filter)
+    void updateStartupActions()
     {
-        if (startupSelection_ == nullptr) return;
-        const QString selected = startupSelection_->currentData().toString();
-        startupSelection_->clear();
-        const QString userPath = QDir::home().filePath(QStringLiteral(".config/autostart"));
-        const QString systemPath = QStringLiteral("/etc/xdg/autostart");
-        QHash<QString, QString> effective;
-        if (filter == 0 || filter == 2) {
-            for (const QString &file : QDir(systemPath).entryList({QStringLiteral("*.desktop")}, QDir::Files, QDir::Name))
-                effective.insert(file, QDir(systemPath).filePath(file));
+        if (startupEnable_==nullptr) return;
+        const auto *entry=selectedStartupEntry();
+        startupEnable_->setEnabled(entry!=nullptr && entry->valid && entry->hidden);
+        startupDisable_->setEnabled(entry!=nullptr && entry->valid && !entry->hidden);
+        startupUndo_->setEnabled(entry!=nullptr && tux::autostart::hasUndo(tux::autostart::Paths::environment(),entry->id));
+        startupDetails_->setEnabled(entry!=nullptr);
+    }
+
+    void filterStartupEntries()
+    {
+        if (startupTable_==nullptr) return;
+        const auto query=startupSearch_->text().trimmed();
+        for (int row=0;row<startupTable_->rowCount();++row) {
+            QString text;
+            for (int column=0;column<4;++column) text+=startupTable_->item(row,column)->text()+QLatin1Char(' ');
+            text+=startupTable_->item(row,0)->data(Qt::UserRole).toString()+startupTable_->item(row,3)->toolTip();
+            startupTable_->setRowHidden(row,!text.contains(query,Qt::CaseInsensitive));
         }
-        if (filter == 0 || filter == 1) {
-            for (const QString &file : QDir(userPath).entryList({QStringLiteral("*.desktop")}, QDir::Files, QDir::Name))
-                effective.insert(file, QDir(userPath).filePath(file));
+        if (startupTable_->currentRow()>=0 && startupTable_->isRowHidden(startupTable_->currentRow())) {
+            startupTable_->clearSelection(); startupTable_->setCurrentItem(nullptr);
         }
-        QStringList files = effective.keys();
-        std::sort(files.begin(), files.end(), [](const QString &a, const QString &b) { return a.compare(b, Qt::CaseInsensitive) < 0; });
-        for (const QString &fileName : files) {
-            const QString path = effective.value(fileName);
-            const QString contents = read(path);
-            QString name = fileName;
-            for (const QString &line : contents.split(QLatin1Char('\n'))) {
-                if (line.startsWith(QStringLiteral("Name="))) { name = line.mid(5).trimmed(); break; }
+        updateStartupActions();
+    }
+
+    void refreshStartupEntries(int filter)
+    {
+        if (startupTable_==nullptr) return;
+        const auto *selected=selectedStartupEntry();
+        const auto selectedId=selected?selected->id:QString();
+        const QSignalBlocker blocker(startupTable_);
+        startupTable_->setSortingEnabled(false); startupTable_->setRowCount(0);
+        startupEntries_=tux::autostart::discover(tux::autostart::Paths::environment());
+        int eligible=0;
+        for (auto &entry:startupEntries_) {
+            entry.contents.clear(); // UI metadata does not need retained file contents.
+            if ((filter==1 && !entry.userOverride) || (filter==2 && !entry.hasSystemDefault)) continue;
+            const int row=startupTable_->rowCount(); startupTable_->insertRow(row);
+            const auto source=entry.userOverride
+                ? (entry.hasSystemDefault?tr("User override of system default"):tr("User entry")) : tr("System default");
+            const QStringList values{entry.name,entry.reason,source,entry.command.left(240)};
+            for (int column=0;column<4;++column) {
+                auto *item=new QTableWidgetItem(values[column]);
+                item->setData(Qt::UserRole,entry.id); startupTable_->setItem(row,column,item);
             }
-            const bool disabled = contents.contains(QStringLiteral("Hidden=true"));
-            const bool userEntry = path.startsWith(userPath + QLatin1Char('/'));
-            startupSelection_->addItem(QStringLiteral("%1  ·  %2  ·  %3").arg(name,
-                userEntry ? tr("User / third-party") : tr("System"), disabled ? tr("disabled") : tr("enabled")), path);
+            startupTable_->item(row,0)->setToolTip(entry.id);
+            startupTable_->item(row,3)->setToolTip(entry.command);
+            if (entry.eligible) ++eligible;
         }
-        const int restore = startupSelection_->findData(selected);
-        if (restore >= 0) startupSelection_->setCurrentIndex(restore);
+        startupTable_->setSortingEnabled(true);
+        for (int row=0;row<startupTable_->rowCount();++row)
+            if (startupTable_->item(row,0)->data(Qt::UserRole).toString()==selectedId) startupTable_->selectRow(row);
+        startupSummary_->setText(tr("%1 effective entries shown · %2 eligible for this desktop · eligibility is not proof an app will start successfully")
+            .arg(startupTable_->rowCount()).arg(eligible));
+        filterStartupEntries();
+    }
+
+    bool confirmStartup(const QString &title,const QString &text)
+    {
+        QMessageBox dialog(QMessageBox::Question,title,text,QMessageBox::Yes|QMessageBox::Cancel,tabs_);
+        dialog.setTextFormat(Qt::PlainText); dialog.setDefaultButton(QMessageBox::Cancel);
+        return dialog.exec()==QMessageBox::Yes;
     }
 
     void setStartupEnabled(bool enabled)
     {
-        if (startupSelection_ == nullptr || startupSelection_->currentIndex() < 0) return;
-        const QString sourcePath = startupSelection_->currentData().toString();
-        const QFileInfo sourceInfo(sourcePath);
-        const QString targetPath = sourcePath.startsWith(QDir::home().filePath(QStringLiteral(".config/autostart")) + QLatin1Char('/'))
-            ? sourcePath : QDir::home().filePath(QStringLiteral(".config/autostart/") + sourceInfo.fileName());
-        QString contents = read(sourcePath);
-        if (contents.isEmpty()) {
-            statusMessage_ = tr("Could not read this startup entry.");
-            refreshCurrent();
-            return;
-        }
-        QStringList lines = contents.split(QLatin1Char('\n'));
-        bool found = false;
-        for (QString &line : lines) {
-            if (line.startsWith(QStringLiteral("Hidden="))) {
-                line = QStringLiteral("Hidden=") + (enabled ? QStringLiteral("false") : QStringLiteral("true"));
-                found = true;
-            }
-        }
-        if (!found) {
-            const int group = lines.indexOf(QStringLiteral("[Desktop Entry]"));
-            if (group >= 0) lines.insert(group + 1, QStringLiteral("Hidden=") + (enabled ? QStringLiteral("false") : QStringLiteral("true")));
-            else lines << QStringLiteral("[Desktop Entry]") << (QStringLiteral("Hidden=") + (enabled ? QStringLiteral("false") : QStringLiteral("true")));
-        }
-        QDir().mkpath(QFileInfo(targetPath).absolutePath());
-        QSaveFile file(targetPath);
-        const QByteArray bytes = lines.join(QLatin1Char('\n')).toLocal8Bit();
-        if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size() || !file.commit())
-            statusMessage_ = tr("Could not update this startup entry. Check folder permissions.");
-        else statusMessage_ = enabled ? tr("The app will start when you sign in.") : tr("The app is disabled at sign-in for this user.");
-        if (actionStatusByTab_.value(tr("Startup apps")) != nullptr)
-            actionStatusByTab_.value(tr("Startup apps"))->setText(statusMessage_);
+        const auto *selected=selectedStartupEntry();
+        if (selected==nullptr) return;
+        const auto entry=*selected;
+        if (!confirmStartup(enabled?tr("Enable startup application"):tr("Disable startup application"),
+            tr("%1 %2 at sign-in for your account? This does not start or stop it now. Original system files remain unchanged. Undo last change will be available.")
+                .arg(enabled?tr("Enable"):tr("Disable"),entry.name))) return;
+        const auto result=tux::autostart::setEnabled(tux::autostart::Paths::environment(),entry.id,enabled);
+        statusMessage_=result.message;
         refreshCurrent();
+    }
+
+    void undoStartupChange()
+    {
+        const auto *selected=selectedStartupEntry(); if (selected==nullptr) return;
+        const auto id=selected->id;
+        if (!confirmStartup(tr("Undo startup change"),tr("Restore the saved previous user state for %1? An entry edited outside Tux Steward will not be overwritten.").arg(selected->name))) return;
+        statusMessage_=tux::autostart::undo(tux::autostart::Paths::environment(),id).message;
+        refreshCurrent();
+    }
+
+    void showStartupDetails()
+    {
+        const auto *entry=selectedStartupEntry(); if (entry==nullptr) return;
+        QMessageBox dialog(QMessageBox::Information,tr("Startup entry details"),
+            tr("Application: %1\nFile: %2\nEffective source: %3\nCommand (display only): %4\nStatus: %5")
+                .arg(entry->name,entry->id,entry->path,entry->command,entry->reason),QMessageBox::Close,tabs_);
+        dialog.setTextFormat(Qt::PlainText); dialog.exec();
     }
 
     static QString usersReport()
@@ -858,8 +901,7 @@ private:
         }
         else if (index == 7) {
             const int filter = filters_.value(tr("Startup apps"))->currentIndex();
-            refreshStartupChoices(filter);
-            startup_->setPlainText(startupReport(filter));
+            refreshStartupEntries(filter);
         } else if (index == 8) {
             if (!serviceRefresh_.isValid() || serviceRefresh_.elapsed() >= 10000) {
                 const int filter = filters_.value(tr("Services"))->currentIndex();
@@ -1020,7 +1062,14 @@ private:
     int firstIndex_ = 0;
     QHash<QString, QComboBox *> filters_;
     QHash<QString, QLabel *> actionStatusByTab_;
-    QComboBox *startupSelection_ = nullptr;
+    QTableWidget *startupTable_ = nullptr;
+    QLineEdit *startupSearch_ = nullptr;
+    QLabel *startupSummary_ = nullptr;
+    QPushButton *startupEnable_ = nullptr;
+    QPushButton *startupDisable_ = nullptr;
+    QPushButton *startupUndo_ = nullptr;
+    QPushButton *startupDetails_ = nullptr;
+    QVector<tux::autostart::Entry> startupEntries_;
     QComboBox *serviceSelection_ = nullptr;
     QVector<QPushButton *> serviceActionButtons_;
     QVector<QPointer<AsyncCommand>> serviceQueries_;
@@ -1054,9 +1103,9 @@ private:
     QPlainTextEdit *bluetoothLog_ = nullptr;
     QProcess *bluetoothClient_ = nullptr;
     QTimer *bluetoothScanTimer_ = nullptr;
-    QPlainTextEdit *startup_ = nullptr;
     QPlainTextEdit *services_ = nullptr;
     QPlainTextEdit *gpu_ = nullptr;
     QTimer *autoRefresh_ = nullptr;
     QElapsedTimer serviceRefresh_;
 };
+

@@ -4,6 +4,8 @@ Delivered foundations:
 - 0.2.0: C++17 / Qt Widgets migration, CMake and native tests.
 - 0.3.0: standalone Tux Task Manager with same-user process controls.
 - 0.4.0: per-process details including parent information and local paths at runtime.
+- 0.7.0: XDG-aware startup table, user-only overrides and one-step undo.
+- 0.6.0: nonblocking bounded service-list queries and stale-result cancellation.
 - 0.5.0: process tree, pause/speed controls and opt-in detailed reports. The current Task Manager also includes resource charts, startup/service views, Bluetooth controls, GPU inspection and per-process disk rates; hardware support still depends on the host.
 
 Next:
@@ -15,3 +17,4 @@ Next:
 - 1.0.0: supported-distribution matrix, packaging, accessibility and public-readiness review.
 
 Filesystem repair remains guidance-only until an offline workflow and strong mount checks are validated. No final release or public visibility change is automatic.
+

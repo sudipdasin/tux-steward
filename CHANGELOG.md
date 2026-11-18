@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.0 — 2026-11-18
+
+Rebuilt Startup Apps as a searchable, sortable table with effective XDG directory precedence, user/system source filters, sign-in eligibility reasons and plain-text entry details. Added user-only Hidden overrides and a private one-step undo journal. Undo refuses externally changed targets; malformed/oversized entries and symbolic write targets are rejected. Added backend and GUI fixture tests without touching real sign-in configuration.
+
 ## 0.6.0 — 2026-11-17
 
 Replaced blocking, duplicate service-list queries with bounded asynchronous queries shared by the report and action selector. Added three-second query deadlines, 512 KiB scope limits, cancellation on page exit/hide, generation checks against stale results, disabled controls while loading and correct unit/scope selection restoration. Added a reusable one-shot async query helper and responsiveness/lifecycle integration tests using synthetic service executables.
@@ -40,3 +44,4 @@ Live command output, case-insensitive tool search, bounded output/history memory
 ## 0.1.0 — 2026-11-10
 
 Initial development alpha: native dark GUI, seven grouped tabs, 25 explicit actions, PolicyKit authentication per admin action, command review, worker queue, dependency checks, JSON report export, source audit, tests and CI configuration.
+
