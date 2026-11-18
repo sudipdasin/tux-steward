@@ -5,6 +5,7 @@
 #include <QRadioButton>
 #include <QVBoxLayout>
 #include <QCheckBox>
+#include <QVariant>
 #include <utility>
 namespace tux {
 SetupWizard::SetupWizard(QString source,QString home,QWidget *parent):QWizard(parent),source_(std::move(source)),home_(std::move(home)) {

@@ -3,6 +3,7 @@
 #include "tux/setup_wizard.hpp"
 #include <QApplication>
 #include <QCheckBox>
+#include <QVariant>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
