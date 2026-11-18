@@ -49,6 +49,9 @@ jobs:
             if [ "$result" -ne 124 ]; then cat "/tmp/${app}-smoke.log"; exit 1; fi
           done
           sudo apt-get remove -y tux-steward
+          hash -r
+          test ! -e /usr/bin/tux-steward
+          test ! -e /usr/bin/tux-task-manager
           ! command -v tux-steward
       - name: Attach verified packages to existing prerelease
         env:
