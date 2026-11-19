@@ -22,8 +22,12 @@ Build with CMake, run CTest, and verify GUI behavior before merging. Add real su
 - `src/autostart.cpp`: XDG discovery, user overrides and private undo.
 - `tests/`: isolated core, subprocess and offscreen GUI checks.
 
-GitHub Actions automatically runs all ten suites and package install/startup/removal checks on Ubuntu 22.04/GCC Release and Ubuntu 24.04/Clang Debug VMs for pull requests and main. CircleCI additionally checks main. Beta tags trigger the same dual-VM checks before release packaging/publication. Do not delete existing regression coverage to obtain a green build. See docs/RELEASE_POLICY.md for forward continuity and publication rules.
+GitHub Actions automatically runs all eleven suites and package install/startup/removal checks on Ubuntu 22.04/GCC Release and Ubuntu 24.04/Clang Debug VMs for pull requests and main. CircleCI additionally checks main. Beta tags trigger the same dual-VM checks before release packaging/publication. Do not delete existing regression coverage to obtain a green build. See docs/RELEASE_POLICY.md for forward continuity and publication rules.
 
 Use issue templates for bug reports and proposals. Reviewers should verify privacy, permissions, compatibility and failure recovery. Do not put credentials or private machine logs in issues or pull requests.
 
 Setup code lives in `src/setup.cpp` (fixed inventory and removal safeguards), `src/setup_wizard.cpp` (review/consent/result UI) and `src/setup_main.cpp`. Tests must isolate all installation paths and never modify the developer's real user installation.
+
+Session-history UI lives in `src/history_dialog.cpp`. Its action button requests the existing review flow; do not execute stored command text. Tests cover immutable snapshots, bounds, selection/filter behavior and the second command-review boundary.
+
+Current CI policy: automatic PR/main runs are paused pending reusable image preparation. Preserve `.circleci/config.yml` and the manual-only test triggers. Explicit VM validation and the beta-tag package gates remain available; invoke them and record outcomes before public downloads. The new version retains all existing regression suites.
