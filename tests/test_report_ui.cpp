@@ -17,9 +17,9 @@ int main(int argc,char** argv) {
     QApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
     QApplication app(argc,argv);
     tux::Result first; first.action=tux::action("storage").title; first.code=0; first.seconds=0.2;
-    first.command={"fixture","private-one"}; first.output="private-output-one";
+    first.command=QStringList{"fixture","private-one"}; first.output="private-output-one";
     tux::Result second=first; second.action=tux::action("memory").title; second.cancelled=true; second.code=130;
-    second.command={"fixture","private-two"}; second.output="private-output-two";
+    second.command=QStringList{"fixture","private-two"}; second.output="private-output-two";
     QVector<tux::Result> input={first,second};
     tux::ReportDialog report(input); report.show(); app.processEvents();
     input[1].output="external-change";
@@ -60,3 +60,4 @@ int main(int argc,char** argv) {
     if(empty.findChild<QPushButton*>("reportSave")->isEnabled() || empty.findChild<QPushButton*>("reportAll")->isEnabled() || !empty.findChild<QLabel*>("reportCount")->text().contains("No completed")) return 14;
     std::cout<<"Report selection: exact subset, chronological ordering, summary allowlist, per-export consent, snapshot bounds, empty state, picker cancellation and byte-exact saved preview passed\n";
 }
+
