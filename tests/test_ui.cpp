@@ -18,6 +18,7 @@
 #include <QPushButton>
 #include <QTabWidget>
 #include <QTimer>
+#include <QTableWidget>
 #include <iostream>
 int main(int argc,char** argv) {
     QApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
@@ -67,6 +68,20 @@ int main(int argc,char** argv) {
     }
     auto* output=window.findChild<QPlainTextEdit*>("sessionOutput");
     if (!status->text().startsWith("Completed") || !output->toPlainText().contains("Filesystem")) return 5;
+    bool reviewedAgain=false;
+    if(window.findChild<QPushButton*>("sessionHistory")->text()!="History (1)") return 26;
+    QTimer::singleShot(0,[&]{
+        for(auto* widget:QApplication::topLevelWidgets()) if(widget->objectName()=="taskHistory") {
+            QTimer::singleShot(0,[&]{
+                for(auto* candidate:QApplication::topLevelWidgets()) if(auto* box=qobject_cast<QMessageBox*>(candidate)) {
+                    reviewedAgain=box->defaultButton()==box->button(QMessageBox::Cancel); box->reject();
+                }
+            });
+            widget->findChild<QPushButton*>("historyRerun")->click(); break;
+        }
+    });
+    window.findChild<QPushButton*>("sessionHistory")->click();
+    if(!reviewedAgain || status->text().startsWith("Running") || window.findChild<QPushButton*>("sessionHistory")->text()!="History (1)") return 27;
     QTemporaryDir temp;
     const auto report=temp.filePath("report.json");
     bool reviewed=false;

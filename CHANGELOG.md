@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.1 — 2026-11-19
+
+Added local session-history explorer with newest-first results, filtering, captured command/output details and a review-first rerun request. Added History count, View menu and Ctrl+H. History snapshots retain only the newest 20 completed tasks, stay in memory and never execute stored command text. Added standalone history fixtures plus normal-review cancellation integration coverage, bringing CTest to eleven suites. Preserve current manual CI and image-preparation policy; extend pinned package upgrades through 1.1.
+
 ## 1.1.0-beta.1 — 2026-11-19
 
 Added maintenance report review with exact JSON preview, summary-by-default allowlist, explicit per-export detailed consent, cancel and atomic save. Added report privacy fixtures and UI preview/toggle/reset/save coverage. Existing detailed diagnostics remain available locally and by opt-in export. Added bounded network timeouts/retries for VM dependency installation. All prior tools and setup safeguards retained; hardware and authorization limits remain experimental.

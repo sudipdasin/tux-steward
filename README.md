@@ -1,6 +1,6 @@
 # ◉ Tux Steward
 
-**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **1.1.0-beta.1** is a beta development checkpoint under GPL-3.0-or-later. This public testing beta is experimental; report issues and contribute improvements through GitHub.
+**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **1.2.0-beta.1** is a beta development checkpoint under GPL-3.0-or-later. This public testing beta is experimental; report issues and contribute improvements through GitHub.
 
 ## Build and run
 
@@ -68,7 +68,7 @@ Reports contain real computer information. Export is local; there is no automati
 - `tests/test_process_explorer.cpp`: hierarchy fixtures, real snapshots, pause/speed lifecycle and both export modes.
 - `tests/test_ui.cpp`: offscreen GUI construction, search, review cancellation, tab and render checks.
 
-`ctest` runs ten test suites. GUI tests use Qt's offscreen platform; they do not prove real desktop PolicyKit or hardware compatibility. See [validation](docs/VALIDATION.md), [roadmap](docs/ROADMAP.md), and [contributing](CONTRIBUTING.md).
+`ctest` runs eleven test suites. GUI tests use Qt's offscreen platform; they do not prove real desktop PolicyKit or hardware compatibility. See [validation](docs/VALIDATION.md), [roadmap](docs/ROADMAP.md), and [contributing](CONTRIBUTING.md).
 
 
 ## Beta packages and readiness
@@ -83,7 +83,7 @@ Download the amd64 `.deb` from [GitHub Releases](https://github.com/sudipdasin/t
 
 ```sh
 grep 'amd64.deb$' SHA256SUMS | sha256sum -c -
-sudo apt install ./tux-steward_1.1.0.beta1_amd64.deb
+sudo apt install ./tux-steward_1.2.0.beta1_amd64.deb
 tux-steward
 tux-task-manager
 # Uninstall the applications (your private user configuration is retained):
@@ -117,3 +117,13 @@ An owner-created beta tag on main triggers dual-VM validation and package checks
 ## Reviewed maintenance reports
 
 File → Export session report opens a snapshot preview. The default summary includes only known tool names, exit codes, timings and truncation flags; command arguments and diagnostic output are omitted entirely. Select **Include commands and diagnostic output** to include full recorded details for this export only. Review the exact JSON before saving. The choice resets on every export. Cancel writes no report. No report is uploaded automatically. Summary still reveals which tools ran and their outcomes; it is not a guarantee of anonymity. Existing integrations needing raw output must explicitly choose detailed mode. The report includes `schema: 1` and `mode: summary` or `detailed`.
+
+## Session history (1.2)
+
+Open **History** above the output pane, **View → Session history**, or Ctrl+H. Inspect the newest 20 completed tasks in reverse order, filter by tool/result and revisit their captured command/output. Double-clicking or selecting a row never runs a command. **Review and run again** closes history and opens the normal default-cancel review; dependency and authorization checks still apply. The button is unavailable while a task is active or a record does not exactly match the current command catalog.
+
+History is a snapshot: reopen it after a task finishes to refresh. It is kept only in memory and disappears on exit. Local details can reveal private machine information. Export still goes through the separate reviewed, summary-by-default report flow. No history is uploaded or restored from disk.
+
+### Current CI resource policy
+
+Automatic PR/main validation was paused by newer repository CI policy while reusable build images are prepared. This release preserves that policy. Use the manual **C++ VM validation** workflow on the feature branch before merge; owner-created beta tags still invoke the full VM matrix and package gates. Earlier references to automatic PR/main runs describe the former configuration. No CircleCI/GHCR image is published or substituted by this feature change.

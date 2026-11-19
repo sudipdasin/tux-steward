@@ -27,6 +27,7 @@ private:
     QTabWidget* tabs_;
     QLineEdit* search_;
     QLabel* status_;
+    QPushButton* historyButton_;
     QLabel* searchStatus_;
     QPlainTextEdit* output_;
     QTimer* timer_;
@@ -43,6 +44,7 @@ private:
     void poll();
     void write(const QString& text);
     void exportReport();
+    void showHistory();
     void updateButtons();
 };
 }

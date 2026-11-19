@@ -1,4 +1,5 @@
 #include "tux/window.hpp"
+#include "tux/history_dialog.hpp"
 #include <QAction>
 #include <QProcess>
 #include <QCoreApplication>
@@ -55,6 +56,9 @@ Window::Window() {
     auto* exportAction=file->addAction("Export session report…");
     connect(exportAction,&QAction::triggered,this,[this]{exportReport();});
     file->addSeparator(); connect(file->addAction("Quit"),&QAction::triggered,this,[this]{close();});
+    auto* view=menuBar()->addMenu("&View");
+    auto* historyAction=view->addAction("Session history…"); historyAction->setShortcut(QKeySequence("Ctrl+H"));
+    connect(historyAction,&QAction::triggered,this,[this]{showHistory();});
     auto* help=menuBar()->addMenu("&Help");
     connect(help->addAction("Setup and removal…"),&QAction::triggered,this,[this]{
         if (!QProcess::startDetached(QCoreApplication::applicationDirPath()+"/tux-setup",{}))
@@ -104,7 +108,11 @@ Window::Window() {
         items->addStretch(); scroll->setWidget(page); tabs_->addTab(scroll,group);
     }
     auto* outputPanel=new QWidget; auto* outputLayout=new QVBoxLayout(outputPanel); outputLayout->setContentsMargins(0,10,0,0);
-    outputLayout->addWidget(new QLabel("LIVE OUTPUT · latest 250 KB per task · latest 20 tasks in report"));
+    auto* outputTools=new QHBoxLayout;
+    outputTools->addWidget(new QLabel("LIVE OUTPUT · latest 250 KB per task")); outputTools->addStretch();
+    historyButton_=new QPushButton("History (0)"); historyButton_->setObjectName("sessionHistory");
+    connect(historyButton_,&QPushButton::clicked,this,[this]{showHistory();}); outputTools->addWidget(historyButton_);
+    outputLayout->addLayout(outputTools);
     output_=new QPlainTextEdit; output_->setObjectName("sessionOutput"); output_->setReadOnly(true); output_->setMinimumHeight(120);
     output_->setStyleSheet("font-family:monospace;background:#0b1220;"); outputLayout->addWidget(output_); splitter->addWidget(outputPanel); splitter->setSizes({420,180});
     write("Welcome. No maintenance actions run at startup.\nReview commands before running them.\n");
@@ -181,6 +189,7 @@ void Window::poll() {
     if (result) {
         if (worker_.joinable()) worker_.join();
         history_.append(*result); if (history_.size()>20) history_.removeFirst();
+        historyButton_->setText(QString("History (%1)").arg(history_.size()));
         busy_=false; updateButtons(); status_->setText((result->code==0?"Completed · ":"Needs attention · ")+result->action);
         write(QString("\nExit code: %1 · %2 seconds\n").arg(result->code).arg(result->seconds,0,'f',2));
         if (result->truncated) write("Report retains the latest 250,000 output bytes.\n");
@@ -191,6 +200,12 @@ void Window::write(const QString& text) {
     const auto extra=output_->document()->characterCount()-1-OutputLimit;
     if (extra>0) { cursor.movePosition(QTextCursor::Start); cursor.movePosition(QTextCursor::NextCharacter,QTextCursor::KeepAnchor,extra); cursor.removeSelectedText(); }
     output_->moveCursor(QTextCursor::End);
+}
+void Window::showHistory() {
+    HistoryDialog dialog(history_,busy_,this);
+    if(dialog.exec()!=QDialog::Accepted) return;
+    const auto id=dialog.selectedTool();
+    for(int i=0;i<tux::actions().size();++i) if(tux::actions()[i].id==id) { review(i); break; }
 }
 void Window::exportReport() {
     const auto snapshot=history_;
