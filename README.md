@@ -1,3 +1,12 @@
+<!-- LATEST-RELEASE:START -->
+## Latest published release: v1.3.0-beta.1
+**[Release notes and downloads](https://github.com/sudipdasin/tux-steward/releases/tag/v1.3.0-beta.1)** · Prerelease
+
+| Asset | Download |
+| --- | --- |
+| Source archive | [Download ZIP](https://github.com/sudipdasin/tux-steward/releases/tag/v1.3.0-beta.1) |
+<!-- LATEST-RELEASE:END -->
+
 # ◉ Tux Steward
 
 **A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **1.3.0-beta.1** is a beta development checkpoint under GPL-3.0-or-later. This public testing beta is experimental; report issues and contribute improvements through GitHub.
