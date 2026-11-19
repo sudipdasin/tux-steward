@@ -37,7 +37,7 @@ HistoryDialog::HistoryDialog(const QVector<Result>& results,bool taskRunning,QWi
     for (int row=0;row<snapshot_.size();++row) {
         const int index=snapshot_.size()-1-row; const auto& result=snapshot_[index];
         auto* title=new QTableWidgetItem(result.action); title->setData(Qt::UserRole,index); table_->setItem(row,0,title);
-        table_->setItem(row,1,new QTableWidgetItem(result.code==0?"Completed":QString("Needs attention (%1)").arg(result.code)));
+        table_->setItem(row,1,new QTableWidgetItem(result.cancelled?"Cancelled":result.code==0?"Completed":QString("Needs attention (%1)").arg(result.code)));
         table_->setItem(row,2,new QTableWidgetItem(QString::number(result.seconds,'f',2)));
     }
     layout->addWidget(table_,1);
@@ -80,7 +80,7 @@ void HistoryDialog::select() {
     const auto& result=snapshot_[table_->item(row,0)->data(Qt::UserRole).toInt()];
     details_->setPlainText(QString("%1\nExit code: %2 · %3 seconds%4\n\nCommand (local details):\n%5\n\n%6")
         .arg(result.action).arg(result.code).arg(result.seconds,0,'f',2)
-        .arg(result.truncated?" · Output truncated":"").arg(preview(result.command),QString::fromUtf8(result.output)));
+        .arg((result.cancelled?QString(" · Cancellation requested"):QString())+(result.truncated?" · Output truncated":"")).arg(preview(result.command),QString::fromUtf8(result.output)));
 }
 void HistoryDialog::filter() {
     int first=-1;

@@ -28,6 +28,9 @@ private:
     QLineEdit* search_;
     QLabel* status_;
     QPushButton* historyButton_;
+    QPushButton* stopButton_;
+    std::atomic_bool cancelRequested_{false};
+    bool cancellable_=false;
     QLabel* searchStatus_;
     QPlainTextEdit* output_;
     QTimer* timer_;

@@ -66,6 +66,12 @@ jobs:
           echo 'ad7ee00135eb52e82ec6d730a97a0ebf60aa057d4c89393e63657b8a0147f7d2  /tmp/tux-steward-v11.deb' | sha256sum -c -
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-v11.deb
           tux-steward --version | grep -F '1.1.0-beta.1'
+      - name: Verify upgrade through the 1.2 public beta
+        run: |
+          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --output /tmp/tux-steward-v12.deb https://github.com/sudipdasin/tux-steward/releases/download/v1.2.0-beta.1/tux-steward_1.2.0.beta1_amd64.deb
+          echo '4cc03fc500650ff393a2084683c6527922a0080613eb2bf189864fcf61682a71  /tmp/tux-steward-v12.deb' | sha256sum -c -
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-v12.deb
+          tux-steward --version | grep -F '1.2.0-beta.1'
       - name: Install and launch all three native applications
         run: |
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y ./build/packages/*.deb
@@ -90,3 +96,4 @@ jobs:
             build/ui-preview.png
             build/ui-preview.png.report.png
             build/history-preview.png
+            build/cancel-preview.png

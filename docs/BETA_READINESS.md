@@ -1,4 +1,4 @@
-# Beta readiness — 1.2.0-beta.1
+# Beta readiness — 1.3.0-beta.1
 
 This is a public testing beta. Automated checks cover key behavior, but the real desktop gates below remain unverified. Experimental workflows are grouped separately in both applications.
 Local CPack does not publish. Owner-created beta tags trigger VM-gated prerelease publication; repository visibility is unchanged.
@@ -27,7 +27,7 @@ cpack --config build/CPackConfig.cmake
 cmake -DPACKAGE_DIR="$PWD/build/packages" -DRELEASE_VERSION="$(./build/tux-steward --version | awk '{print $NF}')" -P tests/verify_packages.cmake
 ```
 
-Packages appear in `build/packages`. The Debian version is `1.2.0~beta1`, allowing a later stable 1.2.0 upgrade. Dependencies are detected from the build distribution: a Debian-built package is not automatically compatible with Mint. The TGZ also needs compatible Qt/system libraries; it is not a standalone application. The release workflow publishes verified packages and SHA256SUMS as public prerelease assets. Checksums verify file integrity, not publisher authenticity; packages are unsigned.
+Packages appear in `build/packages`. The Debian version is `1.3.0~beta1`, allowing a later stable 1.3.0 upgrade. Dependencies are detected from the build distribution: a Debian-built package is not automatically compatible with Mint. The TGZ also needs compatible Qt/system libraries; it is not a standalone application. The release workflow publishes verified packages and SHA256SUMS as public prerelease assets. Checksums verify file integrity, not publisher authenticity; packages are unsigned.
 
 Run all three installed binaries with `--version` or `--help` without a display. Run the actual GUI as a normal desktop user. Never run the GUI as root.
 
@@ -45,8 +45,12 @@ Before marking a release candidate, record real desktop results above, resolve d
 
 The native setup wizard manages only a fixed inventory of per-user files. It refuses existing installations and menu collisions, checks hashes before removing any known file, rejects symlink ancestors and retains unrelated files. A missing/corrupt record requires manual inspection; no recursive user-directory deletion is performed. Failed operations report incomplete cleanup and retain records when possible. It does not replace the distribution package manager or change the desktop shell.
 
-The automatic GitHub workflow runs all eleven suites on separate Ubuntu 22.04/GCC Release and Ubuntu 24.04/Clang Debug VMs with an Xvfb virtual X desktop, then builds/verifies packages and checks actual system installation, GUI startup and removal. Release packaging repeats the VM checks for the published tag. Execution status is recorded in the release/PR; configuration alone is not evidence of a pass. VM virtual desktops do not validate real PolicyKit interaction or hardware behavior.
+The automatic GitHub workflow runs all thirteen suites on separate Ubuntu 22.04/GCC Release and Ubuntu 24.04/Clang Debug VMs with an Xvfb virtual X desktop, then builds/verifies packages and checks actual system installation, GUI startup and removal. Release packaging repeats the VM checks for the published tag. Execution status is recorded in the release/PR; configuration alone is not evidence of a pass. VM virtual desktops do not validate real PolicyKit interaction or hardware behavior.
 
 ## 1.2 history and current CI policy
 
 The local history snapshot is capped at 20 records. Only an exact current catalog title/argument-array match can request rerun, and the normal default-cancel review remains mandatory. There is no persistence or automatic command replay. Manual VM validation is used while automatic PR/main checks remain paused by the repository resource policy. Tag publication retains the full dual-VM gate.
+
+## Diagnostic cancellation
+
+Cancellation is available only for read-only maintenance actions. Tests use owned child processes and isolated diagnostic/configuration helpers to check cancellation, cleanup, unrelated-process retention, token reset and mutation refusal. Timeout and cancellation remain distinct. Detached processes are outside the group cleanup boundary; cancellation is not an undo mechanism or a real hardware/authorization validation.

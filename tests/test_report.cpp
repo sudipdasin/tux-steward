@@ -15,8 +15,9 @@ int main(int argc,char** argv) {
     const auto summary=tux::sessionReport(history);
     const auto records=summary.value("results").toArray();
     const auto row=records.first().toObject();
-    if (summary.value("mode").toString()!="summary" || row.size()!=4 || row.contains("output") || row.contains("command") ||
+    if (summary.value("mode").toString()!="summary" || row.size()!=5 || row.contains("output") || row.contains("command") ||
         row.value("action")!=result.action || row.value("code").toInt()!=7 || row.value("seconds").toDouble()!=1.25 || !row.value("truncated").toBool()) return 1;
+    if(row.value("cancelled").toBool()) return 8;
     const auto bytes=QJsonDocument(summary).toJson();
     for (const auto &privateValue:{"fixture-host","example","/home/","/media/","192.0.2.42","fixture-secret"})
         if (bytes.contains(privateValue)) return 2;

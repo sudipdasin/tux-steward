@@ -1,6 +1,6 @@
 # ◉ Tux Steward
 
-**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **1.2.0-beta.1** is a beta development checkpoint under GPL-3.0-or-later. This public testing beta is experimental; report issues and contribute improvements through GitHub.
+**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **1.3.0-beta.1** is a beta development checkpoint under GPL-3.0-or-later. This public testing beta is experimental; report issues and contribute improvements through GitHub.
 
 ## Build and run
 
@@ -68,7 +68,7 @@ Reports contain real computer information. Export is local; there is no automati
 - `tests/test_process_explorer.cpp`: hierarchy fixtures, real snapshots, pause/speed lifecycle and both export modes.
 - `tests/test_ui.cpp`: offscreen GUI construction, search, review cancellation, tab and render checks.
 
-`ctest` runs eleven test suites. GUI tests use Qt's offscreen platform; they do not prove real desktop PolicyKit or hardware compatibility. See [validation](docs/VALIDATION.md), [roadmap](docs/ROADMAP.md), and [contributing](CONTRIBUTING.md).
+`ctest` runs thirteen test suites. GUI tests use Qt's offscreen platform; they do not prove real desktop PolicyKit or hardware compatibility. See [validation](docs/VALIDATION.md), [roadmap](docs/ROADMAP.md), and [contributing](CONTRIBUTING.md).
 
 
 ## Beta packages and readiness
@@ -83,7 +83,7 @@ Download the amd64 `.deb` from [GitHub Releases](https://github.com/sudipdasin/t
 
 ```sh
 grep 'amd64.deb$' SHA256SUMS | sha256sum -c -
-sudo apt install ./tux-steward_1.2.0.beta1_amd64.deb
+sudo apt install ./tux-steward_1.3.0.beta1_amd64.deb
 tux-steward
 tux-task-manager
 # Uninstall the applications (your private user configuration is retained):
@@ -127,3 +127,9 @@ History is a snapshot: reopen it after a task finishes to refresh. It is kept on
 ### Current CI resource policy
 
 Automatic PR/main validation was paused by newer repository CI policy while reusable build images are prepared. This release preserves that policy. Use the manual **C++ VM validation** workflow on the feature branch before merge; owner-created beta tags still invoke the full VM matrix and package gates. Earlier references to automatic PR/main runs describe the former configuration. No CircleCI/GHCR image is published or substituted by this feature change.
+
+## Stop a diagnostic (1.3)
+
+**Stop diagnostic** becomes available while a read-only maintenance task runs. It requests cancellation, signals that invocation's process group while its leader identity is retained and keeps the UI busy until the worker returns. Settings-changing/admin tasks cannot be cancelled here, including through the core execute API. After completion, the next task gets a fresh cancellation token.
+
+Cancelled results use code 130 and an additive `cancelled: true` field in summary/detailed exports; timeout remains code 124 with `cancelled: false`. History labels the result Cancelled and retains the captured output tail. Cancellation can discard unread output. Detached descendants can escape the process group, so this is a cancellation request, not proof that every descendant stopped. It does not undo changes or affect Task Manager service actions. Closing remains blocked while the task is active.

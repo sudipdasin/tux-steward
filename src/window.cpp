@@ -112,6 +112,14 @@ Window::Window() {
     outputTools->addWidget(new QLabel("LIVE OUTPUT · latest 250 KB per task")); outputTools->addStretch();
     historyButton_=new QPushButton("History (0)"); historyButton_->setObjectName("sessionHistory");
     connect(historyButton_,&QPushButton::clicked,this,[this]{showHistory();}); outputTools->addWidget(historyButton_);
+    stopButton_=new QPushButton("Stop diagnostic"); stopButton_->setObjectName("stopDiagnostic");
+    stopButton_->setEnabled(false);
+    stopButton_->setToolTip("Stop a read-only diagnostic. Settings-changing tasks cannot be stopped here.");
+    connect(stopButton_,&QPushButton::clicked,this,[this]{
+        if(!busy_ || !cancellable_) return;
+        cancelRequested_.store(true,std::memory_order_relaxed); stopButton_->setEnabled(false);
+        status_->setText("Stopping diagnostic…");
+    }); outputTools->addWidget(stopButton_);
     outputLayout->addLayout(outputTools);
     output_=new QPlainTextEdit; output_->setObjectName("sessionOutput"); output_->setReadOnly(true); output_->setMinimumHeight(120);
     output_->setStyleSheet("font-family:monospace;background:#0b1220;"); outputLayout->addWidget(output_); splitter->addWidget(outputPanel); splitter->setSizes({420,180});
@@ -162,7 +170,10 @@ void Window::review(int index) {
     dialog.setInformativeText("Command:\n"+preview(command)+"\n\n"+(tool.changes?"This action changes your system. Continue?":"Run this diagnostic?"));
     dialog.setDefaultButton(QMessageBox::Cancel);
     if (dialog.exec()!=QMessageBox::Ok) return;
-    busy_=true; updateButtons(); status_->setText("Running · "+tool.title); write("\n$ "+preview(command)+"\n");
+    cancelRequested_.store(false,std::memory_order_relaxed);
+    cancellable_=!tool.changes && !tool.admin;
+    busy_=true; updateButtons(); stopButton_->setEnabled(cancellable_);
+    status_->setText("Running · "+tool.title); write("\n$ "+preview(command)+"\n");
     decoder_.reset(QTextCodec::codecForName("UTF-8")->makeDecoder());
     worker_=std::thread([this,tool,command] {
         Result result;
@@ -170,7 +181,7 @@ void Window::review(int index) {
             result=execute(tool.id,true,120000,[this](const QByteArray& chunk) {
                 std::lock_guard<std::mutex> lock(mutex_); pending_.append(chunk);
                 if (pending_.size()>OutputLimit) { pending_=pending_.right(OutputLimit); skipped_=true; }
-            });
+            },&cancelRequested_);
         } catch (const std::exception& error) {
             result.action=tool.title; result.command=command; result.code=-1; result.output=error.what();
             std::lock_guard<std::mutex> lock(mutex_); pending_.append(result.output);
@@ -190,7 +201,8 @@ void Window::poll() {
         if (worker_.joinable()) worker_.join();
         history_.append(*result); if (history_.size()>20) history_.removeFirst();
         historyButton_->setText(QString("History (%1)").arg(history_.size()));
-        busy_=false; updateButtons(); status_->setText((result->code==0?"Completed · ":"Needs attention · ")+result->action);
+        busy_=false; cancellable_=false; stopButton_->setEnabled(false); updateButtons();
+        status_->setText((result->cancelled?"Cancelled · ":result->code==0?"Completed · ":"Needs attention · ")+result->action);
         write(QString("\nExit code: %1 · %2 seconds\n").arg(result->code).arg(result->seconds,0,'f',2));
         if (result->truncated) write("Report retains the latest 250,000 output bytes.\n");
     }

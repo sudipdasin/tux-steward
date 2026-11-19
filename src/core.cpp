@@ -62,21 +62,22 @@ QString preview(const QStringList& command) {
     }
     return quoted.join(' '); // Display only. Never evaluated by a shell.
 }
-Result execute(const QString& id, bool confirmed, int timeoutMs, Output output) {
+Result execute(const QString& id, bool confirmed, int timeoutMs, Output output, const std::atomic_bool* cancel) {
     const auto& tool=action(id);
     if (tool.changes && !confirmed) throw std::runtime_error("Review and confirm this system change first.");
     const auto problem=unavailable(tool);
     if (!problem.isEmpty()) throw std::runtime_error(problem.toStdString());
     auto command=tool.command;
     if (tool.admin) command.prepend("pkexec");
-    auto result=runCommand(command,timeoutMs,std::move(output));
+    // Cancellation is deliberately unavailable to settings-changing/admin tasks.
+    auto result=runCommand(command,timeoutMs,std::move(output),(!tool.changes && !tool.admin)?cancel:nullptr);
     result.action=tool.title;
     return result;
 }
 QJsonObject Result::json() const {
     return {{"action",action},{"command",QJsonArray::fromStringList(command)},
             {"code",code},{"output",QString::fromUtf8(output)},
-            {"truncated",truncated},{"seconds",seconds}};
+            {"truncated",truncated},{"seconds",seconds},{"cancelled",cancelled}};
 }
 QJsonObject sessionReport(const QVector<Result>& results, bool includeDetails) {
     QJsonArray records;
@@ -85,7 +86,7 @@ QJsonObject sessionReport(const QVector<Result>& results, bool includeDetails) {
         QString title="Unrecognized task";
         for (const auto& tool:actions()) if (tool.title==result.action) { title=tool.title; break; }
         records.append(QJsonObject{{"action",title},{"code",result.code},
-            {"seconds",result.seconds},{"truncated",result.truncated}});
+            {"seconds",result.seconds},{"truncated",result.truncated},{"cancelled",result.cancelled}});
     }
     return {{"version",Version},{"schema",1},{"mode",includeDetails?"detailed":"summary"},
         {"results",records}};
