@@ -1,5 +1,8 @@
 version: 2.1
 parameters:
+  publish_toolchain_image:
+    type: boolean
+    default: false
   build_toolchain_image:
     type: boolean
     default: false
@@ -20,6 +23,28 @@ jobs:
             docker run --rm ci-foundry/cpp-qt5-ubuntu2204:candidate sh -c 'cmake --version && g++ --version && pkg-config --modversion Qt5Core'
             docker image inspect ci-foundry/cpp-qt5-ubuntu2204:candidate --format '{{.Id}}'
             echo 'Validated locally; image NOT published or digest-certified.'
+  publish-toolchain-image:
+    docker:
+      - image: cimg/base:stable
+    resource_class: small
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build validate and publish private qt5 toolchain image
+          no_output_timeout: 20m
+          command: |
+            set -euo pipefail
+            : "${GHCR_USERNAME:?Missing GHCR_USERNAME}"
+            : "${GHCR_TOKEN:?Missing GHCR_TOKEN}"
+            image="ghcr.io/sudipdasin/tux-steward-qt5-builder"
+            docker build --pull --progress=plain -t "${image}:${CIRCLE_SHA1}" ci/images/cpp-builder
+            docker run --rm "${image}:${CIRCLE_SHA1}" sh -c 'cmake --version && g++ --version && pkg-config --modversion Qt5Core'
+            printf '%s' "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USERNAME}" --password-stdin
+            docker push "${image}:${CIRCLE_SHA1}"
+            docker logout ghcr.io
+            echo 'Publication completed; verify package is private and capture registry digest before reuse.'
+
   cpp-smoke:
     docker:
       - image: ubuntu:22.04
@@ -49,6 +74,14 @@ jobs:
           path: artifacts/beta
           destination: beta-packages
 workflows:
+  manual-toolchain-image-publication:
+    when: << pipeline.parameters.publish_toolchain_image >>
+    jobs:
+      - publish-toolchain-image:
+          context: ghcr-publisher
+          filters:
+            branches:
+              only: main
   manual-toolchain-image-validation:
     when: << pipeline.parameters.build_toolchain_image >>
     jobs:
