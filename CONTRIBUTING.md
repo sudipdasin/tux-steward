@@ -22,7 +22,7 @@ Build with CMake, run CTest, and verify GUI behavior before merging. Add real su
 - `src/autostart.cpp`: XDG discovery, user overrides and private undo.
 - `tests/`: isolated core, subprocess and offscreen GUI checks.
 
-GitHub Actions automatically runs all thirteen suites and package install/startup/removal checks on Ubuntu 22.04/GCC Release and Ubuntu 24.04/Clang Debug VMs for pull requests and main. CircleCI additionally checks main. Beta tags trigger the same dual-VM checks before release packaging/publication. Do not delete existing regression coverage to obtain a green build. See docs/RELEASE_POLICY.md for forward continuity and publication rules.
+Explicitly dispatched GitHub Actions runs all fourteen suites and package install/startup/removal checks on Ubuntu 22.04/GCC Release and Ubuntu 24.04/Clang Debug VMs. Automatic PR/main runs and normal CircleCI checks are paused under the current resource policy. Beta tags trigger the same dual-VM checks before release packaging/publication. Do not delete existing regression coverage to obtain a green build. See docs/RELEASE_POLICY.md for forward continuity and publication rules.
 
 Use issue templates for bug reports and proposals. Reviewers should verify privacy, permissions, compatibility and failure recovery. Do not put credentials or private machine logs in issues or pull requests.
 
@@ -31,3 +31,5 @@ Setup code lives in `src/setup.cpp` (fixed inventory and removal safeguards), `s
 Session-history UI lives in `src/history_dialog.cpp`. Its action button requests the existing review flow; do not execute stored command text. Tests cover immutable snapshots, bounds, selection/filter behavior and the second command-review boundary.
 
 Current CI policy: automatic PR/main runs are paused pending reusable image preparation. Preserve `.circleci/config.yml` and the manual-only test triggers. Explicit VM validation and the beta-tag package gates remain available; invoke them and record outcomes before public downloads. The new version retains all existing regression suites.
+
+Report review lives in `src/report_dialog.cpp`. Keep the summary allowlist and fresh per-export consent. Test excluded tasks in both modes and verify saved bytes match the preview. Never add automatic diagnostic uploads.
