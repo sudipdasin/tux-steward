@@ -14,6 +14,13 @@ HistoryDialog::HistoryDialog(const QVector<Result>& results,bool taskRunning,QWi
     // Copy only the same bounded tail retained by the session. Nothing is persisted.
     snapshot_=results.mid(qMax(0,results.size()-20));
     setObjectName("taskHistory"); setWindowTitle("Session history"); resize(900,650);
+    setStyleSheet("QDialog,QWidget{background:#101827;color:#e7eef9;font-size:14px;}"
+        "QHeaderView::section{background:#192438;color:#e7eef9;padding:8px;border:0;}"
+        "QTableWidget{background:#0b1220;gridline-color:#2a3c54;selection-background-color:#293c54;selection-color:#66dfbf;}"
+        "QLineEdit,QPlainTextEdit{background:#0b1220;border:1px solid #2a3c54;padding:8px;}"
+        "QPlainTextEdit{font-family:monospace;}"
+        "QPushButton{background:#2b4359;border:0;border-radius:5px;padding:9px 14px;}"
+        "QPushButton:hover{background:#365775;} QPushButton:disabled{color:#8794a7;background:#202c3e;}");
     auto* layout=new QVBoxLayout(this);
     auto* notice=new QLabel("Snapshot of the latest 20 completed tasks, newest first. Details may contain private machine information. History stays in memory and is discarded when the application exits.");
     notice->setWordWrap(true); layout->addWidget(notice);
