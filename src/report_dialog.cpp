@@ -42,7 +42,9 @@ ReportDialog::ReportDialog(const QVector<Result>& results,QWidget* parent)
     }
     layout->addWidget(tasks_,1);
     details_=new QCheckBox("Include commands and diagnostic output (may contain private data)");
-    details_->setObjectName("reportDetails"); layout->addWidget(details_);
+    details_->setObjectName("reportDetails");
+    details_->setStyleSheet("QCheckBox::indicator{width:16px;height:16px;} QCheckBox::indicator:unchecked{border:1px solid #9aacc5;background:#0b1220;}");
+    layout->addWidget(details_);
     preview_=new QPlainTextEdit; preview_->setObjectName("reportPreview"); preview_->setReadOnly(true);
     preview_->setAccessibleName("Exact JSON report preview"); layout->addWidget(preview_,2);
     auto* buttons=new QDialogButtonBox(QDialogButtonBox::Save|QDialogButtonBox::Cancel);
@@ -86,3 +88,4 @@ void ReportDialog::save() {
     accept();
 }
 }
+
