@@ -1,5 +1,6 @@
 #include "tux/window.hpp"
 #include "tux/history_dialog.hpp"
+#include "tux/report_dialog.hpp"
 #include <QAction>
 #include <QProcess>
 #include <QCoreApplication>
@@ -220,34 +221,7 @@ void Window::showHistory() {
     for(int i=0;i<tux::actions().size();++i) if(tux::actions()[i].id==id) { review(i); break; }
 }
 void Window::exportReport() {
-    const auto snapshot=history_;
-    QDialog dialog(this); dialog.setObjectName("reportReview");
-    dialog.setWindowTitle("Review session report"); dialog.resize(760,540);
-    auto* layout=new QVBoxLayout(&dialog);
-    auto* notice=new QLabel("Summary includes tool names, exit codes and timings. Command lines and raw diagnostics are omitted. Review the preview before sharing; nothing is uploaded.");
-    notice->setWordWrap(true); layout->addWidget(notice);
-    auto* details=new QCheckBox("Include commands and diagnostic output (may contain private data)");
-    details->setObjectName("reportDetails");
-    details->setStyleSheet("QCheckBox::indicator{width:16px;height:16px;} QCheckBox::indicator:unchecked{border:1px solid #9aacc5;background:#0b1220;}");
-    layout->addWidget(details);
-    auto* preview=new QPlainTextEdit; preview->setObjectName("reportPreview");
-    preview->setReadOnly(true); preview->setAccessibleName("Exact JSON report preview"); layout->addWidget(preview,1);
-    QByteArray bytes;
-    auto refresh=[&]{ bytes=QJsonDocument(sessionReport(snapshot,details->isChecked())).toJson(); preview->setPlainText(QString::fromUtf8(bytes)); };
-    connect(details,&QCheckBox::toggled,&dialog,[&]{refresh();}); refresh();
-    auto* buttons=new QDialogButtonBox(QDialogButtonBox::Save|QDialogButtonBox::Cancel);
-    buttons->button(QDialogButtonBox::Save)->setObjectName("reportSave");
-    buttons->button(QDialogButtonBox::Cancel)->setDefault(true); layout->addWidget(buttons);
-    connect(buttons,&QDialogButtonBox::rejected,&dialog,&QDialog::reject);
-    connect(buttons,&QDialogButtonBox::accepted,&dialog,[&]{
-        const auto path=QFileDialog::getSaveFileName(&dialog,"Export reviewed report","tux-steward-report.json","JSON reports (*.json)");
-        if (path.isEmpty()) return;
-        QSaveFile file(path);
-        if (!file.open(QIODevice::WriteOnly) || file.write(bytes)!=bytes.size() || !file.commit()) {
-            QMessageBox::critical(&dialog,"Export failed","The report could not be saved. "+file.errorString()); return;
-        }
-        dialog.accept();
-    });
+    ReportDialog dialog(history_,this);
     dialog.exec();
 }
 void Window::closeEvent(QCloseEvent* event) {

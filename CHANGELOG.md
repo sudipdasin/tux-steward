@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0-beta.1 — 2026-11-19
+
+Added task-selective report review with newest-first checkboxes, selection count, select all/none, disabled save for empty selections and an exact JSON preview. Export retains chronological ordering, summary-by-default privacy and fresh detailed-output consent. A bounded immutable snapshot excludes unselected tasks even in detailed reports; atomic save writes the captured reviewed bytes. Added dedicated GUI subset/privacy/save regressions, bringing CTest to fourteen suites. Existing tools, cancellation, history and manual CI policy remain; pinned upgrade validation extends through 1.3.
+
 ## 1.3.0-beta.1 — 2026-11-19
 
 Added Stop diagnostic for read-only maintenance actions, cooperative cancellation token plumbing and scoped process-group cleanup. Settings-changing/admin execute paths ignore cancellation tokens. Added distinct cancelled status/metadata in UI, history and exports, token reset for subsequent tasks, real owned-child/isolated-helper tests and UI capture. CTest now has thirteen suites. Preserve manual CI policy, homepage release automation, all prior tools and setup safeguards; extend pinned upgrades through 1.2.
