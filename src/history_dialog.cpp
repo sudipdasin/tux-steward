@@ -56,7 +56,7 @@ HistoryDialog::HistoryDialog(const QVector<Result>& results,bool taskRunning,QWi
 QString HistoryDialog::toolFor(int index) const {
     if(index<0 || index>=snapshot_.size()) return {};
     const auto& result=snapshot_[index]; QString id;
-    for(const auto& tool:actions()) {
+    for(const auto& tool:tux::actions()) {
         auto command=tool.command; if(tool.admin) command.prepend("pkexec");
         if(tool.title!=result.action || command!=result.command) continue;
         if(!id.isEmpty()) return {}; // Never guess between ambiguous catalog entries.

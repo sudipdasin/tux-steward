@@ -205,7 +205,7 @@ void Window::showHistory() {
     HistoryDialog dialog(history_,busy_,this);
     if(dialog.exec()!=QDialog::Accepted) return;
     const auto id=dialog.selectedTool();
-    for(int i=0;i<actions().size();++i) if(actions()[i].id==id) { review(i); break; }
+    for(int i=0;i<tux::actions().size();++i) if(tux::actions()[i].id==id) { review(i); break; }
 }
 void Window::exportReport() {
     const auto snapshot=history_;
