@@ -47,5 +47,9 @@ int main(int argc,char** argv) {
     if(admin.selectedTool()!="apt-clean") return 10;
     QVector<tux::Result> many(25,storage); tux::HistoryDialog bounded(many,false);
     if(bounded.findChild<QTableWidget*>("historyTable")->rowCount()!=20) return 11;
+    tux::Result stopped=storage; stopped.cancelled=true; stopped.code=130;
+    tux::HistoryDialog cancelled({stopped},false);
+    if(cancelled.findChild<QTableWidget*>("historyTable")->item(0,1)->text()!="Cancelled" ||
+       !cancelled.findChild<QPlainTextEdit*>("historyDetails")->toPlainText().contains("Cancellation requested")) return 12;
     std::cout<<"Session history: snapshot/tail bounds, ordering, filter, local details, busy/unknown refusal and review request passed\n";
 }

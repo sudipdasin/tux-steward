@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0-beta.1 — 2026-11-19
+
+Added Stop diagnostic for read-only maintenance actions, cooperative cancellation token plumbing and scoped process-group cleanup. Settings-changing/admin execute paths ignore cancellation tokens. Added distinct cancelled status/metadata in UI, history and exports, token reset for subsequent tasks, real owned-child/isolated-helper tests and UI capture. CTest now has thirteen suites. Preserve manual CI policy, homepage release automation, all prior tools and setup safeguards; extend pinned upgrades through 1.2.
+
 ## 1.2.0-beta.1 — 2026-11-19
 
 Added local session-history explorer with newest-first results, filtering, captured command/output details and a review-first rerun request. Added History count, View menu and Ctrl+H. History snapshots retain only the newest 20 completed tasks, stay in memory and never execute stored command text. Added standalone history fixtures plus normal-review cancellation integration coverage, bringing CTest to eleven suites. Preserve current manual CI and image-preparation policy; extend pinned package upgrades through 1.1.

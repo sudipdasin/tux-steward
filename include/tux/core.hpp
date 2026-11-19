@@ -6,6 +6,7 @@
 #include <QStringList>
 #include <QVector>
 #include <functional>
+#include <atomic>
 
 namespace tux {
 inline constexpr int OutputLimit = 250000;
@@ -21,6 +22,7 @@ struct Result {
     QByteArray output;
     bool truncated=false;
     double seconds=0;
+    bool cancelled=false;
     QJsonObject json() const;
 };
 const QVector<Action>& actions();
@@ -31,7 +33,7 @@ QString unavailable(const Action& tool);
 bool matches(const Action& tool, const QString& query);
 QString preview(const QStringList& command);
 using Output = std::function<void(const QByteArray&)>;
-Result runCommand(const QStringList& command, int timeoutMs=120000, Output output={});
-Result execute(const QString& id, bool confirmed=false, int timeoutMs=120000, Output output={});
+Result runCommand(const QStringList& command, int timeoutMs=120000, Output output={}, const std::atomic_bool* cancel=nullptr);
+Result execute(const QString& id, bool confirmed=false, int timeoutMs=120000, Output output={}, const std::atomic_bool* cancel=nullptr);
 }
 

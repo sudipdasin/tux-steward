@@ -36,7 +36,7 @@ struct Child {
     }
 };
 }
-Result runCommand(const QStringList& command, int timeoutMs, Output output) {
+Result runCommand(const QStringList& command, int timeoutMs, Output output, const std::atomic_bool* cancel) {
     if (command.isEmpty() || command.first().isEmpty() || timeoutMs<=0)
         throw std::invalid_argument("A command and a positive timeout are required");
     std::vector<QByteArray> bytes;
@@ -48,6 +48,13 @@ Result runCommand(const QStringList& command, int timeoutMs, Output output) {
     std::vector<char*> argv;
     for (auto& arg:bytes) argv.push_back(arg.data());
     argv.push_back(nullptr);
+    const auto stopping=[&]{return cancel && cancel->load(std::memory_order_relaxed);};
+    if(stopping()) {
+        Result result; result.command=command; result.code=130; result.cancelled=true;
+        result.output="Cancelled before starting the diagnostic.\n";
+        if(output) output(result.output);
+        return result;
+    }
     int original[2];
     if (pipe2(original,O_CLOEXEC)!=0) throw std::runtime_error("Cannot create output pipe");
     // Keep pipe descriptors away from standard streams, even for desktop launchers
@@ -92,7 +99,7 @@ Result runCommand(const QStringList& command, int timeoutMs, Output output) {
         }
         if (output) output(chunk);
     };
-    bool eof=false, timeout=false;
+    bool eof=false, timeout=false, cancelled=false;
     int status=0;
     while (!eof || !child.reaped) {
         if (!child.reaped) {
@@ -101,6 +108,7 @@ Result runCommand(const QStringList& command, int timeoutMs, Output output) {
             else if (state<0 && errno!=EINTR) throw std::runtime_error("Cannot read task exit status");
         }
         if (eof && child.reaped) break;
+        if(stopping()) { cancelled=true; break; }
         const auto remaining=timeoutMs-timer.elapsed();
         if (remaining<=0) { timeout=true; break; }
         pollfd fd{child.fd,POLLIN,0};
@@ -114,7 +122,13 @@ Result runCommand(const QStringList& command, int timeoutMs, Output output) {
             else if (errno!=EAGAIN && errno!=EINTR) throw std::runtime_error("Cannot read task output");
         }
     }
-    if (timeout) {
+    if (cancelled) {
+        // Retain the leader PID as an identity anchor. Once reaped, its numeric
+        // process-group ID could be reused; refuse signalling in that case.
+        if(!child.reaped) kill(-child.pid,SIGKILL);
+        deliver("\nCancellation requested. Captured output may be incomplete. Some background processes may remain running.\n");
+        result.code=130; result.cancelled=true;
+    } else if (timeout) {
         kill(-child.pid,SIGKILL);
         deliver("\nTimed out. Changes may be partially applied; inspect system state before retrying. Elevated descendants may still be running.\n");
         result.code=124;
