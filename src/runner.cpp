@@ -20,12 +20,11 @@ namespace {
 struct Child {
     pid_t pid=-1;
     int fd=-1;
-    bool reaped=false, complete=false;
+    bool exited=false, identityHeld=true, complete=false;
     ~Child() {
         if (fd>=0) close(fd);
-        if (pid>0 && (!reaped || !complete)) {
-            kill(-pid,SIGKILL); // Only the process group created by this task.
-            if (reaped) return;
+        if (pid>0 && identityHeld) {
+            if (!complete) kill(-pid,SIGKILL); // Leader identity remains reserved until this reap.
             for (int n=0;n<100;++n) {
                 const auto state=waitpid(pid,nullptr,WNOHANG);
                 if (state==pid || (state<0 && errno==ECHILD)) return;
@@ -100,14 +99,20 @@ Result runCommand(const QStringList& command, int timeoutMs, Output output, cons
         if (output) output(chunk);
     };
     bool eof=false, timeout=false, cancelled=false;
-    int status=0;
-    while (!eof || !child.reaped) {
-        if (!child.reaped) {
-            const auto state=waitpid(child.pid,&status,WNOHANG);
-            if (state==child.pid) child.reaped=true;
-            else if (state<0 && errno!=EINTR) throw std::runtime_error("Cannot read task exit status");
+    siginfo_t status{};
+    while (!eof || !child.exited) {
+        if (!child.exited) {
+            // Observe without reaping: a zombie leader reserves its PID/PGID
+            // while inherited output is drained and group cleanup may be needed.
+            siginfo_t observed{};
+            const int state=waitid(P_PID,static_cast<id_t>(child.pid),&observed,WEXITED|WNOHANG|WNOWAIT);
+            if (state==0 && observed.si_pid==child.pid) { child.exited=true; status=observed; }
+            else if (state<0 && errno!=EINTR) {
+                if (errno==ECHILD) child.identityHeld=false; // Never signal after ownership is lost.
+                throw std::runtime_error("Cannot read task exit status");
+            }
         }
-        if (eof && child.reaped) break;
+        if (eof && child.exited) break;
         if(stopping()) { cancelled=true; break; }
         const auto remaining=timeoutMs-timer.elapsed();
         if (remaining<=0) { timeout=true; break; }
@@ -123,17 +128,15 @@ Result runCommand(const QStringList& command, int timeoutMs, Output output, cons
         }
     }
     if (cancelled) {
-        // Retain the leader PID as an identity anchor. Once reaped, its numeric
-        // process-group ID could be reused; refuse signalling in that case.
-        if(!child.reaped) kill(-child.pid,SIGKILL);
+        if(child.identityHeld) kill(-child.pid,SIGKILL);
         deliver("\nCancellation requested. Captured output may be incomplete. Some background processes may remain running.\n");
         result.code=130; result.cancelled=true;
     } else if (timeout) {
-        kill(-child.pid,SIGKILL);
+        if(child.identityHeld) kill(-child.pid,SIGKILL);
         deliver("\nTimed out. Changes may be partially applied; inspect system state before retrying. Elevated descendants may still be running.\n");
         result.code=124;
     } else {
-        result.code=WIFEXITED(status)?WEXITSTATUS(status):128+WTERMSIG(status);
+        result.code=status.si_code==CLD_EXITED?status.si_status:128+status.si_status;
     }
     child.complete=true;
     result.seconds=timer.elapsed()/1000.0;

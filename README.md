@@ -11,7 +11,7 @@
 
 # ◉ Tux Steward
 
-**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **1.4.0-beta.1** is a beta development checkpoint under GPL-3.0-or-later. This public testing beta is experimental; report issues and contribute improvements through GitHub.
+**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **1.4.1-beta.1** is a beta development checkpoint under GPL-3.0-or-later. This public testing beta is experimental; report issues and contribute improvements through GitHub.
 
 ## Build and run
 
@@ -79,7 +79,7 @@ Reports contain real computer information. Export is local; there is no automati
 - `tests/test_process_explorer.cpp`: hierarchy fixtures, real snapshots, pause/speed lifecycle and both export modes.
 - `tests/test_ui.cpp`: offscreen GUI construction, search, review cancellation, tab and render checks.
 
-`ctest` runs fourteen test suites. GUI tests use Qt's offscreen platform; they do not prove real desktop PolicyKit or hardware compatibility. See [validation](docs/VALIDATION.md), [roadmap](docs/ROADMAP.md), and [contributing](CONTRIBUTING.md).
+`ctest` runs fifteen test suites. GUI tests use Qt's offscreen platform; they do not prove real desktop PolicyKit or hardware compatibility. See [validation](docs/VALIDATION.md), [roadmap](docs/ROADMAP.md), and [contributing](CONTRIBUTING.md).
 
 
 ## Beta packages and readiness
@@ -94,7 +94,7 @@ Download the amd64 `.deb` from [GitHub Releases](https://github.com/sudipdasin/t
 
 ```sh
 grep 'amd64.deb$' SHA256SUMS | sha256sum -c -
-sudo apt install ./tux-steward_1.4.0.beta1_amd64.deb
+sudo apt install ./tux-steward_1.4.1.beta1_amd64.deb
 tux-steward
 tux-task-manager
 # Uninstall the applications (your private user configuration is retained):
@@ -148,3 +148,7 @@ Cancelled results use code 130 and an additive `cancelled: true` field in summar
 ### Selective feedback reports in 1.4
 
 Export session report now lets you include only relevant completed tasks. Check tasks in the newest-first list, review the exact JSON, and save locally. Select all/none and a live count help avoid sharing unrelated results. Summary omits commands and diagnostics; detailed output needs a fresh opt-in on every export. An empty selection cannot be saved. Reports use an immutable snapshot of at most 20 tasks and keep chronological ordering.
+
+### Reliability and local report privacy (1.4.1)
+
+Task execution retains its child leader identity until inherited output handling and cleanup finish, then reaps it. Dedicated subprocess fixtures cover normal completion, timeout, cancellation and callback errors. Reviewed report exports are saved owner-only (0600), including replacements. Filesystem ACLs, privileged users and the privacy of the chosen destination remain outside this permission guarantee.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1-beta.1 — 2026-11-19
+
+Reliability/privacy patch: observe child exit with waitid/WNOWAIT, retaining the task leader identity until output draining and group cleanup finish. Reap exactly once on scope exit, including timeout, cancellation and output-callback exceptions. Refuse signalling if ownership is lost. Save reviewed reports with owner read/write permissions, including replacement of permissive reports. New subprocess lifecycle suite and report-permission fixtures bring CTest to fifteen suites. Retain all prior features and manual CI policy; extend pinned upgrade checks through 1.4.
+
 ## 1.4.0-beta.1 — 2026-11-19
 
 Added task-selective report review with newest-first checkboxes, selection count, select all/none, disabled save for empty selections and an exact JSON preview. Export retains chronological ordering, summary-by-default privacy and fresh detailed-output consent. A bounded immutable snapshot excludes unselected tasks even in detailed reports; atomic save writes the captured reviewed bytes. Added dedicated GUI subset/privacy/save regressions, bringing CTest to fourteen suites. Existing tools, cancellation, history and manual CI policy remain; pinned upgrade validation extends through 1.3.
