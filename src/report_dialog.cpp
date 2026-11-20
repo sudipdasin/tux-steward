@@ -19,7 +19,7 @@ ReportDialog::ReportDialog(const QVector<Result>& results,QWidget* parent)
     : QDialog(parent),snapshot_(results.mid(qMax(0,results.size()-20))) {
     setObjectName("reportReview"); setWindowTitle("Review session report"); resize(850,700);
     auto* layout=new QVBoxLayout(this);
-    auto* notice=new QLabel("Choose completed tasks to include. Summary omits command lines and raw diagnostics. Review the exact preview before sharing; nothing is uploaded.");
+    auto* notice=new QLabel("Choose completed tasks to include. Summary omits command lines and raw diagnostics. Saved files are owner-only. Review the exact preview before sharing; nothing is uploaded.");
     notice->setWordWrap(true); layout->addWidget(notice);
     auto* selection=new QHBoxLayout;
     count_=new QLabel; count_->setObjectName("reportCount"); selection->addWidget(count_,1);
@@ -82,7 +82,9 @@ void ReportDialog::save() {
     const auto path=QFileDialog::getSaveFileName(this,"Export reviewed report","tux-steward-report.json","JSON reports (*.json)");
     if(path.isEmpty()) return;
     QSaveFile file(path);
-    if(!file.open(QIODevice::WriteOnly) || file.write(reviewed)!=reviewed.size() || !file.commit()) {
+    if(!file.open(QIODevice::WriteOnly) ||
+       !file.setPermissions(QFileDevice::ReadOwner|QFileDevice::WriteOwner) ||
+       file.write(reviewed)!=reviewed.size() || !file.commit()) {
         QMessageBox::critical(this,"Export failed","The report could not be saved. "+file.errorString()); return;
     }
     accept();

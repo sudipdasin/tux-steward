@@ -13,6 +13,7 @@
 #include <QTemporaryDir>
 #include <QTimer>
 #include <iostream>
+#include <sys/stat.h>
 int main(int argc,char** argv) {
     QApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
     QApplication app(argc,argv);
@@ -49,6 +50,18 @@ int main(int argc,char** argv) {
     QTimer::singleShot(0,[&]{for(auto* w:QApplication::topLevelWidgets()) if(auto* f=qobject_cast<QFileDialog*>(w)) {f->selectFile(path);QMetaObject::invokeMethod(f,"accept",Qt::DirectConnection);}});
     save->click(); QFile file(path);
     if(report.result()!=QDialog::Accepted || !file.open(QIODevice::ReadOnly) || file.readAll()!=reviewed) return 10;
+    struct stat metadata{};
+    if(stat(path.toLocal8Bit().constData(),&metadata)!=0 || (metadata.st_mode&0777)!=0600) return 15;
+    file.close();
+    // An existing permissive report is replaced privately, even with a broad umask.
+    QFile::setPermissions(path,QFileDevice::ReadOwner|QFileDevice::WriteOwner|QFileDevice::ReadGroup|QFileDevice::ReadOther);
+    tux::ReportDialog overwrite({first});
+    const auto previousMask=umask(0);
+    QTimer::singleShot(0,[&]{for(auto* w:QApplication::topLevelWidgets()) if(auto* f=qobject_cast<QFileDialog*>(w)) {
+        f->setOption(QFileDialog::DontConfirmOverwrite); f->selectFile(path); QMetaObject::invokeMethod(f,"accept",Qt::DirectConnection);
+    }});
+    overwrite.findChild<QPushButton*>("reportSave")->click(); umask(previousMask);
+    if(overwrite.result()!=QDialog::Accepted || stat(path.toLocal8Bit().constData(),&metadata)!=0 || (metadata.st_mode&0777)!=0600) return 16;
     tux::ReportDialog fresh({first,second});
     if(fresh.findChild<QCheckBox*>("reportDetails")->isChecked() || fresh.findChild<QTableWidget*>("reportTasks")->item(1,0)->checkState()!=Qt::Checked) return 11;
     fresh.findChild<QPushButton*>("reportNone")->click(); fresh.findChild<QPushButton*>("reportAll")->click();
