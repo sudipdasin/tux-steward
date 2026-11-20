@@ -1,12 +1,10 @@
 <!-- LATEST-RELEASE:START -->
-## Latest published release: v1.4.0-beta.1
-**[Release notes and downloads](https://github.com/sudipdasin/tux-steward/releases/tag/v1.4.0-beta.1)** · Prerelease
+## Latest published release: v1.4.1-beta.1
+**[Release notes and downloads](https://github.com/sudipdasin/tux-steward/releases/tag/v1.4.1-beta.1)** · Prerelease
 
 | Asset | Download |
 | --- | --- |
-| SHA256SUMS | [Download](https://github.com/sudipdasin/tux-steward/releases/download/v1.4.0-beta.1/SHA256SUMS) |
-| tux-steward-1.4.0-beta.1-x86_64.tar.gz | [Download](https://github.com/sudipdasin/tux-steward/releases/download/v1.4.0-beta.1/tux-steward-1.4.0-beta.1-x86_64.tar.gz) |
-| tux-steward_1.4.0.beta1_amd64.deb | [Download](https://github.com/sudipdasin/tux-steward/releases/download/v1.4.0-beta.1/tux-steward_1.4.0.beta1_amd64.deb) |
+| Source archive | [Download ZIP](https://github.com/sudipdasin/tux-steward/releases/tag/v1.4.1-beta.1) |
 <!-- LATEST-RELEASE:END -->
 
 # ◉ Tux Steward
