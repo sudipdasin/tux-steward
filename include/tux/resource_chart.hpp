@@ -42,7 +42,7 @@ protected:
         QFont valueFont = painter.font();
         valueFont.setBold(false);
         painter.setFont(valueFont);
-        const QString value = QStringLiteral("%1 %2").arg(current, 0, 'f', unit_ == QStringLiteral("%") ? 0 : 1).arg(unit_);
+        const QString value = samples_.isEmpty() ? QStringLiteral("Waiting for sample") : QStringLiteral("%1 %2").arg(current, 0, 'f', unit_ == QStringLiteral("%") ? 0 : 1).arg(unit_);
         painter.drawText(QRect(14, 9, width() - 28, 24), Qt::AlignRight | Qt::AlignVCenter, value);
 
         const QRectF plot = QRectF(area).adjusted(14, 38, -14, -13);

@@ -100,6 +100,7 @@ int main(int argc, char **argv)
         std::cerr << "Resource refresh timer did not fire\n";
         return 1;
     }
+    if(argc>1 && !manager.grab().save(QString::fromLocal8Bit(argv[1]))) return 34;
     auto* pause=manager.findChild<QPushButton*>("performancePause");
     auto* speed=manager.findChild<QComboBox*>("performanceRefreshRate");
     auto* resourcePages=manager.findChild<QTabWidget*>("resourceDetailTabs");

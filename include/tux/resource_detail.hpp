@@ -34,6 +34,7 @@ public:
         QStringList diskNames;for(const auto& name:QDir("/sys/block").entryList(QDir::Dirs|QDir::NoDotAndDotDot)) if(!name.startsWith("loop")&&!name.startsWith("ram")&&disks.contains(name))diskNames.append(name);
         updateChoices(disks_,diskNames);updateChoices(networks_,nets.keys());
         const bool baseline=clock_.isValid();const double seconds=baseline?clock_.nsecsElapsed()/1e9:0;
+        for(auto i=cores_.begin();i!=cores_.end();) {if(!cpus.contains(i.key())) {delete i.value();i=cores_.erase(i);}else ++i;}
         int coreIndex=0;for(auto i=cpus.cbegin();i!=cpus.cend();++i) {
             if(i.key()=="cpu")continue;
             if(coreIndex>=256) break;
@@ -52,7 +53,7 @@ public:
             const auto n=disks[disk];const bool ready=baseline&&diskBaseline_&&previousDisks_.contains(disk);
             auto r=ready?tux::counterRate(previousDisks_[disk].read,n.read,seconds):std::optional<double>{};auto w=ready?tux::counterRate(previousDisks_[disk].write,n.write,seconds):std::optional<double>{};auto busy=ready?tux::counterRate(previousDisks_[disk].busyMs,n.busyMs,seconds):std::optional<double>{};
             const auto rotational=read("/sys/block/"+disk+"/queue/rotational").trimmed();
-            QString identity=QString("%1 · %2 · %3 GiB · %4").arg(disk,rotational=="1"?"HDD / rotational":rotational=="0"?"SSD / non-rotational":"type unavailable").arg(read("/sys/block/"+disk+"/size").trimmed().toULongLong()*512.0/1073741824.0,0,'f',1).arg(read("/sys/block/"+disk+"/device/model").trimmed());
+            QString identity=QString("%1 · %2 · %3 GiB · %4").arg(disk,rotational=="1"?"HDD / rotational":rotational=="0"?"Non-rotational (SSD/virtual)":"type unavailable").arg(read("/sys/block/"+disk+"/size").trimmed().toULongLong()*512.0/1073741824.0,0,'f',1).arg(read("/sys/block/"+disk+"/device/model").trimmed());
             if(r&&w&&busy) {diskRead_->addSample(*r/2048.0);diskWrite_->addSample(*w/2048.0);diskBusy_->addSample(qMin(100.0,*busy/10.0));diskInfo_->setText(identity+QString("\nRead %1 MiB/s · Write %2 MiB/s · Active %3%").arg(*r/2048.0,0,'f',2).arg(*w/2048.0,0,'f',2).arg(qMin(100.0,*busy/10.0),0,'f',1));}
             else diskInfo_->setText(identity+"\nCollecting baseline / counters reset");diskBaseline_=true;
         }else {diskInfo_->setText("No disk counters available");diskBaseline_=false;}

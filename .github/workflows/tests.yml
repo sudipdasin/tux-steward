@@ -129,9 +129,9 @@ jobs:
           name: vm-results-${{ matrix.os }}-${{ matrix.mode }}
           path: |
             build/Testing/Temporary/
+            build/task-manager-performance.png
             build/resource-details.png*
             build/ui-preview.png
-            build/resource-details.png*
             build/ui-preview.png.report.png
             build/history-preview.png
             build/history-preview.png.triage.png

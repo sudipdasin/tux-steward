@@ -20,6 +20,8 @@ int main(int argc,char** argv) {
     QThread::msleep(60);panel.sample();app.processEvents();
     if(static_cast<ResourceHistoryChart*>(panel.findChild<QWidget*>("cpuDetailChart"))->sampleCount()!=1 || panel.findChild<QLabel*>("cpuDetailSummary")->text().contains("collecting baseline"))return 11;
     panel.resetBaseline();panel.sample();if(static_cast<ResourceHistoryChart*>(panel.findChild<QWidget*>("cpuDetailChart"))->sampleCount()!=1)return 12;
+    panel.setStyleSheet("QWidget{background:#101827;color:#e7eef9;} QTabBar::tab{padding:9px;background:#22334b;} QTabBar::tab:selected{background:#365775;}");
+    for(int i=0;i<6;++i) {QThread::msleep(60);panel.sample();app.processEvents();}
     if(argc>1) for(int i=0;i<panel.count();++i) {panel.setCurrentIndex(i);app.processEvents();if(!panel.grab().save(QString::fromLocal8Bit(argv[1])+QString(".%1.png").arg(i)))return 13;}
     std::cout<<"CPU guest exclusion, per-core counters, resets, elapsed rates, disk/network/memory parsers, bounded graphs, baseline and dedicated resource pages passed\n";
 }
