@@ -1,17 +1,17 @@
-Free open-source C++17/Qt Linux maintenance suite, Task Manager and native Setup. GPL-3.0-or-later; developed by Sudip Das. This is a 2.3 public testing beta.
+Free open-source C++17/Qt Linux maintenance suite, Task Manager and native Setup. GPL-3.0-or-later; developed by Sudip Das. This is a 2.4 public testing beta.
 
-## New in 2.3
-- Task Manager Performance workspace now has Overview, CPU, RAM, Disks and Network pages. CPU includes total usage and per-logical-CPU graphs (up to 256), RAM includes available/cache/buffers/swap, Disks offers selectable device read/write/active-time graphs and device type/capacity/model, and Network offers selectable interface receive/send graphs and totals.
-- Performance refresh at 1, 2 or 5 seconds, pause/resume and manual refresh. Graphs keep the latest 90 samples. Monitoring stops when hidden and establishes a fresh rate baseline when resumed.
-- First samples, missing counters and counter resets are represented as unavailable/baseline instead of fabricated spikes. CPU guest time is not double-counted. Kernel counters are read locally without privileged commands.
-- Prominent main-app Task Manager launcher. Existing process controls, all 25 tools, Health Check, session triage, report privacy and Experimental grouping retained.
-- Nineteen suites include counter fixtures, resource-page GUI checks and pause/interval regression checks. Public downloads remain DEB, executable ZIP, TGZ and checksums.
+## New in 2.4
+- Windows-style main page sidebar and Performance resource sidebar. Startup apps and Services are first-class pages; Bluetooth/GPU remain Experimental.
+- Startup apps retains user-scoped enable/disable, source filters, search, details and undo while preserving system defaults.
+- Services now has a searchable table with unit, scope, startup state, runtime state and substate. Independent bounded asynchronous queries distinguish enabled from running. Start/stop/restart/enable/disable remain explicit confirmed operations; system actions use PolicyKit. Refresh never mutates services.
+- No-match filters disable actions; stale queries are cancelled; actions stay single-flight with close protection. Added restart and runtime/search regression coverage and VM screenshots.
+- Existing CPU/RAM/per-core/disk/network graphs, process controls, maintenance tools and privacy-reviewed reports retained. Nineteen suites and pinned upgrades through 2.3.
 
 ## Download and test
 Download the amd64 DEB plus SHA256SUMS for compatible Ubuntu/Mint systems. Verify the matching checksum, then install:
 ```sh
 grep 'amd64.deb$' SHA256SUMS | sha256sum -c -
-sudo apt install ./tux-steward_2.3.0.beta1_amd64.deb
+sudo apt install ./tux-steward_2.4.0.beta1_amd64.deb
 ```
 Open Tux Steward, Tux Task Manager or Tux Steward Setup from the application menu. Remove the system package with `sudo apt remove tux-steward`. Configuration remains.
 

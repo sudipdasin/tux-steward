@@ -3,6 +3,8 @@
 #include "tux/autostart.hpp"
 #include "tux/resource_detail.hpp"
 #include <QTableWidget>
+#include <QListWidget>
+#include <QTabBar>
 #include <QHeaderView>
 #include <QSignalBlocker>
 #include "tux/async_command.hpp"
@@ -69,7 +71,7 @@ public:
         for (int i=0;i<10;++i) resourcePages_.append(tabs_->widget(firstIndex_+i));
         experimentalTabs_ = new QTabWidget(tabs_);
         experimentalTabs_->setObjectName(QStringLiteral("experimentalResourceTabs"));
-        for (int i : {6,7,8,9}) {
+        for (int i : {6,9}) {
             QWidget *page=resourcePages_[i];
             const int oldIndex=tabs_->indexOf(page);
             const QString title=tabs_->tabText(oldIndex);
@@ -162,7 +164,9 @@ private:
         // or Bluetooth refreshes that view once without recurring commands.
         const bool liveView = (index >= 0 && index <= 5) || index == 9;
         if (tabs_->isVisible() && liveView && !(index==0 && performancePaused_)) {
-            if (!autoRefresh_->isActive()) autoRefresh_->start(index==0?performanceInterval_:2000);
+            const int interval=index==0?performanceInterval_:2000;
+            if(autoRefresh_->interval()!=interval)autoRefresh_->setInterval(interval);
+            if (!autoRefresh_->isActive()) autoRefresh_->start();
         } else {
             autoRefresh_->stop();
         }
@@ -184,8 +188,11 @@ private:
             auto* pause=new QPushButton("Pause graphs");pause->setObjectName("performancePause");pause->setCheckable(true);controls->addWidget(pause);
             auto* refresh=new QPushButton("Refresh now");refresh->setObjectName("performanceRefresh");controls->addWidget(refresh);layout->addLayout(controls);
             auto* hint=new QLabel("Live local counters · Latest 90 samples · CPU/RAM: 0–100% · I/O: automatic scale · Polling stops when hidden");hint->setWordWrap(true);layout->addWidget(hint);
-            resourceDetail_=new ResourceDetail(page);layout->addWidget(resourceDetail_,1);
-            auto* overview=new QWidget;auto* grid=new QGridLayout(overview);resourceDetail_->insertTab(0,overview,"Overview");resourceDetail_->setCurrentIndex(1);
+            resourceDetail_=new ResourceDetail(page);
+            auto* resourceRow=new QHBoxLayout;auto* resourceNavigation=new QListWidget;resourceNavigation->setObjectName("performanceNavigation");resourceNavigation->setAccessibleName("Performance resources");resourceNavigation->setFixedWidth(145);resourceNavigation->addItems({"Overview","CPU","RAM","Disks","Network"});resourceRow->addWidget(resourceNavigation);resourceRow->addWidget(resourceDetail_,1);layout->addLayout(resourceRow,1);resourceDetail_->tabBar()->hide();
+            connect(resourceNavigation,&QListWidget::currentRowChanged,resourceDetail_,&QTabWidget::setCurrentIndex);
+            connect(resourceDetail_,&QTabWidget::currentChanged,resourceNavigation,&QListWidget::setCurrentRow);
+            auto* overview=new QWidget;auto* grid=new QGridLayout(overview);resourceDetail_->insertTab(0,overview,"Overview");resourceDetail_->setCurrentIndex(1);resourceNavigation->setCurrentRow(1);
             connect(speed,QOverload<int>::of(&QComboBox::currentIndexChanged),this,[this](int index){performanceInterval_=index==0?1000:index==1?2000:5000;autoRefresh_->setInterval(performanceInterval_);performanceClock_.invalidate();resourceDetail_->resetBaseline();});
             connect(pause,&QPushButton::toggled,this,[this,pause](bool paused){performancePaused_=paused;pause->setText(paused?"Resume graphs":"Pause graphs");performanceClock_.invalidate();resourceDetail_->resetBaseline();updateRefreshSchedule();});
             connect(refresh,&QPushButton::clicked,this,[this]{refreshPerformance();});
@@ -321,9 +328,14 @@ private:
             tabs_->addTab(page, name); updateStartupActions(); return;
         }
         if (name == tr("Services")) {
+            auto* intro=new QLabel(tr("Manage systemd services. Startup state and runtime status are distinct. System changes require administrator authorization; all actions require confirmation."),page);intro->setWordWrap(true);layout->addWidget(intro);
+            serviceSearch_=new QLineEdit(page);serviceSearch_->setObjectName("serviceSearch");serviceSearch_->setPlaceholderText("Search service, scope, startup or runtime status…");serviceSearch_->setClearButtonEnabled(true);layout->addWidget(serviceSearch_);
+            auto* refresh=new QPushButton("Refresh services");refresh->setObjectName("serviceRefresh");layout->addWidget(refresh);
+            connect(refresh,&QPushButton::clicked,this,[this]{if(!serviceMutationBusy_){serviceRefresh_.invalidate();refreshCurrent();}});
             serviceSelection_ = new QComboBox(page);
             serviceSelection_->setObjectName(QStringLiteral("serviceSelection"));
             serviceSelection_->setMinimumWidth(250);
+            serviceSelection_->hide();
             auto *row = new QHBoxLayout;
             row->addWidget(serviceSelection_, 1);
             const auto addAction = [this, page, row](const QString &label, const QString &action) {
@@ -336,9 +348,14 @@ private:
             };
             addAction(tr("Start"), QStringLiteral("start"));
             addAction(tr("Stop"), QStringLiteral("stop"));
+            addAction(tr("Restart"), QStringLiteral("restart"));
             addAction(tr("Enable"), QStringLiteral("enable"));
             addAction(tr("Disable"), QStringLiteral("disable"));
             layout->addLayout(row);
+            serviceTable_=new QTableWidget(0,5,page);serviceTable_->setObjectName("serviceTable");serviceTable_->setHorizontalHeaderLabels({"Service","Scope","Startup state","Runtime","Substate"});serviceTable_->setSelectionBehavior(QAbstractItemView::SelectRows);serviceTable_->setSelectionMode(QAbstractItemView::SingleSelection);serviceTable_->setEditTriggers(QAbstractItemView::NoEditTriggers);serviceTable_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);serviceTable_->verticalHeader()->hide();layout->addWidget(serviceTable_,3);
+            connect(serviceSearch_,&QLineEdit::textChanged,this,[this]{filterServices();});
+            connect(serviceTable_,&QTableWidget::itemSelectionChanged,this,[this]{const int row=serviceTable_->currentRow();if(row>=0&&!serviceTable_->isRowHidden(row))serviceSelection_->setCurrentIndex(row);setServiceActionsEnabled(row>=0&&!serviceTable_->isRowHidden(row)&&!serviceLoading_);});
+            connect(serviceSelection_,QOverload<int>::of(&QComboBox::currentIndexChanged),this,[this](int row){if(serviceTable_&&row>=0&&row<serviceTable_->rowCount()&&!serviceTable_->isRowHidden(row))serviceTable_->selectRow(row);});
         }
         auto *text = new QPlainTextEdit(page);
         if (name == tr("GPU")) text->setObjectName(QStringLiteral("gpuSummary"));
@@ -900,7 +917,8 @@ private:
 
     void setServiceActionsEnabled(bool enabled)
     {
-        enabled = enabled && !serviceMutationBusy_;
+        enabled = enabled && !serviceMutationBusy_ && !serviceLoading_;
+        if(serviceTable_)serviceTable_->setEnabled(!serviceMutationBusy_&&!serviceLoading_);
         if (serviceSelection_ != nullptr) serviceSelection_->setEnabled(enabled);
         for (auto *button : serviceActionButtons_) button->setEnabled(enabled);
     }
@@ -924,6 +942,7 @@ private:
         cancelServiceQueries();
         const auto previousSelection = serviceSelection_->currentData().toMap();
         serviceSelection_->clear();
+        serviceTable_->setRowCount(0);
         setServiceActionsEnabled(false);
         const auto executable = QStandardPaths::findExecutable(QStringLiteral("systemctl"));
         if (executable.isEmpty()) {
@@ -936,11 +955,22 @@ private:
         serviceLoading_ = true;
         serviceReports_.clear();
         serviceChoices_.clear();
-        servicePending_ = filter == 0 ? 2 : 1;
+        serviceRuntime_.clear();
+        servicePending_ = filter == 0 ? 4 : 2;
         services_->setPlainText(tr("Loading services… You can keep using the other tabs."));
         serviceRefresh_.restart();
         for (bool user : {false, true}) {
             if ((filter == 1 && user) || (filter == 2 && !user)) continue;
+            QStringList runtimeArgs;if(user)runtimeArgs<<"--user";
+            runtimeArgs<<"list-units"<<"--all"<<"--type=service"<<"--plain"<<"--no-legend"<<"--no-pager";
+            auto* runtime=AsyncCommand::run(this,executable,runtimeArgs,3000,512*1024,[this,generation,user,filter,previousSelection](AsyncCommandResult result){
+                if(generation!=serviceGeneration_)return;
+                if(result.ok())for(const auto& line:QString::fromLocal8Bit(result.output).split('\n')) {
+                    const auto fields=line.simplified().split(' ');if(fields.size()>=4&&fields[0].endsWith(".service"))serviceRuntime_.insert((user?"user:":"system:")+fields[0],fields[2]+"|"+fields[3]);
+                }
+                else serviceRuntime_.insert(user?"user:ERROR":"system:ERROR","Unavailable");
+                if(--servicePending_==0)finishServices(filter,previousSelection);
+            });serviceQueries_.append(runtime);
             QStringList args;
             if (user) args << QStringLiteral("--user");
             args << QStringLiteral("list-unit-files") << QStringLiteral("--type=service")
@@ -959,6 +989,7 @@ private:
                             QVariantMap data;
                             data.insert(QStringLiteral("unit"), unit);
                             data.insert(QStringLiteral("user"), user);
+                            data.insert(QStringLiteral("startup"),line.simplified().section(QLatin1Char(' '),1,1));
                             serviceChoices_.append(qMakePair(unit, data));
                         }
                     } else if (result.timedOut) report += tr("Query timed out after 3 seconds.");
@@ -967,7 +998,13 @@ private:
                         ? tr("exit code %1").arg(result.exitCode) : result.error,
                         QString::fromLocal8Bit(result.output));
                     serviceReports_.insert(user ? 1 : 0, report);
-                    if (--servicePending_ != 0) return;
+                    if(--servicePending_==0)finishServices(filter,previousSelection);
+                });
+            serviceQueries_.append(query);
+        }
+    }
+
+    void finishServices(int filter,const QVariantMap& previousSelection) {
                     serviceLoading_ = false;
                     serviceQueries_.clear();
                     QStringList reports;
@@ -988,22 +1025,32 @@ private:
                             : choice.first, choice.second);
                     }
                     for (int index = 0; index < serviceSelection_->count(); ++index)
-                        if (serviceSelection_->itemData(index).toMap() == previousSelection)
+                        if (serviceSelection_->itemData(index).toMap().value("unit")==previousSelection.value("unit") && serviceSelection_->itemData(index).toMap().value("user")==previousSelection.value("user"))
                             serviceSelection_->setCurrentIndex(index);
-                    setServiceActionsEnabled(serviceSelection_->count() > 0);
-                });
-            serviceQueries_.append(query);
-        }
+                    {const QSignalBlocker block(serviceTable_);serviceTable_->setRowCount(serviceSelection_->count());
+                    for(int row=0;row<serviceSelection_->count();++row) {
+                        const auto data=serviceSelection_->itemData(row).toMap();const bool user=data.value("user").toBool();const auto unit=data.value("unit").toString();const auto key=(user?QString("user:"):QString("system:"));
+                        const auto runtime=serviceRuntime_.value(key+unit,serviceRuntime_.contains(key+"ERROR")?"Unavailable":"Not loaded");
+                        const QStringList fields{unit,user?"User":"System",data.value("startup").toString(),runtime.section('|',0,0),runtime.section('|',1,1)};
+                        for(int col=0;col<fields.size();++col)serviceTable_->setItem(row,col,new QTableWidgetItem(fields[col]));
+                    }}
+                    filterServices();
+    }
+    void filterServices() {
+        int first=-1;for(int row=0;row<serviceTable_->rowCount();++row) {QStringList fields;for(int col=0;col<serviceTable_->columnCount();++col)fields.append(serviceTable_->item(row,col)->text());const bool matches=fields.join(' ').contains(serviceSearch_->text().trimmed(),Qt::CaseInsensitive);serviceTable_->setRowHidden(row,!matches);if(matches&&first<0)first=row;}
+        int row=serviceSelection_->currentIndex();if(row<0||serviceTable_->isRowHidden(row))row=first;
+        if(row>=0) {serviceTable_->selectRow(row);serviceSelection_->setCurrentIndex(row);}else serviceTable_->clearSelection();
+        setServiceActionsEnabled(row>=0&&!serviceLoading_);
     }
 
     void changeService(const QString &action)
     {
-        if (serviceMutationBusy_ || serviceLoading_ || serviceSelection_ == nullptr || serviceSelection_->currentIndex() < 0) return;
+        if (serviceMutationBusy_ || serviceLoading_ || serviceSelection_ == nullptr || serviceSelection_->currentIndex() < 0 || serviceTable_->isRowHidden(serviceSelection_->currentIndex())) return;
         const QVariantMap data = serviceSelection_->currentData().toMap();
         const QString unit = data.value(QStringLiteral("unit")).toString();
         const bool user = data.value(QStringLiteral("user")).toBool();
         if (unit.isEmpty() || !unit.endsWith(QStringLiteral(".service"))
-            || !QStringList{QStringLiteral("start"),QStringLiteral("stop"),QStringLiteral("enable"),QStringLiteral("disable")}.contains(action)) return;
+            || !QStringList{QStringLiteral("start"),QStringLiteral("stop"),QStringLiteral("restart"),QStringLiteral("enable"),QStringLiteral("disable")}.contains(action)) return;
         const QString scope = user ? tr("your user session") : tr("the whole system");
         const auto answer = QMessageBox::warning(tabs_, tr("Change service"),
             tr("Run ‘%1’ for %2 in %3? Changing system services can affect networking, login, or other apps.")
@@ -1087,6 +1134,9 @@ private:
     QPushButton *startupUndo_ = nullptr;
     QPushButton *startupDetails_ = nullptr;
     QVector<tux::autostart::Entry> startupEntries_;
+    QTableWidget* serviceTable_=nullptr;
+    QLineEdit* serviceSearch_=nullptr;
+    QMap<QString,QString> serviceRuntime_;
     QComboBox *serviceSelection_ = nullptr;
     QVector<QPushButton *> serviceActionButtons_;
     QVector<QPointer<AsyncCommand>> serviceQueries_;

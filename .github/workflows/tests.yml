@@ -108,6 +108,12 @@ jobs:
           echo '88a4b4be5770eec1487e444bb823581c931970c848c592ccdca55b8d487cf66c  /tmp/tux-steward-v22.deb' | sha256sum -c -
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-v22.deb
           tux-steward --version | grep -F '2.2.0-beta.1'
+      - name: Verify upgrade through the 2.3 public beta
+        run: |
+          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --output /tmp/tux-steward-v23.deb https://github.com/sudipdasin/tux-steward/releases/download/v2.3.0-beta.1/tux-steward_2.3.0.beta1_amd64.deb
+          echo 'a4767f172d4f1cd952671f65adc16d00523e3cd1dc92cbec54749a25c3354953  /tmp/tux-steward-v23.deb' | sha256sum -c -
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-v23.deb
+          tux-steward --version | grep -F '2.3.0-beta.1'
       - name: Install and launch all three native applications
         run: |
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y ./build/packages/*.deb
@@ -129,6 +135,8 @@ jobs:
           name: vm-results-${{ matrix.os }}-${{ matrix.mode }}
           path: |
             build/Testing/Temporary/
+            build/service-manager.png
+            build/startup-manager.png
             build/task-manager-performance.png
             build/resource-details.png*
             build/ui-preview.png
