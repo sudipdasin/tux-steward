@@ -643,7 +643,7 @@ ProcessManagerWidget::ProcessManagerWidget(QWidget *parent)
     });
     for(int i=0;i<tabs->count();++i)navigation->addItem(tabs->tabText(i));
     connect(navigation,&QListWidget::currentRowChanged,tabs,&QTabWidget::setCurrentIndex);
-    connect(tabs,&QTabWidget::currentChanged,navigation,&QListWidget::setCurrentRow);
+    connect(tabs,&QTabWidget::currentChanged,navigation,QOverload<int>::of(&QListWidget::setCurrentRow));
     navigation->setCurrentRow(0);
 }
 

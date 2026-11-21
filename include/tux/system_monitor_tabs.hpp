@@ -191,7 +191,7 @@ private:
             resourceDetail_=new ResourceDetail(page);
             auto* resourceRow=new QHBoxLayout;auto* resourceNavigation=new QListWidget;resourceNavigation->setObjectName("performanceNavigation");resourceNavigation->setAccessibleName("Performance resources");resourceNavigation->setFixedWidth(145);resourceNavigation->addItems({"Overview","CPU","RAM","Disks","Network"});resourceRow->addWidget(resourceNavigation);resourceRow->addWidget(resourceDetail_,1);layout->addLayout(resourceRow,1);resourceDetail_->tabBar()->hide();
             connect(resourceNavigation,&QListWidget::currentRowChanged,resourceDetail_,&QTabWidget::setCurrentIndex);
-            connect(resourceDetail_,&QTabWidget::currentChanged,resourceNavigation,&QListWidget::setCurrentRow);
+            connect(resourceDetail_,&QTabWidget::currentChanged,resourceNavigation,QOverload<int>::of(&QListWidget::setCurrentRow));
             auto* overview=new QWidget;auto* grid=new QGridLayout(overview);resourceDetail_->insertTab(0,overview,"Overview");resourceDetail_->setCurrentIndex(1);resourceNavigation->setCurrentRow(1);
             connect(speed,QOverload<int>::of(&QComboBox::currentIndexChanged),this,[this](int index){performanceInterval_=index==0?1000:index==1?2000:5000;autoRefresh_->setInterval(performanceInterval_);performanceClock_.invalidate();resourceDetail_->resetBaseline();});
             connect(pause,&QPushButton::toggled,this,[this,pause](bool paused){performancePaused_=paused;pause->setText(paused?"Resume graphs":"Pause graphs");performanceClock_.invalidate();resourceDetail_->resetBaseline();updateRefreshSchedule();});
