@@ -82,6 +82,13 @@ int main(int argc,char** argv) {
     });
     window.findChild<QPushButton*>("sessionHistory")->click();
     if(!reviewedAgain || status->text().startsWith("Running") || window.findChild<QPushButton*>("sessionHistory")->text()!="History (1)") return 27;
+    bool healthReviewed=false;
+    QTimer::singleShot(0,[&]{for(auto* widget:QApplication::topLevelWidgets()) if(widget->objectName()=="healthCheckDialog") {
+        healthReviewed=widget->findChild<QPlainTextEdit*>("healthCommands")->toPlainText().contains("'df'");
+        qobject_cast<QDialog*>(widget)->reject();
+    }});
+    window.findChild<QPushButton*>("healthCheck")->click();
+    if(!healthReviewed || window.findChild<QPushButton*>("sessionHistory")->text()!="History (1)") return 28;
     QTemporaryDir temp;
     const auto report=temp.filePath("report.json");
     bool reviewed=false;

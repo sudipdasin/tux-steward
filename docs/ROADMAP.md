@@ -8,10 +8,12 @@ Delivered foundations:
 - 0.6.0: nonblocking bounded service-list queries and stale-result cancellation.
 - 0.5.0: process tree, pause/speed controls and opt-in detailed reports. The current Task Manager also includes resource charts, startup/service views, Bluetooth controls, GPU inspection and per-process disk rates; hardware support still depends on the host.
 
+- 2.0 beta: guided read-only Health Check plans, sequential execution, progress, cancellation, history/report integration.
+
 Next:
 - Reduce UI-thread blocking in optional service and Bluetooth workflows.
 - Validate real Linux Mint/XFCE sessions, PolicyKit prompts and hardware behavior.
-- Add configurable health reports and reversible maintenance schedules.
+- Validate guided health reports on supported desktops; design reversible maintenance schedules separately.
 - Develop recovery-safe input controls and managed Wine prefixes with atomic registries.
 - Measure performance profiles on constrained hardware before adding tuning presets.
 - 1.0.0: supported-distribution matrix, packaging, accessibility and public-readiness review.

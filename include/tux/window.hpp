@@ -28,6 +28,7 @@ private:
     QLineEdit* search_;
     QLabel* status_;
     QPushButton* historyButton_;
+    QPushButton* healthButton_;
     QPushButton* stopButton_;
     std::atomic_bool cancelRequested_{false};
     bool cancellable_=false;
@@ -48,6 +49,7 @@ private:
     void write(const QString& text);
     void exportReport();
     void showHistory();
+    void showHealth();
     void updateButtons();
 };
 }

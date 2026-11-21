@@ -84,6 +84,12 @@ jobs:
           echo '00f17bb6720a0fd52516761b08390e966ec037bce2b06b7fa42b7dfa69d6de1c  /tmp/tux-steward-v14.deb' | sha256sum -c -
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-v14.deb
           tux-steward --version | grep -F '1.4.0-beta.1'
+      - name: Verify upgrade through the 1.4.1 reliability beta
+        run: |
+          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --output /tmp/tux-steward-v141.deb https://github.com/sudipdasin/tux-steward/releases/download/v1.4.1-beta.1/tux-steward_1.4.1.beta1_amd64.deb
+          echo '3daaac7597e49778eddf158d433062dcd53516de0c6092a4731d5e96d59846c8  /tmp/tux-steward-v141.deb' | sha256sum -c -
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-v141.deb
+          tux-steward --version | grep -F '1.4.1-beta.1'
       - name: Install and launch all three native applications
         run: |
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y ./build/packages/*.deb
@@ -110,3 +116,4 @@ jobs:
             build/history-preview.png
             build/cancel-preview.png
             build/report-selection-preview.png
+            build/health-preview.png

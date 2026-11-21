@@ -1,6 +1,7 @@
 #include "tux/window.hpp"
 #include "tux/history_dialog.hpp"
 #include "tux/report_dialog.hpp"
+#include "tux/health_dialog.hpp"
 #include <QAction>
 #include <QProcess>
 #include <QCoreApplication>
@@ -60,6 +61,8 @@ Window::Window() {
     auto* view=menuBar()->addMenu("&View");
     auto* historyAction=view->addAction("Session history…"); historyAction->setShortcut(QKeySequence("Ctrl+H"));
     connect(historyAction,&QAction::triggered,this,[this]{showHistory();});
+    auto* healthAction=view->addAction("Health check…");
+    connect(healthAction,&QAction::triggered,this,[this]{showHealth();});
     auto* help=menuBar()->addMenu("&Help");
     connect(help->addAction("Setup and removal…"),&QAction::triggered,this,[this]{
         if (!QProcess::startDetached(QCoreApplication::applicationDirPath()+"/tux-setup",{}))
@@ -76,6 +79,8 @@ Window::Window() {
     auto* heading=new QLabel("A calmer way to care for Linux."); heading->setStyleSheet("font-size:27px;font-weight:bold;"); layout->addWidget(heading);
     layout->addWidget(new QLabel(QString("Version %1 public beta · C++17 · Native desktop tools").arg(Version)));
     status_=new QLabel("Ready · Choose a tool to review its command"); status_->setObjectName("taskStatus"); status_->setStyleSheet("color:#66dfbf;"); layout->addWidget(status_);
+    healthButton_=new QPushButton("Health Check · Review and run diagnostics…"); healthButton_->setObjectName("healthCheck");
+    connect(healthButton_,&QPushButton::clicked,this,[this]{showHealth();}); layout->addWidget(healthButton_);
     auto* searchRow=new QHBoxLayout;
     searchRow->addWidget(new QLabel("Find tools"));
     search_=new QLineEdit; search_->setObjectName("toolSearch"); search_->setPlaceholderText("Search by name, category or description…"); searchRow->addWidget(search_);
@@ -154,6 +159,7 @@ void Window::filter() {
         "No matching tools. Try a shorter name or clear the search.");
 }
 void Window::updateButtons() {
+    healthButton_->setEnabled(!busy_);
     for (const auto& row:rows_) {
         const auto& tool=tux::actions()[row.index]; const auto problem=unavailable(tool);
         row.button->setEnabled(!busy_ && problem.isEmpty());
@@ -213,6 +219,15 @@ void Window::write(const QString& text) {
     const auto extra=output_->document()->characterCount()-1-OutputLimit;
     if (extra>0) { cursor.movePosition(QTextCursor::Start); cursor.movePosition(QTextCursor::NextCharacter,QTextCursor::KeepAnchor,extra); cursor.removeSelectedText(); }
     output_->moveCursor(QTextCursor::End);
+}
+void Window::showHealth() {
+    if(busy_) return;
+    HealthDialog dialog(this); dialog.exec();
+    const auto results=dialog.results(); if(results.isEmpty()) return;
+    for(const auto& result:results) {history_.append(result); if(history_.size()>20) history_.removeFirst();}
+    historyButton_->setText(QString("History (%1)").arg(history_.size()));
+    status_->setText(QString("Health check · %1 results recorded · Inspect findings in History").arg(results.size()));
+    write(QString("\nHealth Check recorded %1 diagnostic results. Open History or Export session report to review them.\n").arg(results.size()));
 }
 void Window::showHistory() {
     HistoryDialog dialog(history_,busy_,this);

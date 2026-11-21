@@ -1,4 +1,4 @@
-# Beta readiness — 1.4.1-beta.1
+# Beta readiness — 2.0.0-beta.1
 
 This is a public testing beta. Automated checks cover key behavior, but the real desktop gates below remain unverified. Experimental workflows are grouped separately in both applications.
 Local CPack does not publish. Owner-created beta tags trigger VM-gated prerelease publication; repository visibility is unchanged.
@@ -14,7 +14,7 @@ Local CPack does not publish. Owner-created beta tags trigger VM-gated prereleas
 | Packaging | Staged install, desktop entries, headless help/version; CPack DEB/TGZ | Clean supported-distribution install, upgrade and uninstall |
 | Hardware | Read-only fallback logic | Bluetooth pairing, GPU counters, network/disk accuracy on real devices |
 
-Current application builds and checks run on disposable hosted Ubuntu VMs with GCC/Clang and Qt 5.15. All fifteen suites must pass for this version; consult the release/PR for executed results. These fixtures and selected live read-only interfaces do not establish hardware compatibility or constitute a security audit.
+Current application builds and checks run on disposable hosted Ubuntu VMs with GCC/Clang and Qt 5.15. All seventeen suites must pass for this version; consult the release/PR for executed results. These fixtures and selected live read-only interfaces do not establish hardware compatibility or constitute a security audit.
 
 ## Build packages
 
@@ -27,7 +27,7 @@ cpack --config build/CPackConfig.cmake
 cmake -DPACKAGE_DIR="$PWD/build/packages" -DRELEASE_VERSION="$(./build/tux-steward --version | awk '{print $NF}')" -P tests/verify_packages.cmake
 ```
 
-Packages appear in `build/packages`. The Debian version is `1.4.1~beta1`, allowing a later stable 1.4.1 upgrade. Dependencies are detected from the build distribution: a Debian-built package is not automatically compatible with Mint. The TGZ also needs compatible Qt/system libraries; it is not a standalone application. The release workflow publishes verified packages and SHA256SUMS as public prerelease assets. Checksums verify file integrity, not publisher authenticity; packages are unsigned.
+Packages appear in `build/packages`. The Debian version is `2.0.0~beta1`, allowing a later stable 2.0.0 upgrade. Dependencies are detected from the build distribution: a Debian-built package is not automatically compatible with Mint. The TGZ also needs compatible Qt/system libraries; it is not a standalone application. The release workflow publishes verified packages and SHA256SUMS as public prerelease assets. Checksums verify file integrity, not publisher authenticity; packages are unsigned.
 
 Run all three installed binaries with `--version` or `--help` without a display. Run the actual GUI as a normal desktop user. Never run the GUI as root.
 
@@ -45,7 +45,7 @@ Before marking a release candidate, record real desktop results above, resolve d
 
 The native setup wizard manages only a fixed inventory of per-user files. It refuses existing installations and menu collisions, checks hashes before removing any known file, rejects symlink ancestors and retains unrelated files. A missing/corrupt record requires manual inspection; no recursive user-directory deletion is performed. Failed operations report incomplete cleanup and retain records when possible. It does not replace the distribution package manager or change the desktop shell.
 
-The explicitly dispatched or release-tag-invoked GitHub workflow runs all fifteen suites on separate Ubuntu 22.04/GCC Release and Ubuntu 24.04/Clang Debug VMs with an Xvfb virtual X desktop, then builds/verifies packages and checks actual system installation, GUI startup and removal. Release packaging repeats the VM checks for the published tag. Execution status is recorded in the release/PR; configuration alone is not evidence of a pass. VM virtual desktops do not validate real PolicyKit interaction or hardware behavior.
+The explicitly dispatched or release-tag-invoked GitHub workflow runs all seventeen suites on separate Ubuntu 22.04/GCC Release and Ubuntu 24.04/Clang Debug VMs with an Xvfb virtual X desktop, then builds/verifies packages and checks actual system installation, GUI startup and removal. Release packaging repeats the VM checks for the published tag. Execution status is recorded in the release/PR; configuration alone is not evidence of a pass. VM virtual desktops do not validate real PolicyKit interaction or hardware behavior.
 
 ## 1.2 history and current CI policy
 
@@ -57,8 +57,12 @@ Cancellation is available only for read-only maintenance actions. Tests use owne
 
 ## 1.4 selective report gate
 
-The report-selection suite verifies exact subsets in summary/detailed modes, exclusion of private fixture fields, chronological output, empty-state refusal, bounded snapshots, fresh consent, file-picker cancellation and byte-exact atomic save. All fifteen suites and installed-package upgrade/launch/removal checks must pass on both hosted Ubuntu VMs before release. Real hardware, interactive authorization and Wayland remain unverified.
+The report-selection suite verifies exact subsets in summary/detailed modes, exclusion of private fixture fields, chronological output, empty-state refusal, bounded snapshots, fresh consent, file-picker cancellation and byte-exact atomic save. All seventeen suites and installed-package upgrade/launch/removal checks must pass on both hosted Ubuntu VMs before release. Real hardware, interactive authorization and Wayland remain unverified.
 
 ## 1.4.1 lifecycle and report-permission gate
 
 The runner-lifecycle suite uses an isolated subreaper fixture to assert that an exited leader remains waitable while descendants hold the output pipe, then verifies leader/descendant cleanup for completion, timeout, cancellation and callback failure. Report selection tests check 0600 permissions for new files and replacement of permissive files under a broad umask. POSIX permissions do not prevent access by privileged users or guarantee privacy on remote destinations or via filesystem ACLs.
+
+## 2.0 Health Check gate
+
+Core health-plan and GUI health-workspace suites validate the full read-only allowlist before execution, ordered results, stop/continue policy, active and pre-start cancellation, timeout, missing dependencies, explicit review, close guard, summary report review and main-window history import. Fixtures use isolated helpers and never real configuration mutations. Every existing suite remains. Health Check completion is not a health guarantee; machine output must be reviewed before sharing.
