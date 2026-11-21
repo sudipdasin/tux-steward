@@ -4,6 +4,8 @@
 namespace tux {
 // Fixed read-only catalog subset; callers cannot supply arbitrary commands.
 QStringList healthActions();
+QStringList healthPreset(const QString& id);
+QStringList incompleteHealthActions(const QStringList& plan,const QVector<Result>& results);
 struct HealthRun {
     QVector<Result> results;
     int total=0;

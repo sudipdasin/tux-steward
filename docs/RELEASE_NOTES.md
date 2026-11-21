@@ -1,25 +1,24 @@
-Free open-source C++17/Qt Linux maintenance suite, Task Manager and native Setup. GPL-3.0-or-later; developed by Sudip Das. This is a 2.0 public testing beta.
+Free open-source C++17/Qt Linux maintenance suite, Task Manager and native Setup. GPL-3.0-or-later; developed by Sudip Das. This is a 2.1 public testing beta.
 
-## New in 2.0
-- Guided Health Check workspace, opened from the main button or View menu. Select from storage, memory, disks, failed services, kernel warnings and system warnings.
-- Review exact read-only commands before starting. Selection does not execute anything. Unavailable selected dependencies block GUI start.
-- Sequential background execution, per-check progress, stop-on-failure or continue, and Stop check. Closing during a run requests stop and waits for completion; remaining checks do not run.
-- Results enter the latest-20 session history and existing selective report review. Summary remains default; diagnostic output is opt-in and saved reports are owner-only. Nothing uploads automatically.
-- All 25 individual tools, Task Manager, native setup/removal and Experimental grouping retained. Existing report schema and command review remain compatible.
-- Seventeen regression suites, including isolated real helper processes, invalid-plan refusal, failure policies, cancellation, timeout, missing dependencies and main-window history integration.
+## New in 2.1
+- Health Check presets: Balanced, Storage, Logs and All. Presets select a fixed read-only plan and show its exact commands; nothing starts automatically.
+- Per-diagnostic status: Pending, Running, Completed, Needs attention, Timed out, Cancelled and Not run. Select a row to inspect that diagnostic's latest captured result and truncation/cancellation metadata.
+- Review incomplete checks prepares failed, cancelled and unexecuted diagnostics for a new explicit run. Successful checks are excluded. Prior results remain in session history and privacy-reviewed reports, capped at 20 records.
+- Strict plan/result matching rejects altered commands, duplicate results and unrelated tools. Eighteen suites cover presets, recovery, result inspection and prior behavior.
+- Retains all 25 tools, Health Check cancellation, Task Manager, Experimental grouping, setup and owner-only report files. Binary ZIP, DEB, TGZ and SHA256SUMS remain directly downloadable.
 
 ## Download and test
 Download the amd64 DEB plus SHA256SUMS for compatible Ubuntu/Mint systems. Verify the matching checksum, then install:
 ```sh
 grep 'amd64.deb$' SHA256SUMS | sha256sum -c -
-sudo apt install ./tux-steward_2.0.0.beta1_amd64.deb
+sudo apt install ./tux-steward_2.1.0.beta1_amd64.deb
 ```
 Open Tux Steward, Tux Task Manager or Tux Steward Setup from the application menu. Remove the system package with `sudo apt remove tux-steward`. Configuration remains.
 
 The x86_64 TGZ requires Qt 5.15 runtime libraries. Extract it and run `usr/bin/tux-setup` for a per-user installation/removal wizard, or launch `usr/bin/tux-steward` directly. Packages are unsigned.
 
 ## Validation and limits
-Publication requires all seventeen suites on Ubuntu 22.04/GCC Release and Ubuntu 24.04/Clang Debug hosted VMs under Xvfb, plus package checks, upgrade through checksum-pinned 0.9, 1.0, 1.1, 1.2, 1.3, 1.4 and 1.4.1 DEBs, startup of all three installed GUIs and removal. The release packaging VM repeats checks on the tag. Consult the linked Actions runs for executed outcomes.
+Publication requires all eighteen suites on Ubuntu 22.04/GCC Release and Ubuntu 24.04/Clang Debug hosted VMs under Xvfb, plus package checks, upgrade through checksum-pinned 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.4.1 and 2.0 DEBs, startup of all three installed GUIs and removal. The release packaging VM repeats checks on the tag. Consult the linked Actions runs for executed outcomes.
 
 Real hardware, real PolicyKit authorization, Wayland and sign-in recovery remain unvalidated. Experimental tools remain grouped separately. This is a maintenance suite, not a desktop-shell replacement or stable-release guarantee.
 

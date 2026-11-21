@@ -2,10 +2,12 @@
 #pragma once
 #include "tux/health.hpp"
 #include <QDialog>
+#include <QMap>
 #include <mutex>
 #include <optional>
 #include <thread>
 class QCheckBox;
+class QComboBox;
 class QLabel;
 class QPlainTextEdit;
 class QProgressBar;
@@ -23,6 +25,11 @@ protected:
     void closeEvent(QCloseEvent*) override;
 private:
     QTableWidget* tasks_;
+    QComboBox* presets_;
+    QPushButton* incomplete_;
+    QStringList lastPlan_;
+    QVector<Result> lastResults_;
+    QMap<QString,Result> inspected_;
     QCheckBox* stopOnFailure_;
     QLabel* status_;
     QPlainTextEdit* preview_;
@@ -42,6 +49,9 @@ private:
     std::optional<HealthRun> completed_;
     QStringList selected() const;
     void review();
+    void choose(const QStringList& ids);
+    void inspect();
+    void prepareIncomplete();
     void start();
     void stop();
     void poll();
