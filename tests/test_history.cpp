@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "tux/history_dialog.hpp"
 #include <QApplication>
+#include <QComboBox>
+#include <QCheckBox>
+#include <QTimer>
+#include <QLabel>
 #include <QLineEdit>
 #include <QPlainTextEdit>
 #include <QPushButton>
@@ -51,5 +55,24 @@ int main(int argc,char** argv) {
     tux::HistoryDialog cancelled({stopped},false);
     if(cancelled.findChild<QTableWidget*>("historyTable")->item(0,1)->text()!="Cancelled" ||
        !cancelled.findChild<QPlainTextEdit*>("historyDetails")->toPlainText().contains("Cancellation requested")) return 12;
+    auto* outcome=history.findChild<QComboBox*>("historyOutcome");
+    outcome->setCurrentIndex(1);
+    if(history.visibleResults().size()!=1 || history.selectedTool()!="memory") return 13;
+    outcome->setCurrentIndex(2);
+    if(history.visibleResults().size()!=1 || history.selectedTool()!="storage") return 14;
+    outcome->setCurrentIndex(3);
+    if(!history.visibleResults().isEmpty() || history.findChild<QPushButton*>("historyReport")->isEnabled()) return 15;
+    outcome->setCurrentIndex(4);
+    if(history.visibleResults().size()!=1 || history.visibleResults().first().code!=124) return 16;
+    search->setText("storage");
+    if(!history.visibleResults().isEmpty()) return 17;
+    search->clear(); bool reviewed=false;
+    QTimer::singleShot(0,[&]{for(auto* widget:QApplication::topLevelWidgets()) if(widget->objectName()=="reportReview") {
+        const auto preview=widget->findChild<QPlainTextEdit*>("reportPreview")->toPlainText();
+        reviewed=widget->findChild<QTableWidget*>("reportTasks")->rowCount()==1 && !widget->findChild<QCheckBox*>("reportDetails")->isChecked() && !preview.contains("Synthetic timeout tail");
+        qobject_cast<QDialog*>(widget)->reject();
+    }});
+    history.findChild<QPushButton*>("historyReport")->click(); if(!reviewed) return 18;
+    if(argc>1 && !history.grab().save(QString::fromLocal8Bit(argv[1])+".triage.png")) return 19;
     std::cout<<"Session history: snapshot/tail bounds, ordering, filter, local details, busy/unknown refusal and review request passed\n";
 }

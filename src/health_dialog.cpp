@@ -54,6 +54,15 @@ HealthDialog::HealthDialog(QWidget* parent,int timeoutMs):QDialog(parent),timeou
     stop_=new QPushButton("Stop check"); stop_->setObjectName("healthStop"); stop_->setEnabled(false); buttons->addWidget(stop_);
     export_=new QPushButton("Review report…"); export_->setObjectName("healthExport"); export_->setEnabled(false); buttons->addWidget(export_);
     incomplete_=new QPushButton("Review incomplete checks…"); incomplete_->setObjectName("healthIncomplete"); incomplete_->setEnabled(false); buttons->addWidget(incomplete_);
+    layout->addLayout(buttons); buttons=new QHBoxLayout;
+    newPlan_=new QPushButton("Prepare new plan…"); newPlan_->setObjectName("healthNewPlan"); newPlan_->setEnabled(false); buttons->addWidget(newPlan_);
+    connect(newPlan_,&QPushButton::clicked,this,[this]{
+        if(running_ || !started_) return;
+        started_=false; inspected_.clear(); incomplete_->setEnabled(false); newPlan_->setEnabled(false);
+        presets_->setEnabled(true); stopOnFailure_->setEnabled(true);
+        {const QSignalBlocker block(tasks_); for(int row=0;row<tasks_->rowCount();++row) tasks_->item(row,0)->setFlags(Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsUserCheckable);}
+        review(); status_->setText("New plan ready for review. Nothing has restarted. Prior results remain in Review report.");
+    });
     auto* close=new QPushButton("Close"); close->setObjectName("healthClose"); close->setDefault(true); buttons->addWidget(close); layout->addLayout(buttons);
     connect(close,&QPushButton::clicked,this,&HealthDialog::reject);
     connect(tasks_,&QTableWidget::itemChanged,this,[this]{if(!started_) {const QSignalBlocker block(presets_); presets_->setCurrentIndex(0);} review();});
@@ -86,7 +95,7 @@ void HealthDialog::inspect() {
 void HealthDialog::prepareIncomplete() {
     if(running_ || !incomplete_->isEnabled()) return;
     const auto ids=incompleteHealthActions(lastPlan_,lastResults_); if(ids.isEmpty()) return;
-    started_=false; inspected_.clear(); presets_->setEnabled(true); stopOnFailure_->setEnabled(true); incomplete_->setEnabled(false);
+    started_=false; newPlan_->setEnabled(false); inspected_.clear(); presets_->setEnabled(true); stopOnFailure_->setEnabled(true); incomplete_->setEnabled(false);
     {const QSignalBlocker block(tasks_); for(int row=0;row<tasks_->rowCount();++row)
         tasks_->item(row,0)->setFlags(Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsUserCheckable);}
     {const QSignalBlocker block(presets_); presets_->setCurrentIndex(0);}
@@ -109,7 +118,7 @@ void HealthDialog::start() {
     if(started_ || !start_->isEnabled()) return;
     const auto ids=selected(); for(const auto& id:ids) if(!unavailable(action(id)).isEmpty()) {review(); return;}
     const bool stopOnFailure=stopOnFailure_->isChecked(); started_=running_=true; cancel_.store(false);
-    lastPlan_=ids; lastResults_.clear(); inspected_.clear(); incomplete_->setEnabled(false); presets_->setEnabled(false); export_->setEnabled(false);
+    newPlan_->setEnabled(false); lastPlan_=ids; lastResults_.clear(); inspected_.clear(); incomplete_->setEnabled(false); presets_->setEnabled(false); export_->setEnabled(false);
     {const QSignalBlocker block(tasks_); for(int row=0;row<tasks_->rowCount();++row) {
         const auto id=tasks_->item(row,0)->data(Qt::UserRole).toString();
         tasks_->item(row,0)->setFlags(Qt::ItemIsEnabled|Qt::ItemIsSelectable);
@@ -146,7 +155,7 @@ void HealthDialog::poll() {
     }
     if(!pending.isEmpty()) inspect();
     if(done) {
-        if(worker_.joinable()) worker_.join(); running_=false; stop_->setEnabled(false); export_->setEnabled(!results_.isEmpty());
+        if(worker_.joinable()) worker_.join(); running_=false; newPlan_->setEnabled(true); stop_->setEnabled(false); export_->setEnabled(!results_.isEmpty());
         for(int row=0;row<tasks_->rowCount();++row) {const auto id=tasks_->item(row,0)->data(Qt::UserRole).toString();
             if(lastPlan_.contains(id) && !inspected_.contains(id)) tasks_->item(row,1)->setText("Not run");}
         try {incomplete_->setEnabled(!incompleteHealthActions(lastPlan_,lastResults_).isEmpty());}
