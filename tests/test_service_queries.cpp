@@ -42,6 +42,8 @@ int fixture(int argc, char **argv) {
         for (int i=0;i<200;++i) std::fwrite(bytes.constData(),1,bytes.size(),stdout);
         return 0;
     }
+    bool runtime=false;for(int i=1;i<argc;++i)if(QString::fromLocal8Bit(argv[i])=="list-units")runtime=true;
+    if(runtime){std::fputs(mode=="same"?"shared-demo.service loaded active running Synthetic\n":user?"user-demo.service loaded active running Synthetic\n":"system-demo.service loaded active running Synthetic\n",stdout);return 0;}
     std::fputs(mode == "same" ? "shared-demo.service enabled\n"
         : user ? "user-demo.service enabled\n" : "system-demo.service enabled\n",stdout);
     return 0;
@@ -116,19 +118,20 @@ int main(int argc, char **argv) {
         require(scope && selection && report && start,"service integration controls");
         auto *experimental=tabs.findChild<QTabWidget *>("experimentalResourceTabs");
         require(experimental!=nullptr,"experimental group exists");
-        int services=tabs.indexOf(experimental);
-        int servicePage=-1;
-        for (int i=0;i<experimental->count();++i) if (experimental->tabText(i)=="Services") servicePage=i;
-        require(servicePage>=0,"experimental services page exists"); experimental->setCurrentIndex(servicePage);
-        require(services>=0,"services tab exists");
+        int services=-1;for(int i=0;i<tabs.count();++i)if(tabs.tabText(i)=="Services")services=i;
+        require(services>=0,"first-class Services tab exists");
         QFile calls(callsPath); calls.open(QIODevice::WriteOnly | QIODevice::Truncate); calls.close();
         QElapsedTimer navigation; navigation.start(); tabs.setCurrentIndex(services);
         require(navigation.elapsed()<250,"service tab navigation does not wait for systemctl");
         require(!start->isEnabled() && !selection->isEnabled(),"actions disabled while query is pending");
         require(spin([&]{return selection->count()>0;}),"service query populates choice list");
         require(report->toPlainText().contains("system-demo.service") && start->isEnabled(),"one result powers report and actions");
-        require(calls.open(QIODevice::ReadOnly) && calls.readAll()=="system\n","no duplicate service query");
+        require(calls.open(QIODevice::ReadOnly) && calls.readAll()=="system\nsystem\n","one file-state and one runtime query");
         calls.close();
+        auto* serviceTable=tabs.findChild<QTableWidget*>("serviceTable");auto* search=tabs.findChild<QLineEdit*>("serviceSearch");auto* restart=tabs.findChild<QPushButton*>("serviceAction_restart");
+        require(serviceTable&&search&&restart&&restart->isEnabled(),"service table/search/restart controls");
+        require(serviceTable->rowCount()==1&&serviceTable->item(0,3)->text()=="active"&&serviceTable->item(0,4)->text()=="running","runtime and startup states kept distinct");
+        search->setText("no matching service");require(!restart->isEnabled()&&serviceTable->isRowHidden(0),"no-match disables mutations");search->clear();require(restart->isEnabled(),"matching service restores actions");
         // A superseded system-scope response must not overwrite the newer user list.
         qputenv("TUX_SERVICE_TEST_MODE","switch");
         scope->setCurrentIndex(0);
@@ -175,7 +178,12 @@ int main(int argc, char **argv) {
         require(!window.close() && closeWarningSeen && window.isVisible(),"window close refused while service action is running");
         start->click(); // Disabled controls cannot enqueue a second mutation.
         require(spin([&]{return start->isEnabled();}),"mutation completion refreshes list");
-        require(calls.open(QIODevice::ReadOnly) && calls.readAll()=="user\nuser\n","one mutation plus one refresh, without duplicate action"); calls.close();
+        require(calls.open(QIODevice::ReadOnly) && calls.readAll()=="user\nuser\nuser\n","one mutation plus file-state/runtime refresh"); calls.close();
+        calls.open(QIODevice::WriteOnly|QIODevice::Truncate);calls.close();
+        QTimer::singleShot(0,[]{if(auto* box=qobject_cast<QMessageBox*>(QApplication::activeModalWidget()))box->button(QMessageBox::Yes)->click();});
+        restart->click();require(spin([&]{return restart->isEnabled();}),"restart completes and refreshes");
+        require(calls.open(QIODevice::ReadOnly)&&calls.readAll()=="user\nuser\nuser\n","one restart plus two read-only queries");calls.close();
+        if(argc>1)require(window.grab().save(QString::fromLocal8Bit(argv[1])),"service table screenshot");
         require(QFile::remove(program),"remove only fake executable symlink");
         QFile invalid(program);
         require(invalid.open(QIODevice::WriteOnly),"failed-start executable fixture");

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.4.0-beta.1 — 2026-11-22
+- Integrated Windows-style page and resource sidebars; first-class Startup apps and Services.
+- Searchable service table distinguishes startup/runtime states; bounded async queries and confirmed restart support with scope-safe selection.
+- Expanded runtime/search/restart/navigation tests, startup/service screenshots and pinned upgrade through 2.3.
+
 ## 2.3.0-beta.1 — 2026-11-22
 - Dedicated CPU/RAM/disk/network Performance pages, per-core graphs, per-device/interface read/write rates, memory/swap and bounded histories.
 - Selectable 1/2/5-second refresh, pause/resume/manual refresh and main-app Task Manager launcher.

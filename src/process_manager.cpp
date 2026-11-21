@@ -24,6 +24,8 @@
 #include <QJsonObject>
 #include <QLabel>
 #include <QLineEdit>
+#include <QListWidget>
+#include <QTabBar>
 #include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QPushButton>
@@ -487,7 +489,8 @@ ProcessManagerWidget::ProcessManagerWidget(QWidget *parent)
 
     auto *tabs = new QTabWidget(this);
     tabs->setObjectName(QStringLiteral("taskManagerTabs"));
-    layout->addWidget(tabs, 1);
+    auto* navigation=new QListWidget(this);navigation->setObjectName("taskManagerNavigation");navigation->setAccessibleName("Task Manager pages");navigation->setFixedWidth(160);
+    auto* workspace=new QHBoxLayout;workspace->addWidget(navigation);workspace->addWidget(tabs,1);layout->addLayout(workspace,1);tabs->tabBar()->hide();
     auto *processPage = new QWidget(tabs);
     auto *processLayout = new QVBoxLayout(processPage);
     processLayout->setContentsMargins(0, 8, 0, 0);
@@ -638,6 +641,10 @@ ProcessManagerWidget::ProcessManagerWidget(QWidget *parent)
         table_->selectRow(proxy_->mapFromSource(source).row());
         showProcessDetails();
     });
+    for(int i=0;i<tabs->count();++i)navigation->addItem(tabs->tabText(i));
+    connect(navigation,&QListWidget::currentRowChanged,tabs,&QTabWidget::setCurrentIndex);
+    connect(tabs,&QTabWidget::currentChanged,navigation,QOverload<int>::of(&QListWidget::setCurrentRow));
+    navigation->setCurrentRow(0);
 }
 
 void ProcessManagerWidget::showEvent(QShowEvent *event)

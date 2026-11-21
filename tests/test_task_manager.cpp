@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QPushButton>
 #include <QComboBox>
+#include <QListWidget>
 #include <QEventLoop>
 #include <QTimer>
 #include <QStringList>
@@ -42,10 +43,11 @@ int main(int argc, char **argv)
         }
     }
     const auto *experimental=manager.findChild<QTabWidget *>("experimentalResourceTabs");
-    if (!experimental || tabs->indexOf(const_cast<QTabWidget *>(experimental))<0 || experimental->count()!=4) return 20;
-    if (!experimental->isAncestorOf(manager.findChild<QWidget *>("serviceAction_start"))
-        || !experimental->isAncestorOf(manager.findChild<QWidget *>("startupDisable"))
+    if (!experimental || tabs->indexOf(const_cast<QTabWidget *>(experimental))<0 || experimental->count()!=2) return 20;
+    if (experimental->isAncestorOf(manager.findChild<QWidget *>("serviceAction_start"))
+        || experimental->isAncestorOf(manager.findChild<QWidget *>("startupDisable"))
         || !experimental->isAncestorOf(manager.findChild<QWidget *>("bluetoothScanButton"))) return 21;
+    if(!manager.findChild<QListWidget*>("taskManagerNavigation") || !manager.findChild<QListWidget*>("performanceNavigation"))return 35;
     const QStringList charts{QStringLiteral("cpuUsageChart"), QStringLiteral("memoryUsageChart"),
                              QStringLiteral("diskIoChart"), QStringLiteral("networkIoChart")};
     for (const QString &name : charts) {

@@ -12,7 +12,7 @@
 
 # ◉ Tux Steward
 
-**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **2.3.0-beta.1** is a beta development checkpoint under GPL-3.0-or-later. This public testing beta is experimental; report issues and contribute improvements through GitHub.
+**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **2.4.0-beta.1** is a beta development checkpoint under GPL-3.0-or-later. This public testing beta is experimental; report issues and contribute improvements through GitHub.
 
 ## Build and run
 
@@ -39,6 +39,10 @@ cmake --install build --prefix "$HOME/.local"
 
 Ensure the install prefix's `bin` directory is on PATH for the desktop menu launcher. Use the application binary directly if your desktop does not refresh its menu immediately.
 
+## Integrated Task Manager navigation
+
+The Windows-style page sidebar opens Processes, Performance, App history, Users, Details, Startup apps and Services directly. Performance has a resource sidebar for Overview, CPU, RAM, Disks and Network. Startup apps provides search, user/system-source filtering, enable/disable at sign-in, details and undo without editing system defaults. Services provides a searchable system/user table with separate startup and runtime states, start/stop/restart/enable/disable, explicit refresh and confirmation. System mutations retain PolicyKit authorization. Bluetooth and GPU remain in Experimental. The whole application remains a public testing beta; real desktop/hardware authorization is not certified.
+
 ## Live Task Manager resource pages
 
 Open **Task Manager · CPU, RAM, disks and network graphs** from the main window, the desktop application menu, or `tux-task-manager`. Under **Performance**, select **CPU**, **RAM**, **Disks** or **Network**. CPU shows total and per-core usage; RAM shows memory/swap; disk and network selectors graph individual devices/interfaces. Refresh every 1/2/5 seconds, pause/resume or refresh once. History is bounded to 90 samples and starts when Performance is visible. Disk active time is a kernel counter, not a latency or drive-health measurement. Virtual/stacked devices can represent overlapping I/O; select the device you intend to inspect.
@@ -47,7 +51,7 @@ Open **Task Manager · CPU, RAM, disks and network graphs** from the main window
 
 Eight tabs retain all 25 tools: Diagnostics, Storage, Maintenance, Performance, Input, Gaming, Schedules and Experimental. Search by tool name, group or description. Each tab scrolls; a resizable output pane streams task output. File and Help menus provide JSON export with a review preview and project information.
 
-The separately launched **Tux Task Manager** monitors Linux processes without needing administrator access. It shows CPU share, resident memory, PID, account name, and process state; search and sort the list; and offers 1-, 2- or 5-second refresh while visible, plus pause/resume and one-shot manual refresh. The Process tree tab groups the same snapshot by parent/child identity, supports search and expand/collapse, and opens details on double-click. Missing or reused parents become roots; the tree never offers recursive process termination. Open process details with the Details button or double-click a row to inspect its parent, executable, working directory, and command line. End Task sends `SIGTERM`; Force stop sends `SIGKILL` after its own warning. Both controls are limited to the current user's processes, exclude the task manager itself, and recheck process start identity and all UID fields, then signal through a stable kernel pidfd handle. Unsupported pidfd facilities refuse termination safely. Standard local JSON reports omit usernames and command lines. Detailed exports require an explicit checkbox on each export. Process names and metrics can still reveal activity; review reports before sharing.
+The separately launched **Tux Task Manager** monitors Linux processes without needing administrator access. It shows CPU share, resident memory, PID, account name, and process state; search and sort the list; and offers 1-, 2- or 5-second refresh while visible, plus pause/resume and one-shot manual refresh. The Process tree page groups the same snapshot by parent/child identity, supports search and expand/collapse, and opens details on double-click. Missing or reused parents become roots; the tree never offers recursive process termination. Open process details with the Details button or double-click a row to inspect its parent, executable, working directory, and command line. End Task sends `SIGTERM`; Force stop sends `SIGKILL` after its own warning. Both controls are limited to the current user's processes, exclude the task manager itself, and recheck process start identity and all UID fields, then signal through a stable kernel pidfd handle. Unsupported pidfd facilities refuse termination safely. Standard local JSON reports omit usernames and command lines. Detailed exports require an explicit checkbox on each export. Process names and metrics can still reveal activity; review reports before sharing.
 
 Tools include storage and mount inspection, journal diagnostics, failed services, APT removal simulation and cache cleaning, journal retention, RAM/zRAM/TLP inspection, reversible XFCE compositor controls, X11 device inspection, Wine/Lutris/Vulkan checks, timer inspection and the distribution SSD trim timer.
 
@@ -99,7 +103,7 @@ Download the amd64 `.deb` from [GitHub Releases](https://github.com/sudipdasin/t
 
 ```sh
 grep 'amd64.deb$' SHA256SUMS | sha256sum -c -
-sudo apt install ./tux-steward_2.3.0.beta1_amd64.deb
+sudo apt install ./tux-steward_2.4.0.beta1_amd64.deb
 tux-steward
 tux-task-manager
 # Uninstall the applications (your private user configuration is retained):
