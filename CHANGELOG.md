@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.0-beta.1 — 2026-11-22
+- Dedicated CPU/RAM/disk/network Performance pages, per-core graphs, per-device/interface read/write rates, memory/swap and bounded histories.
+- Selectable 1/2/5-second refresh, pause/resume/manual refresh and main-app Task Manager launcher.
+- Validated counter delta logic, baseline/reset handling and CPU guest-time exclusion; nineteenth VM suite plus GUI control regressions.
+
 ## 2.2.0-beta.1 — 2026-11-22
 - Outcome triage combines session-history search with attention, completed, cancelled and timeout filters and a live matching count.
 - Review matching report opens the existing privacy-first report dialog with only matching tasks; nothing is exported automatically.

@@ -2,6 +2,8 @@
 #include "tux/process_manager.hpp"
 
 #include <QApplication>
+#include <QPushButton>
+#include <QComboBox>
 #include <QEventLoop>
 #include <QTimer>
 #include <QStringList>
@@ -98,6 +100,15 @@ int main(int argc, char **argv)
         std::cerr << "Resource refresh timer did not fire\n";
         return 1;
     }
+    if(argc>1 && !manager.grab().save(QString::fromLocal8Bit(argv[1]))) return 34;
+    auto* pause=manager.findChild<QPushButton*>("performancePause");
+    auto* speed=manager.findChild<QComboBox*>("performanceRefreshRate");
+    auto* resourcePages=manager.findChild<QTabWidget*>("resourceDetailTabs");
+    if(!pause || !speed || !resourcePages || resourcePages->count()!=5) return 30;
+    pause->click();application.processEvents();if(resourceTimer->isActive())return 31;
+    speed->setCurrentIndex(0);pause->click();application.processEvents();if(!resourceTimer->isActive()||resourceTimer->interval()!=1000)return 32;
+    speed->setCurrentIndex(2);if(resourceTimer->interval()!=5000)return 33;
+    speed->setCurrentIndex(1);
     manager.hide();
     application.processEvents();
     if (resourceTimer->isActive()) {

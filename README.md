@@ -12,7 +12,7 @@
 
 # ◉ Tux Steward
 
-**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **2.2.0-beta.1** is a beta development checkpoint under GPL-3.0-or-later. This public testing beta is experimental; report issues and contribute improvements through GitHub.
+**A calmer way to care for Linux.** Tux Steward includes system diagnostics and maintenance tools, plus a separate lightweight **Tux Task Manager** application for process monitoring. Both are native C++17 / Qt Widgets software, initially targeting Linux Mint / XFCE. Developed by **Sudip Das**. Version **2.3.0-beta.1** is a beta development checkpoint under GPL-3.0-or-later. This public testing beta is experimental; report issues and contribute improvements through GitHub.
 
 ## Build and run
 
@@ -38,6 +38,10 @@ cmake --install build --prefix "$HOME/.local"
 ```
 
 Ensure the install prefix's `bin` directory is on PATH for the desktop menu launcher. Use the application binary directly if your desktop does not refresh its menu immediately.
+
+## Live Task Manager resource pages
+
+Open **Task Manager · CPU, RAM, disks and network graphs** from the main window, the desktop application menu, or `tux-task-manager`. Under **Performance**, select **CPU**, **RAM**, **Disks** or **Network**. CPU shows total and per-core usage; RAM shows memory/swap; disk and network selectors graph individual devices/interfaces. Refresh every 1/2/5 seconds, pause/resume or refresh once. History is bounded to 90 samples and starts when Performance is visible. Disk active time is a kernel counter, not a latency or drive-health measurement. Virtual/stacked devices can represent overlapping I/O; select the device you intend to inspect.
 
 ## Tools and interface
 
@@ -80,7 +84,7 @@ Reports contain real computer information. Export is local; there is no automati
 - `tests/test_process_explorer.cpp`: hierarchy fixtures, real snapshots, pause/speed lifecycle and both export modes.
 - `tests/test_ui.cpp`: offscreen GUI construction, search, review cancellation, tab and render checks.
 
-`ctest` runs eighteen test suites. GUI tests use Qt's offscreen platform; they do not prove real desktop PolicyKit or hardware compatibility. See [validation](docs/VALIDATION.md), [roadmap](docs/ROADMAP.md), and [contributing](CONTRIBUTING.md).
+`ctest` runs nineteen test suites. GUI tests use Qt's offscreen platform; they do not prove real desktop PolicyKit or hardware compatibility. See [validation](docs/VALIDATION.md), [roadmap](docs/ROADMAP.md), and [contributing](CONTRIBUTING.md).
 
 
 ## Beta packages and readiness
@@ -95,7 +99,7 @@ Download the amd64 `.deb` from [GitHub Releases](https://github.com/sudipdasin/t
 
 ```sh
 grep 'amd64.deb$' SHA256SUMS | sha256sum -c -
-sudo apt install ./tux-steward_2.2.0.beta1_amd64.deb
+sudo apt install ./tux-steward_2.3.0.beta1_amd64.deb
 tux-steward
 tux-task-manager
 # Uninstall the applications (your private user configuration is retained):

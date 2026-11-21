@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
     }
 
     QMainWindow window;
-    window.setWindowTitle("Tux Task Manager — Linux process monitor");
+    window.setWindowTitle("Tux Task Manager — CPU · RAM · Disks · Network");
     window.setMinimumSize(620, 420);
     window.resize(1160, 740);
     window.setCentralWidget(new ProcessManagerWidget(&window));

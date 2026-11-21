@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(TuxSteward VERSION 2.2.0 LANGUAGES CXX)
+project(TuxSteward VERSION 2.3.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -50,6 +50,12 @@ target_link_libraries(tux-task-manager PRIVATE Qt5::Widgets tux-autostart tux-pr
 target_compile_options(tux-task-manager PRIVATE -Wall -Wextra -Wpedantic)
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(tux-resource-tests tests/test_resources.cpp)
+    target_include_directories(tux-resource-tests PRIVATE include)
+    target_link_libraries(tux-resource-tests PRIVATE Qt5::Widgets)
+    add_test(NAME resource-details COMMAND tux-resource-tests ${CMAKE_CURRENT_BINARY_DIR}/resource-details.png)
+    set_tests_properties(resource-details PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=${TUX_TEST_QPA_PLATFORM}" TIMEOUT 20)
+
     add_executable(tux-health-recovery-tests tests/test_health_recovery.cpp)
     target_link_libraries(tux-health-recovery-tests PRIVATE tux-core)
     add_test(NAME health-recovery COMMAND tux-health-recovery-tests)
@@ -104,7 +110,7 @@ if(BUILD_TESTING)
     target_include_directories(tux-task-manager-tests PRIVATE include)
     target_link_libraries(tux-task-manager-tests PRIVATE Qt5::Widgets tux-autostart tux-process-control)
     target_compile_options(tux-task-manager-tests PRIVATE -Wall -Wextra -Wpedantic)
-    add_test(NAME task-manager-tabs COMMAND tux-task-manager-tests)
+    add_test(NAME task-manager-tabs COMMAND tux-task-manager-tests ${CMAKE_CURRENT_BINARY_DIR}/task-manager-performance.png)
     set_tests_properties(task-manager-tabs PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=${TUX_TEST_QPA_PLATFORM}"
         TIMEOUT 20
