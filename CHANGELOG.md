@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.0-beta.1 — 2026-11-21
+
+Introduces the guided Health Check workspace: select from six read-only diagnostics, review all exact commands, run sequentially with progress, stop an active run and its remaining queue, and choose stop-on-failure or continue. Local results flow into bounded session history and existing selective privacy-reviewed reports saved owner-only. Selection runs nothing automatically; unavailable dependencies block GUI start. Core validates the entire fixed-ID plan before execution and refuses mutations/duplicates/unknown IDs. Adds core plan and GUI/integration suites (seventeen total), pinned upgrade through 1.4.1 and VM screenshots. Retains all 25 individual tools, Task Manager, setup, cancellation, Experimental grouping and manual CI policy. Major workflow milestone remains a testing beta, not hardware/desktop certification. Adds directly downloadable executable ZIP with checksums, archive executable/version/privacy verification and ZIP GUI startup checks.
+
 ## 1.4.1-beta.1 — 2026-11-19
 
 Reliability/privacy patch: observe child exit with waitid/WNOWAIT, retaining the task leader identity until output draining and group cleanup finish. Reap exactly once on scope exit, including timeout, cancellation and output-callback exceptions. Refuse signalling if ownership is lost. Save reviewed reports with owner read/write permissions, including replacement of permissive reports. New subprocess lifecycle suite and report-permission fixtures bring CTest to fifteen suites. Retain all prior features and manual CI policy; extend pinned upgrade checks through 1.4.

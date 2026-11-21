@@ -5,7 +5,7 @@ on:
       tag:
         description: Beta tag on main (created by the owner)
         required: true
-        default: v1.4.1-beta.1
+        default: v2.0.0-beta.1
   push:
     tags: ["v*-beta.*"]
 permissions:
@@ -60,7 +60,7 @@ jobs:
             if [ "$safe" != "$package" ]; then mv "$package" "$safe"; fi
           done
           cd build/packages
-          sha256sum *.deb *.tar.gz > SHA256SUMS
+          sha256sum *.deb *.tar.gz *.zip > SHA256SUMS
       - name: Install, launch and uninstall package
         run: |
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y ./build/packages/*.deb
@@ -77,6 +77,17 @@ jobs:
           test ! -e /usr/bin/tux-task-manager
           test ! -e /usr/bin/tux-setup
           ! command -v tux-steward
+      - name: Launch all three executables from the ZIP archive
+        run: |
+          mkdir build/zip-smoke
+          cd build/zip-smoke
+          cmake -E tar xf ../packages/*.zip
+          for app in tux-steward tux-task-manager tux-setup; do
+            "./usr/bin/$app" --version
+            result=0
+            timeout 4s xvfb-run -a "./usr/bin/$app" > "/tmp/${app}-zip-smoke.log" 2>&1 || result=$?
+            if [ "$result" -ne 124 ]; then cat "/tmp/${app}-zip-smoke.log"; exit 1; fi
+          done
       - name: Publish verified testing preview
         env:
           GH_TOKEN: ${{ github.token }}
@@ -85,4 +96,4 @@ jobs:
             gh release create "$RELEASE_TAG" --verify-tag --prerelease --title "Tux Steward ${RELEASE_TAG#v} — Public Testing Beta" --notes-file docs/RELEASE_NOTES.md
           fi
           test "$(gh release view "$RELEASE_TAG" --json isPrerelease --jq .isPrerelease)" = true
-          gh release upload "$RELEASE_TAG" build/packages/*.deb build/packages/*.tar.gz build/packages/SHA256SUMS
+          gh release upload "$RELEASE_TAG" build/packages/*.deb build/packages/*.tar.gz build/packages/*.zip build/packages/SHA256SUMS
