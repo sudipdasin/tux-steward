@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.0-beta.1 — 2026-11-22
+- Outcome triage combines session-history search with attention, completed, cancelled and timeout filters and a live matching count.
+- Review matching report opens the existing privacy-first report dialog with only matching tasks; nothing is exported automatically.
+- Prepare new plan unlocks Health Check after completion, preserving bounded history and requiring explicit command review/run.
+- Expanded GUI regressions and checksum-pinned upgrade through 2.1; all application validation remains VM-only.
+
 ## 2.1.0-beta.1 — 2026-11-22
 
 Health Check cockpit: fixed Balanced/Storage/Logs/All presets prepare exact command review without execution. Each diagnostic shows Pending/Running/Completed/Needs attention/Timed out/Cancelled/Not run status; row selection inspects that check’s latest bounded output. Review incomplete checks selects only failed, cancelled or unexecuted entries for a fresh explicit run. Prior results remain in bounded history/report snapshots. Adds strict plan/result matching and recovery regressions, bringing CTest to eighteen suites; extends pinned upgrades through 2.0. Retains binary ZIP/DEB/TGZ publication, 25 tools and manual CI policy.

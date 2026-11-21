@@ -1,17 +1,16 @@
-Free open-source C++17/Qt Linux maintenance suite, Task Manager and native Setup. GPL-3.0-or-later; developed by Sudip Das. This is a 2.1 public testing beta.
+Free open-source C++17/Qt Linux maintenance suite, Task Manager and native Setup. GPL-3.0-or-later; developed by Sudip Das. This is a 2.2 public testing beta.
 
-## New in 2.1
-- Health Check presets: Balanced, Storage, Logs and All. Presets select a fixed read-only plan and show its exact commands; nothing starts automatically.
-- Per-diagnostic status: Pending, Running, Completed, Needs attention, Timed out, Cancelled and Not run. Select a row to inspect that diagnostic's latest captured result and truncation/cancellation metadata.
-- Review incomplete checks prepares failed, cancelled and unexecuted diagnostics for a new explicit run. Successful checks are excluded. Prior results remain in session history and privacy-reviewed reports, capped at 20 records.
-- Strict plan/result matching rejects altered commands, duplicate results and unrelated tools. Eighteen suites cover presets, recovery, result inspection and prior behavior.
-- Retains all 25 tools, Health Check cancellation, Task Manager, Experimental grouping, setup and owner-only report files. Binary ZIP, DEB, TGZ and SHA256SUMS remain directly downloadable.
+## New in 2.2
+- Session history outcome filters: Needs attention, Completed, Cancelled and Timed out combine with text search, with a live matching count.
+- Review matching report sends only matching task records to the existing privacy-first report review. Summary remains default; nothing exports automatically.
+- Prepare new plan lets you run another reviewed Health Check without closing the dialog. Prior results remain in bounded history/reports; no automatic restart.
+- All 25 tools, three native applications, Experimental grouping and all 18 suites retained with expanded GUI regressions.
 
 ## Download and test
 Download the amd64 DEB plus SHA256SUMS for compatible Ubuntu/Mint systems. Verify the matching checksum, then install:
 ```sh
 grep 'amd64.deb$' SHA256SUMS | sha256sum -c -
-sudo apt install ./tux-steward_2.1.0.beta1_amd64.deb
+sudo apt install ./tux-steward_2.2.0.beta1_amd64.deb
 ```
 Open Tux Steward, Tux Task Manager or Tux Steward Setup from the application menu. Remove the system package with `sudo apt remove tux-steward`. Configuration remains.
 

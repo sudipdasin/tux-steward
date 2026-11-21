@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "tux/history_dialog.hpp"
+#include "tux/report_dialog.hpp"
+#include <QComboBox>
 #include <QDialogButtonBox>
 #include <QHeaderView>
 #include <QLabel>
@@ -27,6 +29,9 @@ HistoryDialog::HistoryDialog(const QVector<Result>& results,bool taskRunning,QWi
     search_=new QLineEdit; search_->setObjectName("historySearch");
     search_->setPlaceholderText("Filter by tool or result…"); search_->setAccessibleName("Filter session history");
     search_->setClearButtonEnabled(true); layout->addWidget(search_);
+    outcome_=new QComboBox; outcome_->setObjectName("historyOutcome"); outcome_->setAccessibleName("Filter task outcome");
+    outcome_->addItems({"All outcomes","Needs attention","Completed","Cancelled","Timed out"}); layout->addWidget(outcome_);
+    count_=new QLabel; count_->setObjectName("historyCount"); layout->addWidget(count_);
     table_=new QTableWidget(snapshot_.size(),3); table_->setObjectName("historyTable");
     table_->setHorizontalHeaderLabels({"Tool","Result","Seconds"});
     table_->setSelectionBehavior(QAbstractItemView::SelectRows); table_->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -37,7 +42,7 @@ HistoryDialog::HistoryDialog(const QVector<Result>& results,bool taskRunning,QWi
     for (int row=0;row<snapshot_.size();++row) {
         const int index=snapshot_.size()-1-row; const auto& result=snapshot_[index];
         auto* title=new QTableWidgetItem(result.action); title->setData(Qt::UserRole,index); table_->setItem(row,0,title);
-        table_->setItem(row,1,new QTableWidgetItem(result.cancelled?"Cancelled":result.code==0?"Completed":QString("Needs attention (%1)").arg(result.code)));
+        table_->setItem(row,1,new QTableWidgetItem(result.cancelled?"Cancelled":result.code==0?"Completed":result.code==124?"Timed out":QString("Needs attention (%1)").arg(result.code)));
         table_->setItem(row,2,new QTableWidgetItem(QString::number(result.seconds,'f',2)));
     }
     layout->addWidget(table_,1);
@@ -45,13 +50,21 @@ HistoryDialog::HistoryDialog(const QVector<Result>& results,bool taskRunning,QWi
     details_->setAccessibleName("Selected task details"); details_->setMinimumHeight(180); layout->addWidget(details_,1);
     auto* buttons=new QDialogButtonBox(QDialogButtonBox::Close);
     rerun_=buttons->addButton("Review and run again…",QDialogButtonBox::ActionRole); rerun_->setObjectName("historyRerun");
+    report_=buttons->addButton("Review matching report…",QDialogButtonBox::ActionRole); report_->setObjectName("historyReport");
+    connect(report_,&QPushButton::clicked,this,[this]{const auto results=visibleResults(); if(!results.isEmpty()) {ReportDialog dialog(results,this); dialog.exec();}});
+    connect(outcome_,QOverload<int>::of(&QComboBox::currentIndexChanged),this,[this]{filter();});
     buttons->button(QDialogButtonBox::Close)->setDefault(true); layout->addWidget(buttons);
     connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject);
     connect(rerun_,&QPushButton::clicked,this,[this]{if(!taskRunning_ && !selectedTool().isEmpty()) accept();});
     connect(table_,&QTableWidget::itemSelectionChanged,this,[this]{select();});
     connect(search_,&QLineEdit::textChanged,this,[this]{filter();});
     if (table_->rowCount()) table_->selectRow(0);
-    select();
+    filter();
+}
+QVector<Result> HistoryDialog::visibleResults() const {
+    QVector<Result> results;
+    for(int row=table_->rowCount()-1;row>=0;--row) if(!table_->isRowHidden(row)) results.append(snapshot_[table_->item(row,0)->data(Qt::UserRole).toInt()]);
+    return results;
 }
 QString HistoryDialog::toolFor(int index) const {
     if(index<0 || index>=snapshot_.size()) return {};
@@ -83,12 +96,18 @@ void HistoryDialog::select() {
         .arg((result.cancelled?QString(" · Cancellation requested"):QString())+(result.truncated?" · Output truncated":"")).arg(preview(result.command),QString::fromUtf8(result.output)));
 }
 void HistoryDialog::filter() {
-    int first=-1;
+    int first=-1,shown=0;
     for(int row=0;row<table_->rowCount();++row) {
         const auto text=table_->item(row,0)->text()+" "+table_->item(row,1)->text();
-        const bool visible=text.contains(search_->text().trimmed(),Qt::CaseInsensitive);
+        const auto& result=snapshot_[table_->item(row,0)->data(Qt::UserRole).toInt()];
+        const int kind=outcome_->currentIndex();
+        const bool matches=kind==0 || (kind==1 && (result.code!=0 || result.cancelled)) || (kind==2 && result.code==0 && !result.cancelled) || (kind==3 && result.cancelled) || (kind==4 && result.code==124 && !result.cancelled);
+        const bool visible=matches && text.contains(search_->text().trimmed(),Qt::CaseInsensitive);
+        if(visible) ++shown;
         table_->setRowHidden(row,!visible); if(visible && first<0) first=row;
     }
+    count_->setText(QString("%1 of %2 tasks shown · Report includes only matching tasks after privacy review.").arg(shown).arg(snapshot_.size()));
+    report_->setEnabled(shown>0);
     if(first>=0) table_->selectRow(first); else table_->clearSelection();
     select();
 }

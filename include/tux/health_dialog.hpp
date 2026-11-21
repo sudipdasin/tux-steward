@@ -27,6 +27,7 @@ private:
     QTableWidget* tasks_;
     QComboBox* presets_;
     QPushButton* incomplete_;
+    QPushButton* newPlan_;
     QStringList lastPlan_;
     QVector<Result> lastResults_;
     QMap<QString,Result> inspected_;

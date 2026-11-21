@@ -12,6 +12,8 @@ Delivered foundations:
 
 - 2.1 beta: read-only health presets, per-check result inspection and review-first incomplete recovery.
 
+- 2.2 beta: outcome triage, filtered report review and reusable Health Check plans.
+
 Next:
 - Reduce UI-thread blocking in optional service and Bluetooth workflows.
 - Validate real Linux Mint/XFCE sessions, PolicyKit prompts and hardware behavior.

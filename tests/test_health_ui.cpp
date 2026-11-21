@@ -54,6 +54,10 @@ int main(int argc,char** argv) {
     }});
     run.findChild<QPushButton*>("healthExport")->click(); if(!reportReviewed) return 9;
     if(argc>1 && !run.grab().save(QString::fromLocal8Bit(argv[1]))) return 10;
+    run.findChild<QPushButton*>("healthNewPlan")->click();
+    if(run.results().size()!=4 || !run.findChild<QPushButton*>("healthRun")->isEnabled() || !run.findChild<QLabel*>("healthStatus")->text().contains("Nothing has restarted")) return 29;
+    run.findChild<QComboBox*>("healthPreset")->setCurrentIndex(2); run.findChild<QPushButton*>("healthRun")->click();
+    if(run.findChild<QPushButton*>("healthNewPlan")->isEnabled() || !settle([&]{return run.findChild<QPushButton*>("healthExport")->isEnabled();}) || run.results().size()!=6) return 30;
     run.reject(); qputenv("TUX_HEALTH_SLOW","1"); const auto marker=temp.filePath("active"); qputenv("TUX_HEALTH_MARKER",marker.toUtf8());
     tux::HealthDialog stopped(nullptr,1000); stopped.show(); stopped.findChild<QPushButton*>("healthRun")->click();
     if(!settle([&]{return QFile::exists(marker);})) return 11;
