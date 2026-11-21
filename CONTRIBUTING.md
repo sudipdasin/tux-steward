@@ -22,7 +22,7 @@ Build with CMake, run CTest, and verify GUI behavior before merging. Add real su
 - `src/autostart.cpp`: XDG discovery, user overrides and private undo.
 - `tests/`: isolated core, subprocess and offscreen GUI checks.
 
-Explicitly dispatched GitHub Actions runs all seventeen suites and package install/startup/removal checks on Ubuntu 22.04/GCC Release and Ubuntu 24.04/Clang Debug VMs. Automatic PR/main runs and normal CircleCI checks are paused under the current resource policy. Beta tags trigger the same dual-VM checks before release packaging/publication. Do not delete existing regression coverage to obtain a green build. See docs/RELEASE_POLICY.md for forward continuity and publication rules.
+Explicitly dispatched GitHub Actions runs all eighteen suites and package install/startup/removal checks on Ubuntu 22.04/GCC Release and Ubuntu 24.04/Clang Debug VMs. Automatic PR/main runs and normal CircleCI checks are paused under the current resource policy. Beta tags trigger the same dual-VM checks before release packaging/publication. Do not delete existing regression coverage to obtain a green build. See docs/RELEASE_POLICY.md for forward continuity and publication rules.
 
 Use issue templates for bug reports and proposals. Reviewers should verify privacy, permissions, compatibility and failure recovery. Do not put credentials or private machine logs in issues or pull requests.
 
@@ -35,3 +35,5 @@ Current CI policy: automatic PR/main runs are paused pending reusable image prep
 Report review lives in `src/report_dialog.cpp`. Keep the summary allowlist and fresh per-export consent. Test excluded tasks in both modes and verify saved bytes match the preview. Never add automatic diagnostic uploads.
 
 Health Check core lives in `src/health.cpp`; the GUI is `src/health_dialog.cpp`. Keep the fixed read-only allowlist, validate every plan before running any entry, and keep worker callbacks free of UI access. Completed checks enter existing history/report review. Fixture helpers must be isolated and all new application checks run on VMs.
+
+Health presets and incomplete selection are fixed read-only helpers in `src/health.cpp`. Match result title and exact argument arrays to the reviewed plan before preparing another run. Never execute on preset selection or incomplete-review actions. Keep cumulative history capped at 20 and separate it from the current run inspected in the table.

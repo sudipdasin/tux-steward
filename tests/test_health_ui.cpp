@@ -3,6 +3,7 @@
 #include "tux/window.hpp"
 #include <QApplication>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QDialog>
 #include <QElapsedTimer>
 #include <QFile>
@@ -37,6 +38,10 @@ int main(int argc,char** argv) {
     for(int row=0;row<6;++row) tasks->item(row,0)->setCheckState(Qt::Unchecked);
     if(start->isEnabled() || !review.findChild<QLabel*>("healthStatus")->text().contains("at least one")) return 5;
     for(int row=0;row<4;++row) tasks->item(row,0)->setCheckState(Qt::Checked);
+    auto* preset=review.findChild<QComboBox*>("healthPreset"); preset->setCurrentIndex(2);
+    if(tasks->item(0,0)->checkState()!=Qt::Checked || tasks->item(1,0)->checkState()!=Qt::Unchecked || tasks->item(2,0)->checkState()!=Qt::Checked || !review.results().isEmpty()) return 18;
+    preset->setCurrentIndex(3);
+    if(tasks->item(0,0)->checkState()!=Qt::Unchecked || tasks->item(4,0)->checkState()!=Qt::Checked || !review.findChild<QPlainTextEdit*>("healthCommands")->toPlainText().contains("journalctl") || !review.results().isEmpty()) return 19;
     review.reject(); if(!review.results().isEmpty()) return 6;
     tux::HealthDialog run(nullptr,1000); run.show(); run.findChild<QPushButton*>("healthRun")->click();
     if(!settle([&]{return run.findChild<QPushButton*>("healthExport")->isEnabled();})) return 7;
@@ -60,6 +65,28 @@ int main(int argc,char** argv) {
     timed.reject(); qunsetenv("TUX_HEALTH_SLOW"); qunsetenv("TUX_HEALTH_MARKER"); qputenv("TUX_HEALTH_FAIL","1");
     tux::HealthDialog continued(nullptr,1000); continued.findChild<QCheckBox*>("healthStopOnFailure")->setChecked(false); continued.findChild<QPushButton*>("healthRun")->click();
     if(!settle([&]{return continued.findChild<QPushButton*>("healthExport")->isEnabled();}) || continued.results().size()!=4 || continued.results()[1].code!=42) return 15;
+    tux::HealthDialog recovery(nullptr,1000); recovery.show(); recovery.findChild<QPushButton*>("healthRun")->click();
+    if(!settle([&]{return recovery.findChild<QPushButton*>("healthIncomplete")->isEnabled();})) return 20;
+    auto* recoveryTasks=recovery.findChild<QTableWidget*>("healthTasks");
+    if(recovery.results().size()!=2 || recoveryTasks->item(0,1)->text()!="Completed" || !recoveryTasks->item(1,1)->text().contains("42") || recoveryTasks->item(2,1)->text()!="Not run") return 21;
+    recoveryTasks->selectRow(1); app.processEvents();
+    if(!recovery.findChild<QPlainTextEdit*>("healthOutput")->toPlainText().contains("Exit 42")) return 22;
+    recovery.findChild<QPushButton*>("healthIncomplete")->click(); app.processEvents();
+    if(recovery.results().size()!=2 || !recovery.findChild<QLabel*>("healthStatus")->text().contains("Nothing has restarted") || recoveryTasks->item(0,0)->checkState()!=Qt::Unchecked || recoveryTasks->item(1,0)->checkState()!=Qt::Checked || recoveryTasks->item(2,0)->checkState()!=Qt::Checked || !recovery.findChild<QPushButton*>("healthRun")->isEnabled()) return 23;
+    qunsetenv("TUX_HEALTH_FAIL");
+    recovery.findChild<QPushButton*>("healthRun")->click();
+    if(!settle([&]{return recovery.findChild<QPushButton*>("healthExport")->isEnabled();}) || recovery.results().size()!=5 || recovery.findChild<QProgressBar*>("healthProgress")->value()!=3 || recovery.findChild<QPushButton*>("healthIncomplete")->isEnabled() || recoveryTasks->item(1,1)->text()!="Completed") return 24;
+    if(argc>1 && !recovery.grab().save(QString::fromLocal8Bit(argv[1])+".recovery.png")) return 25;
+    recovery.reject();
+    qputenv("TUX_HEALTH_FAIL","1"); tux::HealthDialog bounded(nullptr,1000);
+    bounded.findChild<QPushButton*>("healthRun")->click();
+    if(!settle([&]{return bounded.findChild<QPushButton*>("healthIncomplete")->isEnabled();})) return 26;
+    for(int attempt=0;attempt<20;++attempt) {
+        bounded.findChild<QPushButton*>("healthIncomplete")->click(); bounded.findChild<QPushButton*>("healthRun")->click();
+        if(!settle([&]{return bounded.findChild<QPushButton*>("healthIncomplete")->isEnabled();})) return 27;
+    }
+    if(bounded.results().size()!=20 || bounded.results().first().action!=tux::action("memory").title) return 28;
+    qunsetenv("TUX_HEALTH_FAIL");
     qunsetenv("TUX_HEALTH_FAIL"); QTemporaryDir empty; qputenv("PATH",empty.path().toUtf8()); tux::HealthDialog missing;
     if(missing.findChild<QPushButton*>("healthRun")->isEnabled() || !missing.findChild<QLabel*>("healthStatus")->text().contains("unavailable")) return 16;
     qputenv("PATH",temp.path().toUtf8());

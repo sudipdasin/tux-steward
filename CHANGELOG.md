@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.0-beta.1 — 2026-11-22
+
+Health Check cockpit: fixed Balanced/Storage/Logs/All presets prepare exact command review without execution. Each diagnostic shows Pending/Running/Completed/Needs attention/Timed out/Cancelled/Not run status; row selection inspects that check’s latest bounded output. Review incomplete checks selects only failed, cancelled or unexecuted entries for a fresh explicit run. Prior results remain in bounded history/report snapshots. Adds strict plan/result matching and recovery regressions, bringing CTest to eighteen suites; extends pinned upgrades through 2.0. Retains binary ZIP/DEB/TGZ publication, 25 tools and manual CI policy.
+
 ## 2.0.0-beta.1 — 2026-11-21
 
 Introduces the guided Health Check workspace: select from six read-only diagnostics, review all exact commands, run sequentially with progress, stop an active run and its remaining queue, and choose stop-on-failure or continue. Local results flow into bounded session history and existing selective privacy-reviewed reports saved owner-only. Selection runs nothing automatically; unavailable dependencies block GUI start. Core validates the entire fixed-ID plan before execution and refuses mutations/duplicates/unknown IDs. Adds core plan and GUI/integration suites (seventeen total), pinned upgrade through 1.4.1 and VM screenshots. Retains all 25 individual tools, Task Manager, setup, cancellation, Experimental grouping and manual CI policy. Major workflow milestone remains a testing beta, not hardware/desktop certification. Adds directly downloadable executable ZIP with checksums, archive executable/version/privacy verification and ZIP GUI startup checks.
