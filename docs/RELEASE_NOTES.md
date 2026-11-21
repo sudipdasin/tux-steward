@@ -29,3 +29,7 @@ Cancellation may leave detached descendants running and can omit unread output. 
 Use Help → Send feedback or repository issue templates. Include version, distro/desktop, affected tab and reproduction steps; review and redact diagnostics before sharing. Feedback is never sent automatically. CONTRIBUTING.md and docs/RELEASE_POLICY.md describe builds, regression checks and forward continuity.
 
 Health Check records diagnostic command results, not a health score or assurance that a system is healthy. Read-only output may contain private information. Cancelled checks can leave detached/elevated descendants running. No automatic repairs, dependency installation or unattended schedules are enabled.
+
+### Executable ZIP download
+
+The Releases page includes a ZIP with all three native executables, alongside the DEB, TGZ and SHA256SUMS. Extract the ZIP and run `./usr/bin/tux-setup` for per-user installation or `./usr/bin/tux-steward` directly. Compatible Qt 5.15 runtime libraries are required; this is not a self-contained AppImage. Both archives are extracted and checked for executable permissions, versions and private build paths on VMs; the release pipeline also launches all three GUIs from the ZIP.

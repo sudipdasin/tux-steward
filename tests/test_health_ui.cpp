@@ -21,7 +21,7 @@
 int main(int argc,char** argv) {
     const auto name=QFileInfo(QString::fromLocal8Bit(argv[0])).fileName();
     if(QStringList{"df","free","lsblk","systemctl","journalctl"}.contains(name)) {
-        QFile marker(qEnvironmentVariable("TUX_HEALTH_MARKER")); if(marker.open(QIODevice::Append)) {marker.write(name.toUtf8()+"\n");marker.close();}
+        QFile marker(qEnvironmentVariable("TUX_HEALTH_MARKER")); if(!marker.fileName().isEmpty() && marker.open(QIODevice::Append)) {marker.write(name.toUtf8()+"\n");marker.close();}
         std::cout<<"synthetic-private-health-output\n";
         if(name=="df" && qEnvironmentVariableIsSet("TUX_HEALTH_SLOW")) sleep(3);
         return name=="free" && qEnvironmentVariableIsSet("TUX_HEALTH_FAIL")?42:0;

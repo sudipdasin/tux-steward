@@ -158,3 +158,7 @@ Task execution retains its child leader identity until inherited output handling
 Open **Health Check** to select read-only diagnostics and review every command before starting. Four checks are selected initially; kernel and system logs are optional. Checks run sequentially in the background with progress, Stop and a stop-on-failure option. Close during a run requests cancellation and waits; pending checks are skipped. Completed results enter History and the existing report review, where you choose tasks and whether to include raw output.
 
 The fixed six-check catalog cannot run arbitrary commands or system mutations. Missing selected dependencies block GUI start; nothing installs automatically. Completion records exit status and findings, not a health score. This major workflow beta retains the 25 individual tools and all three native applications. Reports and settings remain compatible with 1.4.1.
+
+### Executable ZIP download
+
+The Releases page includes a ZIP with all three native executables, alongside the DEB, TGZ and SHA256SUMS. Extract the ZIP and run `./usr/bin/tux-setup` for per-user installation or `./usr/bin/tux-steward` directly. Compatible Qt 5.15 runtime libraries are required; this is not a self-contained AppImage. Both archives are extracted and checked for executable permissions, versions and private build paths on VMs; the release pipeline also launches all three GUIs from the ZIP.

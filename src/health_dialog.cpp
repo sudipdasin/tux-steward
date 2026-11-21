@@ -18,6 +18,7 @@ HealthDialog::HealthDialog(QWidget* parent,int timeoutMs):QDialog(parent),timeou
     setObjectName("healthCheckDialog"); setWindowTitle("Health Check · Tux Steward"); resize(950,780);
     setStyleSheet("QDialog,QWidget{background:#101827;color:#e7eef9;font-size:14px;}"
         "QHeaderView::section{background:#192438;color:#e7eef9;padding:6px;border:0;}"
+        "QTableView::indicator:unchecked{border:1px solid #9aacc5;background:#0b1220;width:14px;height:14px;}"
         "QTableWidget{background:#0b1220;gridline-color:#2a3c54;selection-background-color:#293c54;}"
         "QPlainTextEdit{background:#0b1220;border:1px solid #2a3c54;padding:8px;font-family:monospace;}"
         "QPushButton{background:#2b4359;border:0;border-radius:5px;padding:9px;}"
