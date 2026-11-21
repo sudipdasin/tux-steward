@@ -81,6 +81,10 @@ Window::Window() {
     status_=new QLabel("Ready · Choose a tool to review its command"); status_->setObjectName("taskStatus"); status_->setStyleSheet("color:#66dfbf;"); layout->addWidget(status_);
     healthButton_=new QPushButton("Health Check · Review and run diagnostics…"); healthButton_->setObjectName("healthCheck");
     connect(healthButton_,&QPushButton::clicked,this,[this]{showHealth();}); layout->addWidget(healthButton_);
+    auto* taskManager=new QPushButton("Task Manager · CPU, RAM, disks and network graphs…");taskManager->setObjectName("openTaskManager");
+    connect(taskManager,&QPushButton::clicked,this,[this]{
+        if(!QProcess::startDetached(QCoreApplication::applicationDirPath()+"/tux-task-manager",{})) QMessageBox::warning(this,"Task Manager unavailable","Install the complete Tux Steward package to open Task Manager.");
+    });layout->addWidget(taskManager);
     auto* searchRow=new QHBoxLayout;
     searchRow->addWidget(new QLabel("Find tools"));
     search_=new QLineEdit; search_->setObjectName("toolSearch"); search_->setPlaceholderText("Search by name, category or description…"); searchRow->addWidget(search_);

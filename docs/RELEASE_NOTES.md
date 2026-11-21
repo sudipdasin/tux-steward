@@ -1,23 +1,24 @@
-Free open-source C++17/Qt Linux maintenance suite, Task Manager and native Setup. GPL-3.0-or-later; developed by Sudip Das. This is a 2.2 public testing beta.
+Free open-source C++17/Qt Linux maintenance suite, Task Manager and native Setup. GPL-3.0-or-later; developed by Sudip Das. This is a 2.3 public testing beta.
 
-## New in 2.2
-- Session history outcome filters: Needs attention, Completed, Cancelled and Timed out combine with text search, with a live matching count.
-- Review matching report sends only matching task records to the existing privacy-first report review. Summary remains default; nothing exports automatically.
-- Prepare new plan lets you run another reviewed Health Check without closing the dialog. Prior results remain in bounded history/reports; no automatic restart.
-- All 25 tools, three native applications, Experimental grouping and all 18 suites retained with expanded GUI regressions.
+## New in 2.3
+- Task Manager Performance workspace now has Overview, CPU, RAM, Disks and Network pages. CPU includes total usage and per-logical-CPU graphs (up to 256), RAM includes available/cache/buffers/swap, Disks offers selectable device read/write/active-time graphs and device type/capacity/model, and Network offers selectable interface receive/send graphs and totals.
+- Performance refresh at 1, 2 or 5 seconds, pause/resume and manual refresh. Graphs keep the latest 90 samples. Monitoring stops when hidden and establishes a fresh rate baseline when resumed.
+- First samples, missing counters and counter resets are represented as unavailable/baseline instead of fabricated spikes. CPU guest time is not double-counted. Kernel counters are read locally without privileged commands.
+- Prominent main-app Task Manager launcher. Existing process controls, all 25 tools, Health Check, session triage, report privacy and Experimental grouping retained.
+- Nineteen suites include counter fixtures, resource-page GUI checks and pause/interval regression checks. Public downloads remain DEB, executable ZIP, TGZ and checksums.
 
 ## Download and test
 Download the amd64 DEB plus SHA256SUMS for compatible Ubuntu/Mint systems. Verify the matching checksum, then install:
 ```sh
 grep 'amd64.deb$' SHA256SUMS | sha256sum -c -
-sudo apt install ./tux-steward_2.2.0.beta1_amd64.deb
+sudo apt install ./tux-steward_2.3.0.beta1_amd64.deb
 ```
 Open Tux Steward, Tux Task Manager or Tux Steward Setup from the application menu. Remove the system package with `sudo apt remove tux-steward`. Configuration remains.
 
 The x86_64 TGZ requires Qt 5.15 runtime libraries. Extract it and run `usr/bin/tux-setup` for a per-user installation/removal wizard, or launch `usr/bin/tux-steward` directly. Packages are unsigned.
 
 ## Validation and limits
-Publication requires all eighteen suites on Ubuntu 22.04/GCC Release and Ubuntu 24.04/Clang Debug hosted VMs under Xvfb, plus package checks, upgrade through checksum-pinned 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.4.1 and 2.0 DEBs, startup of all three installed GUIs and removal. The release packaging VM repeats checks on the tag. Consult the linked Actions runs for executed outcomes.
+Publication requires all nineteen suites on Ubuntu 22.04/GCC Release and Ubuntu 24.04/Clang Debug hosted VMs under Xvfb, plus package checks, upgrade through checksum-pinned 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.4.1 and 2.0 DEBs, startup of all three installed GUIs and removal. The release packaging VM repeats checks on the tag. Consult the linked Actions runs for executed outcomes.
 
 Real hardware, real PolicyKit authorization, Wayland and sign-in recovery remain unvalidated. Experimental tools remain grouped separately. This is a maintenance suite, not a desktop-shell replacement or stable-release guarantee.
 
