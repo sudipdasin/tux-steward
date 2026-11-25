@@ -49,68 +49,79 @@ jobs:
           cpack --config build/CPackConfig.cmake
           cmake -DPACKAGE_DIR="$PWD/build/packages" -DRELEASE_VERSION="$(./build/tux-steward --version | awk '{print $NF}')" -P tests/verify_packages.cmake
       - name: Verify upgrade from the previous public beta
+        timeout-minutes: 5
         run: |
-          curl --fail --location --retry 3 --output /tmp/tux-steward-baseline.deb https://github.com/sudipdasin/tux-steward/releases/download/v0.9.0-beta.1/tux-steward_0.9.0.beta1_amd64.deb
+          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --retry-max-time 240 --output /tmp/tux-steward-baseline.deb https://github.com/sudipdasin/tux-steward/releases/download/v0.9.0-beta.1/tux-steward_0.9.0.beta1_amd64.deb
           echo 'ad638c2fd1910b9886f031ee71546cef93b08bb3111447f81d38961c8b2c13f0  /tmp/tux-steward-baseline.deb' | sha256sum -c -
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-baseline.deb
           tux-steward --version | grep -F '0.9.0-beta.1'
       - name: Verify upgrade through the 1.0 public beta
+        timeout-minutes: 5
         run: |
-          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --output /tmp/tux-steward-v1.deb https://github.com/sudipdasin/tux-steward/releases/download/v1.0.0-beta.1/tux-steward_1.0.0.beta1_amd64.deb
+          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --retry-max-time 240 --output /tmp/tux-steward-v1.deb https://github.com/sudipdasin/tux-steward/releases/download/v1.0.0-beta.1/tux-steward_1.0.0.beta1_amd64.deb
           echo 'a14d946cbf8cea118f7d8b1ef11c44c42f794412bcbb55cbf73621adc1be41fb  /tmp/tux-steward-v1.deb' | sha256sum -c -
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-v1.deb
           tux-steward --version | grep -F '1.0.0-beta.1'
       - name: Verify upgrade through the 1.1 public beta
+        timeout-minutes: 5
         run: |
-          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --output /tmp/tux-steward-v11.deb https://github.com/sudipdasin/tux-steward/releases/download/v1.1.0-beta.1/tux-steward_1.1.0.beta1_amd64.deb
+          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --retry-max-time 240 --output /tmp/tux-steward-v11.deb https://github.com/sudipdasin/tux-steward/releases/download/v1.1.0-beta.1/tux-steward_1.1.0.beta1_amd64.deb
           echo 'ad7ee00135eb52e82ec6d730a97a0ebf60aa057d4c89393e63657b8a0147f7d2  /tmp/tux-steward-v11.deb' | sha256sum -c -
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-v11.deb
           tux-steward --version | grep -F '1.1.0-beta.1'
       - name: Verify upgrade through the 1.2 public beta
+        timeout-minutes: 5
         run: |
-          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --output /tmp/tux-steward-v12.deb https://github.com/sudipdasin/tux-steward/releases/download/v1.2.0-beta.1/tux-steward_1.2.0.beta1_amd64.deb
+          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --retry-max-time 240 --output /tmp/tux-steward-v12.deb https://github.com/sudipdasin/tux-steward/releases/download/v1.2.0-beta.1/tux-steward_1.2.0.beta1_amd64.deb
           echo '4cc03fc500650ff393a2084683c6527922a0080613eb2bf189864fcf61682a71  /tmp/tux-steward-v12.deb' | sha256sum -c -
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-v12.deb
           tux-steward --version | grep -F '1.2.0-beta.1'
       - name: Verify upgrade through the 1.3 public beta
+        timeout-minutes: 5
         run: |
-          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --output /tmp/tux-steward-v13.deb https://github.com/sudipdasin/tux-steward/releases/download/v1.3.0-beta.1/tux-steward_1.3.0.beta1_amd64.deb
+          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --retry-max-time 240 --output /tmp/tux-steward-v13.deb https://github.com/sudipdasin/tux-steward/releases/download/v1.3.0-beta.1/tux-steward_1.3.0.beta1_amd64.deb
           echo '2ef209ca577bc866abd859119b6c7e57aa28b0c9d24c53af31a16b3e072195e4  /tmp/tux-steward-v13.deb' | sha256sum -c -
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-v13.deb
           tux-steward --version | grep -F '1.3.0-beta.1'
       - name: Verify upgrade through the 1.4 public beta
+        timeout-minutes: 5
         run: |
-          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --output /tmp/tux-steward-v14.deb https://github.com/sudipdasin/tux-steward/releases/download/v1.4.0-beta.1/tux-steward_1.4.0.beta1_amd64.deb
+          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --retry-max-time 240 --output /tmp/tux-steward-v14.deb https://github.com/sudipdasin/tux-steward/releases/download/v1.4.0-beta.1/tux-steward_1.4.0.beta1_amd64.deb
           echo '00f17bb6720a0fd52516761b08390e966ec037bce2b06b7fa42b7dfa69d6de1c  /tmp/tux-steward-v14.deb' | sha256sum -c -
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-v14.deb
           tux-steward --version | grep -F '1.4.0-beta.1'
       - name: Verify upgrade through the 1.4.1 reliability beta
+        timeout-minutes: 5
         run: |
-          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --output /tmp/tux-steward-v141.deb https://github.com/sudipdasin/tux-steward/releases/download/v1.4.1-beta.1/tux-steward_1.4.1.beta1_amd64.deb
+          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --retry-max-time 240 --output /tmp/tux-steward-v141.deb https://github.com/sudipdasin/tux-steward/releases/download/v1.4.1-beta.1/tux-steward_1.4.1.beta1_amd64.deb
           echo '3daaac7597e49778eddf158d433062dcd53516de0c6092a4731d5e96d59846c8  /tmp/tux-steward-v141.deb' | sha256sum -c -
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-v141.deb
           tux-steward --version | grep -F '1.4.1-beta.1'
       - name: Verify upgrade through the 2.0 public beta
+        timeout-minutes: 5
         run: |
-          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --output /tmp/tux-steward-v2.deb https://github.com/sudipdasin/tux-steward/releases/download/v2.0.0-beta.1/tux-steward_2.0.0.beta1_amd64.deb
+          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --retry-max-time 240 --output /tmp/tux-steward-v2.deb https://github.com/sudipdasin/tux-steward/releases/download/v2.0.0-beta.1/tux-steward_2.0.0.beta1_amd64.deb
           echo 'c23b011a39c2c33c836ff34001ca3d062651078ec06ade159b6076085eb96f74  /tmp/tux-steward-v2.deb' | sha256sum -c -
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-v2.deb
           tux-steward --version | grep -F '2.0.0-beta.1'
       - name: Verify upgrade through the 2.1 public beta
+        timeout-minutes: 5
         run: |
-          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --output /tmp/tux-steward-v21.deb https://github.com/sudipdasin/tux-steward/releases/download/v2.1.0-beta.1/tux-steward_2.1.0.beta1_amd64.deb
+          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --retry-max-time 240 --output /tmp/tux-steward-v21.deb https://github.com/sudipdasin/tux-steward/releases/download/v2.1.0-beta.1/tux-steward_2.1.0.beta1_amd64.deb
           echo 'bfcab97c4db7b440be51e5fdee72fee37d4b85220d93137decf92c177db10de3  /tmp/tux-steward-v21.deb' | sha256sum -c -
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-v21.deb
           tux-steward --version | grep -F '2.1.0-beta.1'
       - name: Verify upgrade through the 2.2 public beta
+        timeout-minutes: 5
         run: |
-          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --output /tmp/tux-steward-v22.deb https://github.com/sudipdasin/tux-steward/releases/download/v2.2.0-beta.1/tux-steward_2.2.0.beta1_amd64.deb
+          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --retry-max-time 240 --output /tmp/tux-steward-v22.deb https://github.com/sudipdasin/tux-steward/releases/download/v2.2.0-beta.1/tux-steward_2.2.0.beta1_amd64.deb
           echo '88a4b4be5770eec1487e444bb823581c931970c848c592ccdca55b8d487cf66c  /tmp/tux-steward-v22.deb' | sha256sum -c -
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-v22.deb
           tux-steward --version | grep -F '2.2.0-beta.1'
       - name: Verify upgrade through the 2.3 public beta
+        timeout-minutes: 5
         run: |
-          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --output /tmp/tux-steward-v23.deb https://github.com/sudipdasin/tux-steward/releases/download/v2.3.0-beta.1/tux-steward_2.3.0.beta1_amd64.deb
+          curl --fail --location --retry 3 --connect-timeout 30 --max-time 180 --retry-max-time 240 --output /tmp/tux-steward-v23.deb https://github.com/sudipdasin/tux-steward/releases/download/v2.3.0-beta.1/tux-steward_2.3.0.beta1_amd64.deb
           echo 'a4767f172d4f1cd952671f65adc16d00523e3cd1dc92cbec54749a25c3354953  /tmp/tux-steward-v23.deb' | sha256sum -c -
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y /tmp/tux-steward-v23.deb
           tux-steward --version | grep -F '2.3.0-beta.1'
