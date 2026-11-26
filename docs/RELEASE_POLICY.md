@@ -1,11 +1,21 @@
 # Release and forward-continuity policy
 
-The public main branch is the single source of truth. All future versions start from main and inherit existing features and their regression suites. CI verifies ancestry from the tested 0.9 foundation, compiles with GCC and Clang in separate Ubuntu hosted VMs, and runs every CTest suite plus an upgrade from the checksum-pinned 0.9 DEB, GUI startup and removal. PR review must preserve working behavior or explain intentional changes. Ancestry alone cannot prove semantic compatibility; regressions need tests and user feedback.
+SysPulse is the next major generation of the Tux Steward native C++ codebase. The maintained source line is the source of truth. Future versions inherit tested features and regression coverage through shared code and Git ancestry. Ancestry does not prove semantic compatibility: every change still needs appropriate verification. Historical tags and downloadable assets remain immutable snapshots; maintained old branches require separately verified backports. No automatic cross-repository or proprietary-code synchronization is configured.
 
-Published tags are historical checkpoints, not branches to update automatically. Fixes flow forward on main. Maintained older branches may receive reviewed backports with their own validation; automation does not rewrite old tags or copy untested code into them. No proprietary repository or cross-repository synchronization is configured by this policy.
+## Hosted CI is disabled
 
-Only an owner-created version tag on main authorizes public beta publication. The release workflow validates the tag, ancestry and full dual-VM matrix, then rebuilds/packages on Ubuntu 22.04 and checks dependencies, versions, build-path privacy, installation, GUI launch and removal. Publication refuses overwriting existing assets. If publication fails halfway through, inspect the existing release and repair deliberately; do not replace previously downloaded assets silently. Credentials have job-scoped permissions; no secrets are exposed to pull-request code. The GitHub VM checks are automatic checks, not server-enforced branch protection.
+GitHub Actions and CircleCI remain disabled indefinitely unless the developer explicitly approves their use again. Do not invoke manual workflows, restore archived YAML, or create a tag/release event that can trigger a workflow on another branch. Definitions under ci/disabled are historical references with non-executable filenames. Source synchronization uses `[skip ci]` commit messages. A source push is not a test run or a release certification.
 
-Public beta downloads are unsigned DEB and TGZ packages, with SHA256SUMS for integrity. TGZ requires compatible Qt/system libraries. No automatic update, telemetry or feedback upload runs on users' computers. Open issue templates from Help to send reviewed feedback. Developer identity remains; personal machine logs, local paths and configuration do not belong in commits.
+## Required execution evidence
 
-1.0-beta is for evaluation. Real Mint/XFCE and Wayland sessions, PolicyKit accept/deny/cancel, sign-in recovery and Bluetooth/GPU hardware remain incomplete. Do not label a stable release until these gates have recorded results.
+Application builds, tests, screenshots, installers, and system-action verification run in a real isolated VM. A container, chroot, or offscreen renderer alone does not meet that requirement. Record source identity, guest kernel/userspace, compiler and Qt versions, suite results, actual package checks, and limitations. Preserve failed-run evidence and distinguish environmental failures from fixed regressions.
+
+Before publishing a testing artifact, verify its executable/version, required libraries, install layout or portable launcher, checksums, and private build-path exclusion. State the exact tested platform. Debian 13 binaries must not be advertised as Mint/Ubuntu compatible without evidence. Bundled runtimes retain dependency notices, source references, and provenance limitations. Application source must be available with the artifact version.
+
+An alpha may be delivered for exploratory testing with explicit missing gates. Beta, release-candidate, and stable labels require progressively stronger target-environment evidence. Do not certify full XFCE sessions, PolicyKit accept/deny/cancel, sign-in recovery, package-manager upgrades, hardware integrations, or filesystem repair based only on fixtures and offscreen UI tests.
+
+## Publication and feedback
+
+Follow the developer's authorized task scope for publication; prepare reviewable, verified artifacts before any required final approval. Do not infer that CI restrictions prohibit source synchronization or manual packaging. Inspect existing assets before changing a release, do not silently replace previously downloaded files, and keep version/changelog/checksums aligned. Never report a release asset as uploaded without a verified upload result.
+
+No telemetry, background self-update, automatic cleanup, or automatic feedback upload runs on user machines. Reports default to redacted summaries; raw output requires explicit fresh opt-in. Preserve developer attribution while excluding private computer information from source examples, screenshots and public release evidence.

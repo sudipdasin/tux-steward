@@ -1,4 +1,5 @@
 #include "tux/window.hpp"
+#include "tux/trusted_command.hpp"
 #include "tux/history_dialog.hpp"
 #include "tux/report_dialog.hpp"
 #include "tux/health_dialog.hpp"
@@ -107,7 +108,9 @@ Window::Window() {
         auto* items=new QVBoxLayout(page); items->setContentsMargins(16,14,16,14);
         auto* intro=new QLabel(guide(group)); intro->setWordWrap(true); intro->setStyleSheet("color:#9aacc5;"); items->addWidget(intro);
         for (int i=0;i<tux::actions().size();++i) {
-            const auto& tool=tux::actions()[i]; if ((group=="Experimental") ? !tool.changes : (tool.changes || tool.group!=group)) continue;
+            const auto& tool=tux::actions()[i];
+            const auto displayGroup=(tool.group=="Network"||tool.group=="Security")?QString("Diagnostics"):tool.group=="Desktop"?QString("Input"):tool.group;
+            if ((group=="Experimental") ? !tool.changes : (tool.changes || displayGroup!=group)) continue;
             auto* row=new QWidget; auto* columns=new QHBoxLayout(row); columns->setContentsMargins(0,6,0,6);
             auto* button=new QPushButton(tool.title); button->setObjectName("tool_"+tool.id); button->setMinimumWidth(230); columns->addWidget(button);
             auto* description=new QVBoxLayout; auto* details=new QLabel(tool.description); details->setWordWrap(true); description->addWidget(details);
@@ -175,7 +178,8 @@ void Window::review(int index) {
     if (busy_) return;
     const auto tool=tux::actions()[index]; const auto problem=unavailable(tool);
     if (!problem.isEmpty()) { QMessageBox::warning(this,tool.title,problem); return; }
-    auto command=tool.command; if (tool.admin) command.prepend("pkexec");
+    auto command=tool.command;
+    if (tool.admin) {command[0]=trustedSystemExecutable(command.first());command.prepend(trustedSystemExecutable("pkexec"));}
     QMessageBox dialog(QMessageBox::Question,tool.title,tool.description,QMessageBox::Ok|QMessageBox::Cancel,this);
     dialog.setTextFormat(Qt::PlainText);
     dialog.setInformativeText("Command:\n"+preview(command)+"\n\n"+(tool.changes?"This action changes your system. Continue?":"Run this diagnostic?"));

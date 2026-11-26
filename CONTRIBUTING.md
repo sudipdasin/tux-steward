@@ -8,7 +8,7 @@ Build with CMake, run CTest, and verify GUI behavior before merging. Add real su
 ## Development workflow
 
 1. Fork the repository and create a focused feature branch.
-2. Install `build-essential cmake qtbase5-dev desktop-file-utils`; configure a Debug build, build with two jobs on low-memory computers, and run `ctest --test-dir build --output-on-failure`.
+2. Inside an isolated real VM, install `build-essential cmake qtbase5-dev desktop-file-utils`; configure a Debug build, build with two jobs on low-memory VMs, and run `ctest --test-dir build --output-on-failure`. See tools/vm/README.md. Do not build or run app tests on the developer host.
 3. Keep unvalidated settings changes under Experimental. Preserve command review, safe defaults and private report handling. Tests must use isolated configuration and synthetic service executables.
 4. Open a pull request describing the problem, resulting behavior and tests actually executed. Link an issue when available. Small, focused contributions are welcome.
 
@@ -22,7 +22,7 @@ Build with CMake, run CTest, and verify GUI behavior before merging. Add real su
 - `src/autostart.cpp`: XDG discovery, user overrides and private undo.
 - `tests/`: isolated core, subprocess and offscreen GUI checks.
 
-Explicitly dispatched GitHub Actions runs all nineteen suites and package install/startup/removal checks on Ubuntu 22.04/GCC Release and Ubuntu 24.04/Clang Debug VMs. Automatic PR/main runs and normal CircleCI checks are paused under the current resource policy. Beta tags trigger the same dual-VM checks before release packaging/publication. Do not delete existing regression coverage to obtain a green build. See docs/RELEASE_POLICY.md for forward continuity and publication rules.
+GitHub Actions and CircleCI are disabled indefinitely unless the developer explicitly approves them again. Do not dispatch workflows, enable archived definitions, or use tags/release events to trigger an older branch. Run builds, all regression suites, install/layout checks, and screenshots in a real isolated VM. Record exact environment and outcomes, including failures. Preserve existing regression coverage. See docs/RELEASE_POLICY.md.
 
 Use issue templates for bug reports and proposals. Reviewers should verify privacy, permissions, compatibility and failure recovery. Do not put credentials or private machine logs in issues or pull requests.
 
@@ -30,10 +30,14 @@ Setup code lives in `src/setup.cpp` (fixed inventory and removal safeguards), `s
 
 Session-history UI lives in `src/history_dialog.cpp`. Its action button requests the existing review flow; do not execute stored command text. Tests cover immutable snapshots, bounds, selection/filter behavior and the second command-review boundary.
 
-Current CI policy: automatic PR/main runs are paused pending reusable image preparation. Preserve `.circleci/config.yml` and the manual-only test triggers. Explicit VM validation and the beta-tag package gates remain available; invoke them and record outcomes before public downloads. The new version retains all existing regression suites.
+Current CI policy is permanent opt-out until renewed developer approval. Workflow definitions are historical archives under ci/disabled and have non-executable filenames. Use skip-CI source commits and local VM validation. Do not restore automatic or manual hosted CI as part of routine development.
 
 Report review lives in `src/report_dialog.cpp`. Keep the summary allowlist and fresh per-export consent. Test excluded tasks in both modes and verify saved bytes match the preview. Never add automatic diagnostic uploads.
 
 Health Check core lives in `src/health.cpp`; the GUI is `src/health_dialog.cpp`. Keep the fixed read-only allowlist, validate every plan before running any entry, and keep worker callbacks free of UI access. Completed checks enter existing history/report review. Fixture helpers must be isolated and all new application checks run on VMs.
 
 Health presets and incomplete selection are fixed read-only helpers in `src/health.cpp`. Match result title and exact argument arrays to the reviewed plan before preparing another run. Never execute on preset selection or incomplete-review actions. Keep cumulative history capped at 20 and separate it from the current run inspected in the table.
+
+## SysPulse interface
+
+The approved visual identity is Precision (white/crimson), using Observatory monitoring depth and Forge service table/inspector/activity organization. Native UI sources are `src/syspulse_*`, public headers are under `include/syspulse`, and the full screen contract is docs/SYSPULSE_UI_SPECIFICATION.md. Preserve the shared collectors, startup backend, subprocess guards, fixed command catalog, and summary-report privacy. The three legacy entry points are compatibility applications, not the new main UI.

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "tux/history_dialog.hpp"
+#include "tux/trusted_command.hpp"
 #include "tux/report_dialog.hpp"
 #include <QComboBox>
 #include <QDialogButtonBox>
@@ -71,7 +72,16 @@ QString HistoryDialog::toolFor(int index) const {
     const auto& result=snapshot_[index]; QString id;
     for(const auto& tool:tux::actions()) {
         auto command=tool.command; if(tool.admin) command.prepend("pkexec");
-        if(tool.title!=result.action || command!=result.command) continue;
+        bool matches=command==result.command;
+        if(tool.admin) {
+            const auto target=trustedSystemExecutable(tool.command.first());
+            const auto authorization=trustedSystemExecutable("pkexec");
+            if(!target.isEmpty()&&!authorization.isEmpty()) {
+                auto resolved=tool.command;resolved[0]=target;resolved.prepend(authorization);
+                matches=matches||resolved==result.command;
+            }
+        }
+        if(tool.title!=result.action || !matches) continue;
         if(!id.isEmpty()) return {}; // Never guess between ambiguous catalog entries.
         id=tool.id;
     }

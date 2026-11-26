@@ -1,3 +1,7 @@
+# Historical validation record
+
+This document records an earlier Tux Steward milestone. Its hosted-CI policy is superseded: GitHub Actions and CircleCI are disabled indefinitely unless the developer explicitly approves them. Current SysPulse execution evidence is in [SYSPULSE_VALIDATION.md](SYSPULSE_VALIDATION.md).
+
 # Validation — 0.7.0 Startup Apps upgrade
 
 Executed locally on Linux with GCC 14.2 and Qt 5.15.15:

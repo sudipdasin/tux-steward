@@ -17,7 +17,7 @@ class ProcessTableModel;
 
 class ProcessManagerWidget final : public QWidget {
 public:
-    explicit ProcessManagerWidget(QWidget *parent = nullptr);
+    explicit ProcessManagerWidget(QWidget *parent = nullptr, bool includeSystemTabs = true);
 
 protected:
     void showEvent(QShowEvent *event) override;

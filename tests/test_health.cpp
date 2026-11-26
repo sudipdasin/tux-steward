@@ -39,8 +39,10 @@ int main(int argc,char** argv) {
     run=tux::runHealthCheck(ids,true,1000,&cancel,[&](const QString& id,const tux::Result* result){if(id=="memory" && !result) stopper=std::thread([&]{std::this_thread::sleep_for(std::chrono::milliseconds(100));cancel.store(true);});});
     if(stopper.joinable()) stopper.join();
     if(run.results.size()!=2 || !run.stopped || !run.results.last().cancelled || run.results.last().code!=130) return 9;
-    cancel.store(false); run=tux::runHealthCheck(ids,true,100,&cancel);
-    if(run.results.size()!=2 || !run.stoppedOnFailure || run.results.last().code!=124) return 10;
+    // Isolate the deliberately slow helper: a timeout test must not assume an
+    // unrelated Qt helper can start and complete within 100 ms on every VM.
+    cancel.store(false); run=tux::runHealthCheck({"memory"},true,100,&cancel);
+    if(run.results.size()!=1 || run.total!=1 || !run.stoppedOnFailure || run.results.last().code!=124) return 10;
     qunsetenv("TUX_HEALTH_SLOW"); QFile::remove(temp.filePath("lsblk"));
     run=tux::runHealthCheck({"devices"}); if(run.results.size()!=1 || run.results.first().code!=127 || !run.stoppedOnFailure) return 11;
     qputenv("PATH",oldPath); qunsetenv("TUX_HEALTH_MARKER");

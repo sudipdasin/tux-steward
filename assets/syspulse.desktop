@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=SysPulse
+GenericName=Linux System Tools
+Comment=Inspect and maintain your XFCE desktop with reviewed system tools
+Exec=syspulse
+Icon=syspulse
+Terminal=false
+Categories=System;Monitor;Settings;
+Keywords=system;performance;CPU;memory;disk;network;startup;services;XFCE;
+StartupNotify=true

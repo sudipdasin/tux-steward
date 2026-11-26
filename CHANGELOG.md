@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.0.0-alpha.1 — 2026-11-26
+
+- Introduced SysPulse, the XFCE-first successor interface with Precision identity, Observatory monitoring depth, and Forge management organization.
+- Added persistent navigation, global tool search, resource overview, CPU/per-core/memory/swap/disk/network histories and the preserved process manager.
+- Added unified startup/service inspectors, async queries, scoped action review, startup overrides/recovery, and activity records.
+- Retained all 25 catalog tools and added ten read-only diagnostics, with local reviewed reports and settings-changing tools kept in Experimental.
+- Serialized reviewed actions across workspaces and resolved privileged fixed commands from protected system locations; retained legacy history recognition.
+- Replaced idle admission polling with synchronous busy-state notifications; added a native C++ measurement probe and recorded matched VM observations.
+- Kept reviewed service actions busy until the observed helper exits; query cancellation cannot release a running action. Added a release-gated subprocess regression.
+- Archived GitHub Actions and CircleCI definitions. All application verification uses a real isolated VM. See SYSPULSE_VALIDATION.md for executed results and remaining gates.
+- Added native package support, portable-runtime packaging tooling, desktop entry/icon and developer handoff. Alpha status does not certify full XFCE, Mint, PolicyKit, hardware or upgrade compatibility.
+
 ## 2.4.0-beta.1 — 2026-11-22
 - Integrated Windows-style page and resource sidebars; first-class Startup apps and Services.
 - Searchable service table distinguishes startup/runtime states; bounded async queries and confirmed restart support with scope-safe selection.

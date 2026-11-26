@@ -33,6 +33,13 @@ int fixture(int argc, char **argv) {
     QFile calls(qEnvironmentVariable("TUX_SERVICE_TEST_CALLS"));
     if (calls.open(QIODevice::WriteOnly | QIODevice::Append)) calls.write(user ? "user\n" : "system\n");
     const auto mode=qgetenv("TUX_SERVICE_TEST_MODE");
+    if(mode=="hold-action") {
+        QFile ready(qEnvironmentVariable("TUX_SERVICE_TEST_READY"));
+        if(!ready.open(QIODevice::WriteOnly)||ready.write("ready")!=5)return 91;
+        ready.close();QElapsedTimer deadline;deadline.start();
+        while(!QFileInfo::exists(qEnvironmentVariable("TUX_SERVICE_TEST_RELEASE"))&&deadline.elapsed()<10000)QThread::msleep(5);
+        if(!QFileInfo::exists(qEnvironmentVariable("TUX_SERVICE_TEST_RELEASE")))return 92;
+    }
     if (mode=="slow") QThread::msleep(600);
     if (mode=="switch") QThread::msleep(user ? 40 : 800);
     if (mode=="timeout") QThread::msleep(10000);
@@ -51,6 +58,11 @@ int fixture(int argc, char **argv) {
 }
 int main(int argc, char **argv) {
     if (QFileInfo(QString::fromLocal8Bit(argv[0])).fileName()=="systemctl") return fixture(argc,argv);
+    if (QFileInfo(QString::fromLocal8Bit(argv[0])).fileName()=="pkexec") {
+        QFile calls(qEnvironmentVariable("TUX_SERVICE_TEST_CALLS"));
+        if (calls.open(QIODevice::WriteOnly | QIODevice::Append)) calls.write("unexpected-admin\n");
+        return 93;
+    }
     QApplication app(argc,argv);
     QTemporaryDir temp;
     const auto oldPath=qgetenv("PATH");
@@ -58,6 +70,8 @@ int main(int argc, char **argv) {
         require(temp.isValid(),"fixture directory");
         const auto program=temp.filePath("systemctl");
         require(QFile::link(QCoreApplication::applicationFilePath(),program),"fake service executable");
+        const auto authorization=temp.filePath("pkexec");
+        require(QFile::link(QCoreApplication::applicationFilePath(),authorization),"fake authorization executable");
         const auto callsPath=temp.filePath("calls.txt");
         qputenv("TUX_SERVICE_TEST_CALLS",callsPath.toUtf8());
         auto query=[&](const QString &mode,int timeout=1500,int limit=65536) {
@@ -98,6 +112,24 @@ int main(int argc, char **argv) {
             delete owner; settle(40); require(callbacks==0,"no completion after owner destruction");
         }
         {
+            QObject owner; bool done=false; int completions=0;
+            qputenv("TUX_SERVICE_TEST_MODE","hold-action");
+            const auto ready=temp.filePath("action-ready");
+            const auto release=temp.filePath("action-release");
+            qputenv("TUX_SERVICE_TEST_READY",ready.toUtf8());qputenv("TUX_SERVICE_TEST_RELEASE",release.toUtf8());
+            auto* action=AsyncCommand::runAction(&owner,program,{"--user"},1024,[&](AsyncCommandResult value){
+                require(value.ok()&&!value.cancelled&&!value.timedOut,"reviewed action reports its actual process result");
+                ++completions;done=true;
+            });
+            require(spin([&]{return QFileInfo::exists(ready);}),"reviewed action fixture reaches its release gate");
+            action->cancel();QCoreApplication::processEvents();
+            require(!done&&action->active(),"query cancellation cannot release a live reviewed action");
+            QFile gate(release);require(gate.open(QIODevice::WriteOnly)&&gate.write("finish")==6,"release the synthetic action only after lifetime assertions");gate.close();
+            require(spin([&]{return done;}),"reviewed action finishes without blocking event processing");
+            settle(20);require(completions==1,"reviewed action completion delivered exactly once");
+            qunsetenv("TUX_SERVICE_TEST_READY");qunsetenv("TUX_SERVICE_TEST_RELEASE");
+        }
+        {
             QObject owner; bool done=false;
             AsyncCommand::run(&owner,program,{"--echo","$(touch must-not-run); literal"},1000,1024,[&](AsyncCommandResult value) {
                 require(value.output=="$(touch must-not-run); literal","literal arguments preserved"); done=true;
@@ -105,6 +137,31 @@ int main(int argc, char **argv) {
             require(spin([&]{return done;}),"literal command completion");
         }
         qputenv("PATH",temp.path().toUtf8());
+        {
+            QFile calls(callsPath);
+            require(calls.open(QIODevice::WriteOnly | QIODevice::Truncate),"reset command-plan execution marker");
+            calls.close();
+            require(QStandardPaths::findExecutable("systemctl")==program
+                && QStandardPaths::findExecutable("pkexec")==authorization,"PATH fixtures shadow both administrative programs");
+            const auto userCommand=SystemMonitorTabs::serviceActionCommand(true,"restart","user-demo.service");
+            require(userCommand==QStringList{program,"--user","restart","--","user-demo.service"},"user-scope plan preserves scoped literal arguments and session PATH");
+            const auto systemCommand=SystemMonitorTabs::serviceActionCommand(false,"restart","system-demo.service");
+            const auto trustedControl=tux::trustedSystemExecutable("systemctl");
+            const auto trustedAuthorization=tux::trustedSystemExecutable("pkexec");
+            if(trustedControl.isEmpty()||trustedAuthorization.isEmpty())
+                require(systemCommand.isEmpty(),"missing trusted privileged helpers rejects the system command plan");
+            else
+                require(systemCommand==QStringList{trustedAuthorization,trustedControl,"restart","--","system-demo.service"},"system plan uses only protected absolute programs");
+            require(!systemCommand.contains(program)&&!systemCommand.contains(authorization),"untrusted PATH helpers never enter a privileged command plan");
+            require(SystemMonitorTabs::serviceActionCommand(false,"daemon-reexec","system-demo.service").isEmpty()
+                &&SystemMonitorTabs::serviceActionCommand(true,"start","invalid-unit").isEmpty(),"command planning rejects unsupported actions and targets");
+            for(const auto& invalidUnit:QStringList{"/tmp/evil.service","bad\n.service","*.service","-option.service",QString(256,'a')+".service"})
+                require(SystemMonitorTabs::serviceActionCommand(false,"enable",invalidUnit).isEmpty()
+                    &&SystemMonitorTabs::serviceActionCommand(true,"enable",invalidUnit).isEmpty(),"service plans reject absolute paths, whitespace, globs, option prefixes and oversized unit names");
+            require(SystemMonitorTabs::serviceActionCommand(true,"start","worker@demo\\x2djob.service")
+                ==QStringList{program,"--user","start","--","worker@demo\\x2djob.service"},"literal systemd escaped template names remain supported");
+            require(calls.open(QIODevice::ReadOnly)&&calls.readAll().isEmpty(),"command-plan inspection never invokes real or fixture administrative helpers");
+        }
         qputenv("TUX_SERVICE_TEST_MODE","slow");
         QMainWindow window;
         QTabWidget tabs(&window);
@@ -128,6 +185,17 @@ int main(int argc, char **argv) {
         require(report->toPlainText().contains("system-demo.service") && start->isEnabled(),"one result powers report and actions");
         require(calls.open(QIODevice::ReadOnly) && calls.readAll()=="system\nsystem\n","one file-state and one runtime query");
         calls.close();
+        require(calls.open(QIODevice::WriteOnly | QIODevice::Truncate),"reset cancelled system review marker");calls.close();
+        bool cancelledSystemReview=false;
+        QTimer::singleShot(0,[&] {
+            if(auto* box=qobject_cast<QMessageBox*>(QApplication::activeModalWidget())) {
+                cancelledSystemReview=box->text().contains("whole system");
+                box->button(QMessageBox::Cancel)->click();
+            }
+        });
+        start->click();
+        require(cancelledSystemReview&&start->isEnabled(),"system-scope action is reviewable and cancellation preserves idle controls");
+        require(calls.open(QIODevice::ReadOnly)&&calls.readAll().isEmpty(),"cancelled system review executes neither service nor authorization helpers");calls.close();
         auto* serviceTable=tabs.findChild<QTableWidget*>("serviceTable");auto* search=tabs.findChild<QLineEdit*>("serviceSearch");auto* restart=tabs.findChild<QPushButton*>("serviceAction_restart");
         require(serviceTable&&search&&restart&&restart->isEnabled(),"service table/search/restart controls");
         require(serviceTable->rowCount()==1&&serviceTable->item(0,3)->text()=="active"&&serviceTable->item(0,4)->text()=="running","runtime and startup states kept distinct");
@@ -207,7 +275,7 @@ int main(int argc, char **argv) {
         require(window.close() && !window.isVisible(),"window closes after service action completion and failed-start recovery");
         heartbeat.stop();
         qputenv("PATH",oldPath);
-        std::cout<<"Async query lifecycle, responsiveness, bounds, scope cancellation and shared service results passed\n";
+        std::cout<<"Async query lifecycle, responsiveness, bounds, scope cancellation, trusted privileged planning and shared service results passed\n";
         return 0;
     } catch (const std::exception &error) {
         qputenv("PATH",oldPath);

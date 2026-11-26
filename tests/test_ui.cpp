@@ -26,7 +26,7 @@ int main(int argc,char** argv) {
     tux::Window window; window.show(); app.processEvents();
     auto* tabs=window.findChild<QTabWidget*>("toolTabs");
     auto* search=window.findChild<QLineEdit*>("toolSearch");
-    if (window.toolCount()!=25 || !tabs || tabs->count()!=8 || !search) return 1;
+    if (window.toolCount()!=tux::actions().size() || !tabs || tabs->count()!=8 || !search) return 1;
     int experimental=-1;
     for (int i=0;i<tabs->count();++i) if (tabs->tabText(i)=="Experimental") experimental=i;
     if (experimental<0 || !tabs->widget(experimental)->isAncestorOf(window.findChild<QPushButton *>("tool_apt-clean"))) return 20;
@@ -145,7 +145,7 @@ int main(int argc,char** argv) {
     tabs->setCurrentIndex(0); app.processEvents();
     if (argc>1 && !window.grab().save(QString::fromLocal8Bit(argv[1]))) return 4;
     window.close();
-    std::cout<<"GUI: 25 tools, eight tabs, cross-tab search, default-cancel review, real diagnostic completion, JSON export and render passed\n";
+    std::cout<<"GUI: complete inherited and SysPulse tool catalog, eight legacy tabs, cross-tab search, default-cancel review, real diagnostic completion, JSON export and render passed\n";
     return 0;
 }
 

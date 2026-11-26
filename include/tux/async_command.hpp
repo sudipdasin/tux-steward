@@ -19,9 +19,12 @@ struct AsyncCommandResult {
     }
 };
 
-// Single-use, shell-free query. Output is capped while it arrives; all slots
+// Single-use, shell-free command. Output is capped while it arrives; all slots
 // and completion callbacks run on the owner's Qt thread. Deleting the owner
 // destroys the query without delivering a callback to a dead receiver.
+// Queries have a deadline and may be cancelled. Reviewed service actions keep
+// their busy state until actual process exit: stopping observation or trying
+// to signal a privileged helper does not prove that its mutation has stopped.
 class AsyncCommand final : public QObject {
 public:
     using Completion = std::function<void(AsyncCommandResult)>;
@@ -32,6 +35,13 @@ public:
         query->process_.start(program, arguments);
         return query;
     }
+    static AsyncCommand *runAction(QObject *owner, const QString &program, const QStringList &arguments,
+                                   int outputLimit, Completion completion) {
+        auto *action = new AsyncCommand(owner, outputLimit, std::move(completion));
+        action->waitForExit_ = true;
+        action->process_.start(program, arguments);
+        return action;
+    }
     ~AsyncCommand() override {
         disconnect(&process_, nullptr, this, nullptr);
         disconnect(&deadline_, nullptr, this, nullptr);
@@ -40,7 +50,7 @@ public:
     }
     bool active() const { return active_; }
     void cancel() {
-        if (!active_) return;
+        if (!active_ || waitForExit_) return;
         result_.cancelled = true;
         process_.kill();
         finish(125);
@@ -96,6 +106,7 @@ private:
     QTimer deadline_;
     int limit_;
     bool active_ = true;
+    bool waitForExit_ = false;
     Completion completion_;
     AsyncCommandResult result_;
 };

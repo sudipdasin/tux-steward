@@ -1,4 +1,5 @@
 #include "tux/core.hpp"
+#include "tux/trusted_command.hpp"
 #include <QJsonArray>
 #include <QRegularExpression>
 #include <QStandardPaths>
@@ -32,6 +33,16 @@ const QVector<Action>& actions() {
         {"lutris", "Gaming", "Lutris version", "Check whether Lutris is installed.", {"lutris", "--version"}, false, false, false},
         {"vulkan", "Gaming", "Vulkan capabilities", "Inspect graphics driver support.", {"vulkaninfo", "--summary"}, false, false, false},
         {"arch", "Gaming", "32-bit architectures", "Inspect enabled foreign package architectures.", {"dpkg", "--print-foreign-architectures"}, false, false, false},
+        {"network-links", "Network", "Network links", "Inspect link state and capabilities. Details stay local unless explicitly exported.", {"ip", "-brief", "link"}, false, false, false},
+        {"network-addresses", "Network", "Network addresses", "Inspect local interface addresses. Review private details before sharing.", {"ip", "-brief", "address"}, false, false, false},
+        {"network-routes", "Network", "Network routes", "Inspect the local route table without changing network configuration.", {"ip", "route", "show"}, false, false, false},
+        {"firewall-status", "Security", "Firewall status", "Read UFW status and rules with administrator authorization. No rules are changed.", {"ufw", "status", "verbose"}, false, true, false},
+        {"available-updates", "Security", "Available package updates", "List updates from the existing APT cache. Does not contact repositories or install packages.", {"apt", "list", "--upgradable"}, false, false, false},
+        {"package-audit", "Maintenance", "Package health", "Inspect incomplete package installations without modifying packages.", {"dpkg", "--audit"}, false, false, false},
+        {"desktop-channels", "Desktop", "XFCE configuration channels", "List available XFCE configuration channels without changing settings.", {"xfconf-query", "--list"}, false, false, false},
+        {"filesystem-config", "Storage", "Filesystem configuration check", "Read and verify the mount configuration. Does not repair or remount filesystems.", {"findmnt", "--verify", "--verbose"}, false, false, false},
+        {"session-state", "Desktop", "Desktop session state", "Inspect the current login session. Output may contain private local details.", {"loginctl", "session-status", "--no-pager"}, false, false, false},
+        {"boot-time", "Diagnostics", "Boot timing", "Inspect measured system boot timing when systemd provides it.", {"systemd-analyze", "time"}, false, false, false},
     };
     return catalog;
 }
@@ -42,9 +53,9 @@ const Action& action(const QString& id) {
 QString unavailable(const Action& tool) {
     if (tool.x11 && qEnvironmentVariable("XDG_SESSION_TYPE")=="wayland")
         return "Requires X11; XWayland cannot control native Wayland devices.";
-    if (QStandardPaths::findExecutable(tool.command.first()).isEmpty())
+    if ((tool.admin?trustedSystemExecutable(tool.command.first()):QStandardPaths::findExecutable(tool.command.first())).isEmpty())
         return "Missing dependency: "+tool.command.first();
-    if (tool.admin && QStandardPaths::findExecutable("pkexec").isEmpty())
+    if (tool.admin && trustedSystemExecutable("pkexec").isEmpty())
         return "Missing dependency: pkexec (PolicyKit authentication agent required)";
     return {};
 }
@@ -64,11 +75,17 @@ QString preview(const QStringList& command) {
 }
 Result execute(const QString& id, bool confirmed, int timeoutMs, Output output, const std::atomic_bool* cancel) {
     const auto& tool=action(id);
-    if (tool.changes && !confirmed) throw std::runtime_error("Review and confirm this system change first.");
+    if ((tool.changes || tool.admin) && !confirmed) throw std::runtime_error("Review and confirm this system action first.");
     const auto problem=unavailable(tool);
     if (!problem.isEmpty()) throw std::runtime_error(problem.toStdString());
     auto command=tool.command;
-    if (tool.admin) command.prepend("pkexec");
+    if (tool.admin) {
+        const auto executable=trustedSystemExecutable(command.first());
+        const auto authorization=trustedSystemExecutable("pkexec");
+        if(executable.isEmpty()||authorization.isEmpty())throw std::runtime_error("A trusted system executable is no longer available.");
+        command[0]=executable;
+        command.prepend(authorization);
+    }
     // Cancellation is deliberately unavailable to settings-changing/admin tasks.
     auto result=runCommand(command,timeoutMs,std::move(output),(!tool.changes && !tool.admin)?cancel:nullptr);
     result.action=tool.title;

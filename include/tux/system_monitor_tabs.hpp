@@ -2,6 +2,7 @@
 #pragma once
 #include "tux/autostart.hpp"
 #include "tux/resource_detail.hpp"
+#include "tux/trusted_command.hpp"
 #include <QTableWidget>
 #include <QListWidget>
 #include <QTabBar>
@@ -100,6 +101,23 @@ public:
         watchCloseWindow();
         updateRefreshSchedule();
         if (tabs_->isVisible()) refreshCurrent();
+    }
+
+    // Plan the exact argument vector without executing anything. System-scope
+    // mutations must never turn a desktop user's PATH into a privileged target.
+    // User-scope commands retain normal PATH resolution for session tooling.
+    static QStringList serviceActionCommand(bool user, const QString &action, const QString &unit)
+    {
+        static const QRegularExpression unitName(QStringLiteral("\\A[A-Za-z0-9_@:.\\\\-]+\\.service\\z"));
+        if (unit.size()>255 || unit.startsWith(QLatin1Char('-')) || !unitName.match(unit).hasMatch()
+            || !QStringList{QStringLiteral("start"),QStringLiteral("stop"),QStringLiteral("restart"),QStringLiteral("enable"),QStringLiteral("disable")}.contains(action)) return {};
+        const auto systemctl = user ? QStandardPaths::findExecutable(QStringLiteral("systemctl"))
+                                    : tux::trustedSystemExecutable(QStringLiteral("systemctl"));
+        if (systemctl.isEmpty()) return {};
+        if (user) return {systemctl, QStringLiteral("--user"), action, QStringLiteral("--"), unit};
+        const auto pkexec = tux::trustedSystemExecutable(QStringLiteral("pkexec"));
+        if (pkexec.isEmpty()) return {};
+        return {pkexec, systemctl, action, QStringLiteral("--"), unit};
     }
 
     ~SystemMonitorTabs() override
@@ -1055,31 +1073,18 @@ private:
         const auto answer = QMessageBox::warning(tabs_, tr("Change service"),
             tr("Run ‘%1’ for %2 in %3? Changing system services can affect networking, login, or other apps.")
                 .arg(action, unit, scope), QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Cancel);
-        if (answer != QMessageBox::Yes) return;
+        if (answer != QMessageBox::Yes || serviceMutationBusy_ || serviceLoading_) return;
 
-        const QString systemctl = QStandardPaths::findExecutable(QStringLiteral("systemctl"));
-        if (systemctl.isEmpty()) {
-            statusMessage_ = tr("systemctl is unavailable; no service action was started.");
+        auto command = serviceActionCommand(user, action, unit);
+        if (command.isEmpty()) {
+            statusMessage_ = user ? tr("systemctl is unavailable; no service action was started.")
+                : tr("Trusted systemctl or administrator authorization is unavailable; no service action was started.");
             if (actionStatusByTab_.value(tr("Services")) != nullptr)
                 actionStatusByTab_.value(tr("Services"))->setText(statusMessage_);
             return;
         }
-        QString program = systemctl;
-        QStringList args;
-        if (user) args << QStringLiteral("--user") << action << QStringLiteral("--") << unit;
-        else {
-            const QString pkexec = QStandardPaths::findExecutable(QStringLiteral("pkexec"));
-            if (pkexec.isEmpty()) {
-                statusMessage_ = tr("Administrator authorization (pkexec) is unavailable.");
-                if (actionStatusByTab_.value(tr("Services")) != nullptr)
-                    actionStatusByTab_.value(tr("Services"))->setText(statusMessage_);
-                refreshCurrent();
-                return;
-            }
-            program = pkexec;
-            args << systemctl << action << QStringLiteral("--") << unit;
-        }
-        if (program.isEmpty()) return;
+        const QString program = command.takeFirst();
+        const QStringList args = command;
         serviceMutationBusy_ = true;
         setServiceActionsEnabled(false);
         auto *process = new QProcess(this);

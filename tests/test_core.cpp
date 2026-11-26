@@ -1,4 +1,5 @@
 #include "tux/core.hpp"
+#include "tux/trusted_command.hpp"
 #include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QFile>
@@ -41,17 +42,24 @@ int main(int argc,char** argv) {
         return tux::runCommand({self,"--child",mode},ms,std::move(cb));
     };
     try {
-        require(tux::actions().size()==25,"25 tools retained");
+        require(tux::actions().size()==35,"25 inherited tools plus ten SysPulse diagnostics retained");
         QSet<QString> ids;
         for (const auto& a:tux::actions()) {
             ids.insert(a.id);
-            require(!a.admin || a.changes,"admin implies mutation");
-            if (a.changes) {
+            require(!a.admin || a.changes || a.id=="firewall-status","administrator tools are reviewed mutations or the explicit read-only firewall check");
+            if (a.changes || a.admin) {
                 bool rejected=false; try { tux::execute(a.id); } catch (const std::exception&) { rejected=true; }
                 require(rejected,"mutation confirmation required");
             }
         }
-        require(ids.size()==25,"unique identifiers");
+        require(ids.size()==tux::actions().size(),"unique identifiers");
+        require(tux::trustedSystemExecutable("../sh").isEmpty()&&tux::trustedSystemExecutable("sh\n").isEmpty(),"privileged executable names reject traversal and trailing newline");
+        QTemporaryDir untrustedPath;
+        require(untrustedPath.isValid(),"create isolated PATH fixture");
+        const auto originalPath=qgetenv("PATH");qputenv("PATH",untrustedPath.path().toUtf8());
+        const auto trustedShell=tux::trustedSystemExecutable("sh");
+        if(originalPath.isNull())qunsetenv("PATH");else qputenv("PATH",originalPath);
+        require(!trustedShell.isEmpty()&&!trustedShell.startsWith(untrustedPath.path()),"privileged command lookup is independent of user PATH");
         require(tux::matches(tux::action("storage"),"STORAGE usage"),"search ignores case");
         require(!tux::matches(tux::action("storage"),"wine"),"search excludes nonmatches");
         require(tux::matches(tux::action("storage"),"  "),"empty search");
@@ -79,11 +87,16 @@ int main(int argc,char** argv) {
         auto report=r.json(); require(report.contains("code") && report.contains("command"),"JSON result schema");
         r=tux::execute("storage"); require(r.code==0 && r.output.contains("Filesystem"),"real df diagnostic");
         const auto path=qgetenv("PATH");
+        const auto protectedAuthorization=tux::trustedSystemExecutable("pkexec");
+        const auto protectedApt=tux::trustedSystemExecutable("apt-get");
         QTemporaryDir temp; require(temp.isValid(),"temporary dependency sandbox");
         QFile::link(self,temp.filePath("pkexec")); QFile::link(self,temp.filePath("apt-get"));
         qputenv("PATH",temp.path().toUtf8());
-        r=tux::execute("apt-clean",true);
-        require(r.command.first()=="pkexec" && r.output=="apt-get\nclean\n","admin uses exact PolicyKit argv (fake helper)");
+        require(tux::trustedSystemExecutable("pkexec")==protectedAuthorization&&
+                tux::trustedSystemExecutable("apt-get")==protectedApt,
+                "user PATH helpers cannot replace protected privileged executables");
+        require(!protectedAuthorization.startsWith(temp.path())&&!protectedApt.startsWith(temp.path()),
+                "privileged resolution rejects user-controlled helper locations without executing a mutation");
         require(tux::unavailable(tux::action("storage")).contains("Missing dependency"),"missing tool detected");
         qputenv("PATH",path);
         std::cout<<checks<<" checks passed\n"; return 0;

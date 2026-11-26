@@ -471,7 +471,7 @@ protected:
 };
 }
 
-ProcessManagerWidget::ProcessManagerWidget(QWidget *parent)
+ProcessManagerWidget::ProcessManagerWidget(QWidget *parent, bool includeSystemTabs)
     : QWidget(parent)
 {
     auto *layout = new QVBoxLayout(this);
@@ -495,7 +495,7 @@ ProcessManagerWidget::ProcessManagerWidget(QWidget *parent)
     auto *processLayout = new QVBoxLayout(processPage);
     processLayout->setContentsMargins(0, 8, 0, 0);
     tabs->addTab(processPage, tr("Processes"));
-    new SystemMonitorTabs(tabs);
+    if(includeSystemTabs) new SystemMonitorTabs(tabs);
 
     auto *toolbar = new QVBoxLayout;
     auto *searchRow = new QHBoxLayout;
@@ -645,6 +645,12 @@ ProcessManagerWidget::ProcessManagerWidget(QWidget *parent)
     connect(navigation,&QListWidget::currentRowChanged,tabs,&QTabWidget::setCurrentIndex);
     connect(tabs,&QTabWidget::currentChanged,navigation,QOverload<int>::of(&QListWidget::setCurrentRow));
     navigation->setCurrentRow(0);
+    if(!includeSystemTabs) {
+        navigation->hide();
+        tabs->tabBar()->show();
+        title->hide(); description->hide();
+        layout->setContentsMargins(0,0,0,0);
+    }
 }
 
 void ProcessManagerWidget::showEvent(QShowEvent *event)
