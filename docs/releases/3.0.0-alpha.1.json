@@ -1,0 +1,48 @@
+{
+  "version": "3.0.0-alpha.1",
+  "repository": "sudipdasin/tux-steward",
+  "release_id": 459599236,
+  "release_url": "https://github.com/sudipdasin/tux-steward/releases/tag/v3.0.0-alpha.1",
+  "tag": "v3.0.0-alpha.1",
+  "source_commit": "f0fe320677e40c05e0c176a2fd3efdbe961d9dcd",
+  "application_checkpoint": "c2150885c82bb202df8b82f6da760cc41fcd4f99",
+  "published_at": "2026-11-26T15:36:51Z",
+  "verified_assets": [
+    {
+      "name": "syspulse_3.0.0.alpha1_amd64.deb",
+      "bytes": 728042,
+      "digest": "sha256:9897071c9ded8e00766e582ff8c4dc37fdc5ff7dce0f29493dd78c5acae2f943",
+      "url": "https://github.com/sudipdasin/tux-steward/releases/download/v3.0.0-alpha.1/syspulse_3.0.0.alpha1_amd64.deb"
+    },
+    {
+      "name": "syspulse-3.0.0-alpha.1-x86_64.tar.gz",
+      "bytes": 725775,
+      "digest": "sha256:22ad5d359bf132e897821d73401764faef0f02224649659338977d9f4063f8b1",
+      "url": "https://github.com/sudipdasin/tux-steward/releases/download/v3.0.0-alpha.1/syspulse-3.0.0-alpha.1-x86_64.tar.gz"
+    },
+    {
+      "name": "SHA256SUMS-build-names.txt",
+      "bytes": 404,
+      "digest": "sha256:94461912b9e173adb1aea18c142c954b78758b346d5b65b2f9f76ad74bd22cc9",
+      "url": "https://github.com/sudipdasin/tux-steward/releases/download/v3.0.0-alpha.1/SHA256SUMS-build-names.txt"
+    },
+    {
+      "name": "syspulse-3.0.0-alpha.1-x86_64.zip",
+      "bytes": 732016,
+      "digest": "sha256:b5e1a3e277a7b5acd8d941f572300405988d1126fd7d9665b4997996c2f2e54d",
+      "url": "https://github.com/sudipdasin/tux-steward/releases/download/v3.0.0-alpha.1/syspulse-3.0.0-alpha.1-x86_64.zip"
+    },
+    {
+      "name": "SysPulse-3.0.0-alpha.1-source.tar.gz",
+      "bytes": 233250,
+      "digest": "sha256:9d9cace8faabb2ddcb4ee20777689b9102539961d7ad47393b2cf6c77cca2a2b",
+      "url": "https://github.com/sudipdasin/tux-steward/releases/download/v3.0.0-alpha.1/SysPulse-3.0.0-alpha.1-source.tar.gz"
+    },
+    {
+      "name": "SHA256SUMS",
+      "bytes": 404,
+      "digest": "sha256:0cf8a5694940aef17f5312af00faa8de24fc2fc7d6c13729ecf13805747df181",
+      "url": "https://github.com/sudipdasin/tux-steward/releases/download/v3.0.0-alpha.1/SHA256SUMS"
+    }
+  ]
+}

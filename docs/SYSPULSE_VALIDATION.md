@@ -55,3 +55,27 @@ Native packages from this environment target **Debian 13 x86_64**, with libc6 >=
 Default guest screenshots legitimately show disk/network unavailable when the VM exposes no eligible device. Synthetic fixtures or design mockups are not presented as hardware observations. System-changing catalog tasks remain Experimental; command timeout does not prove elevated descendants stopped. See the [milestone limitations](SYSPULSE_MILESTONE.md).
 
 GitHub Actions and CircleCI remain disabled. Local commits and successful package checks do not by themselves establish a published GitHub release; remote upload/publication must be verified separately.
+
+## Executed publication verification
+
+The native alpha was published on 26 November 2026 at 15:36 UTC (21:06 IST).
+The public tag `v3.0.0-alpha.1` resolves to source revision
+`f0fe320677e40c05e0c176a2fd3efdbe961d9dcd`. Six uploaded assets' names, byte
+sizes, upload states and SHA-256 digests match the prepared files. This includes
+four payload files and canonical/build-name checksum metadata. GitHub's two
+automatically generated source links are not uploaded native assets.
+
+The offline development verifier in `tools/verify-release-assets.py` was then
+run against the saved release/tag metadata and actual prepared public files in
+the real isolated QEMU VM. It verified all six assets. Its thirteen independent
+regression cases also passed, including wrong repository/tag target/maturity,
+draft or incomplete publication, duplicate names, same-size tampering, size
+mismatch, unexpected files, path escapes, symlink inputs and the actual
+GitHub DEB filename-normalization failure mode. These are additional development
+tool checks; the application CTest suite remains the previously passed 24 suites.
+
+GitHub normalizes the public DEB's `~` to `.`. The published canonical checksum
+list was corrected to match the public name before publication; the original
+build-name checksum list is separately labeled. See the [publication receipt](releases/3.0.0-alpha.1.json)
+and [current release status](RELEASE_STATUS.md). Application source and binary
+bytes were not changed by the documentation, filename mapping or verifier work.
