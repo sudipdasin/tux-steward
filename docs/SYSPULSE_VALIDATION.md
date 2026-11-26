@@ -29,7 +29,21 @@ The same native C++ probe measured live and paused Overview windows before and a
 
 ## Download and package checks
 
-Final native and portable artifact checks are in progress. Native packages from this environment target Debian 13 x86_64 and require compatible system ABIs. They must not be described as Linux Mint/Ubuntu packages. The portable launcher includes a matching loader/runtime and keeps its library path out of system-helper environments; target desktop compatibility still needs independent verification.
+Native DEB, ZIP and TGZ archives were produced and checked inside the VM. Extracted native and portable executables reported `SysPulse 3.0.0-alpha.1`; the DEB contained its desktop entry, icon, license and privacy notice. Installed ELF metadata contained no build-directory RPATH/RUNPATH, and all four stripped application executables passed a separate scan for private host workspace paths.
+
+The portable archive passed its recursive static dependency-closure check using the bundled loader with the system loader cache inhibited. Each resolved linked library stayed inside the bundle. Final ZIP extraction, every `CONTENTS.sha256` entry and the extracted launcher's version were checked in the guest. Host graphics integrations, fonts, desktop services and authorization tools remain separate runtime capabilities.
+
+| Additional executed check | Result |
+| --- | --- |
+| Native DEB/ZIP/TGZ content and version verification | Passed |
+| Portable static dependency closure and extracted-file hashes/version | Passed |
+| Extracted portable launcher, real X11 main window under Xvfb inside QEMU | Passed; 1366 x 768 capture visually reviewed |
+| Extracted native DEB executable, real X11 main window in the same guest | Passed; 1366 x 768 capture visually reviewed |
+| Settled resource UI, navigation/search/review/privacy checks | 46 checks passed; Overview, Performance, Storage and Experimental captured |
+
+The first X11 capture selected a 1 x 1 Qt helper window and was rejected on visual review. The capture helper was corrected to match the versioned main-window title and require at least 640 x 480 pixels; both package launches were repeated successfully. This was a verification-harness correction. The retained evidence includes the corrected helper and a note about the rejected capture; the rejected image is not used as a preview.
+
+Native packages from this environment target **Debian 13 x86_64**, with libc6 >= 2.41 and Qt >= 5.15.15. They must not be described as Linux Mint/Ubuntu packages. The portable preview includes a matching loader/runtime and keeps its library path out of system-helper environments. Full target-desktop compatibility still needs independent verification, and exact third-party source-version provenance remains a gate for broader bundled-runtime redistribution. See [download guidance](SYSPULSE_DOWNLOADS.md).
 
 ## Outstanding release gates
 

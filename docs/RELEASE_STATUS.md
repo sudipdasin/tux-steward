@@ -1,6 +1,18 @@
 # Release validation status
 
-Checked 2026-11-25.
+Checked 2026-11-26.
+
+## 3.0.0-alpha.1: SysPulse experimental preview
+
+The SysPulse application checkpoint `c2150885c82bb202df8b82f6da760cc41fcd4f99` passed all 24 regression suites in an isolated QEMU VM. The maintained source retains the inherited tools and legacy applications. The source synchronization fallback was verified against the exact local Git tree; it does not replace VM validation with hosted CI.
+
+Native DEB, executable ZIP and TGZ archives were produced in that VM, checked for version, executable layout, documentation and private build-path exclusion. They target **Debian 13 x86_64**, with libc6 >= 2.41 and Qt >= 5.15.15. These are not Mint/Ubuntu packages. Clean package-manager installation, upgrades, removal and desktop integration remain unverified for this alpha.
+
+A separate portable test preview passed recursive bundled-loader dependency checks and extracted-file checksum/version verification. Its runtime notices are included, but exact third-party source-version provenance remains incomplete. Keep broader bundled-runtime redistribution gated on that provenance; native packages and the corresponding application source do not bundle those runtime libraries.
+
+See [executed validation](SYSPULSE_VALIDATION.md) and [download guidance](SYSPULSE_DOWNLOADS.md). An alpha label permits exploratory testing with these explicit limits; it is not stable, release-candidate, full XFCE, PolicyKit or hardware certification. Publication must be checked independently of local package creation.
+
+GitHub Actions and CircleCI remain disabled. Manual VM packaging and source synchronization use no hosted workflow.
 
 ## 2.4.0-beta.1: source available, binary publication blocked
 
@@ -19,4 +31,4 @@ The timeout hardening committed after the tag adds connection, transfer, retry-b
 
 ## Remaining work
 
-Run the hardened workflow on an available VM when CI usage is authorized, resolve any failures, and repeat tagged packaging plus installed/ZIP GUI smoke checks before publishing new binaries. Do not replace a historical tag or describe the blocked 2.4 release as a verified executable release. Physical hardware, real PolicyKit prompts and Wayland remain unvalidated. Startup/service action regressions use isolated fixtures.
+The 2.4 status above is historical. Continue current SysPulse verification in an isolated local VM without GitHub Actions or CircleCI. Do not replace a historical tag or describe the blocked 2.4 release as a verified executable release. Physical hardware, real PolicyKit prompts and Wayland remain unvalidated. Startup/service action regressions use isolated fixtures.

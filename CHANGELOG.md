@@ -11,6 +11,7 @@
 - Kept reviewed service actions busy until the observed helper exits; query cancellation cannot release a running action. Added a release-gated subprocess regression.
 - Archived GitHub Actions and CircleCI definitions. All application verification uses a real isolated VM. See SYSPULSE_VALIDATION.md for executed results and remaining gates.
 - Added native package support, portable-runtime packaging tooling, desktop entry/icon and developer handoff. Alpha status does not certify full XFCE, Mint, PolicyKit, hardware or upgrade compatibility.
+- Verified native archives, portable loader closure, extracted checksums/version and actual native/portable X11 main-window launches in QEMU. Added package-selection guidance, corresponding application source and explicit runtime-provenance limits for the test preview.
 
 ## 2.4.0-beta.1 — 2026-11-22
 - Integrated Windows-style page and resource sidebars; first-class Startup apps and Services.

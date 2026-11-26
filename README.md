@@ -21,6 +21,8 @@ The interface follows the selected **Precision** identity, **Observatory** monit
 
 ## Testing and installation
 
+Read the [3.0 alpha download guidance](docs/SYSPULSE_DOWNLOADS.md) before choosing a package. It distinguishes Debian 13 native binaries from the separate portable test preview and records the remaining validation and runtime-provenance limits.
+
 Native DEB/ZIP/TGZ packages require compatible system libraries. A package built in the Debian 13 validation VM must not be described as an Ubuntu/Mint-compatible binary without matching ABI verification. The optional portable runtime bundle includes its loader, Qt libraries, and platform plugins; target Mint/XFCE desktop, graphics, and authorization behavior still require testing on those systems.
 
 No new downloadable release is claimed solely by a source commit. Published assets, checksums, tested target, and remaining limitations must be documented together. The previous Tux Steward releases remain historical testing snapshots; the current source is not proof that a similarly named binary exists on Releases.
