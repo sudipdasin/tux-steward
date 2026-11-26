@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.0.0-alpha.2 — 2026-11-26
+
+- Added an explicit verified-platform label for native DEB/ZIP/TGZ filenames, avoiding ambiguous distribution targets and GitHub's normalization of Debian version separators.
+- Added XFCE desktop launch checks (`TryExec`) and window-class identification; native packages recommend authorization/desktop helpers and suggest XFCE settings/power tools.
+- Rebuilds the native suite against an older Ubuntu ABI for Ubuntu/Mint-base XFCE testing. Target-specific VM, package-manager and actual XFCE launch evidence must accompany the downloads; this remains an experimental alpha.
+
 ## 3.0.0-alpha.1 — 2026-11-26
 
 - Introduced SysPulse, the XFCE-first successor interface with Precision identity, Observatory monitoring depth, and Forge management organization.
