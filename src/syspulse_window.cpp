@@ -235,7 +235,7 @@ struct Window::Impl {
         pages.insert("overview",overview());
         pages.insert("performance",performance);
         auto* storageTabs=new QTabWidget;storageTabs->setObjectName("storageWorkspaceTabs");cleanup=new MaintenancePage;storageTabs->addTab(cleanup,"Reviewed cleanup");
-        auto* storage=toolbox({"Storage","Maintenance"});toolboxes.insert("storage",storage);storageTabs->addTab(storage,"Diagnostics & tools");
+        auto* storage=toolbox({"Storage","Maintenance"});toolboxes.insert("storage",storage);storageTabs->addTab(storage,"Diagnostics && tools");
         pages.insert("storage",workspace("Storage & cleanup","Analyze first. Review the exact scope before moving thumbnail cache files into recovery.",storageTabs));
         pages.insert("management",management);
         pages.insert("network",networkPage());
@@ -346,7 +346,7 @@ struct Window::Impl {
         auto* tabs=new QTabWidget;recovery=new MaintenancePage(true);tabs->addTab(recovery,"Thumbnail recovery");
         auto* content=new QWidget;auto* layout=new QVBoxLayout(content);auto* frame=panel();auto* fl=new QVBoxLayout(frame);fl->setContentsMargins(20,20,20,20);
         fl->addWidget(text("Startup overrides","sectionTitle"));fl->addWidget(text("Review the selected application in Startup apps to restore its system default or inspect an available undo record. Recovery refuses externally changed targets.","muted"));fl->addWidget(button("Review startup recovery",[this]{navigate("management");management->showStartup();},w,true));layout->addWidget(frame);
-        auto* limits=panel();auto* ll=new QVBoxLayout(limits);ll->setContentsMargins(20,20,20,20);ll->addWidget(text("Recovery availability","sectionTitle"));ll->addWidget(text("Recovery covers staged thumbnails and supported startup overrides. Permanent removal, process termination and other system changes cannot be undone here. No filesystem snapshot is created automatically.","muted"));layout->addWidget(limits);layout->addStretch();tabs->addTab(content,"Startup recovery & limits");
+        auto* limits=panel();auto* ll=new QVBoxLayout(limits);ll->setContentsMargins(20,20,20,20);ll->addWidget(text("Recovery availability","sectionTitle"));ll->addWidget(text("Recovery covers staged thumbnails and supported startup overrides. Permanent removal, process termination and other system changes cannot be undone here. No filesystem snapshot is created automatically.","muted"));layout->addWidget(limits);layout->addStretch();tabs->addTab(content,"Startup recovery && limits");
         return workspace("Recovery","Restore only supported saved state. Review permanent removal separately.",tabs);
     }
     QWidget* reportsPage() {

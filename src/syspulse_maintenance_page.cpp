@@ -18,7 +18,13 @@
 namespace syspulse {
 namespace {
 QLabel* label(const QString& value){auto* l=new QLabel(value);l->setWordWrap(true);l->setTextFormat(Qt::PlainText);return l;}
-QString bytes(quint64 value){return QString::number(static_cast<double>(value)/(1024*1024),'f',2)+" MiB (logical)";}
+QString bytes(quint64 value){
+    if(value<1024)return QString::number(value)+" B";
+    double amount=static_cast<double>(value)/1024;QString unit="KiB";
+    if(amount>=1024){amount/=1024;unit="MiB";}
+    if(amount>=1024){amount/=1024;unit="GiB";}
+    return QString::number(amount,'f',2)+" "+unit;
+}
 }
 struct MaintenancePage::Impl {
     MaintenancePage* q;bool recovery=false,busy=false;QString root=maintenance::cacheRoot();
@@ -35,10 +41,10 @@ struct MaintenancePage::Impl {
         if(!mode){for(const auto& id:maintenance::categories()){auto* c=new QCheckBox(id);c->setProperty("category",id);c->setObjectName("cleanupCategory_"+id);categories.append(c);row->addWidget(c);}age=new QSpinBox;age->setObjectName("cleanupAgeDays");age->setRange(1,3650);age->setValue(30);age->setSuffix(" days old");row->addWidget(age);}
         scan=new QPushButton(mode?"Refresh recovery":"Analyze selected categories");scan->setObjectName(mode?"refreshRecovery":"analyzeCleanup");row->addWidget(scan);layout->addLayout(row);
         status=label(mode?"Not checked. Refresh to inspect saved recovery runs.":"Nothing selected. Analysis never changes files.");status->setObjectName(mode?"recoveryStatus":"cleanupStatus");layout->addWidget(status);
-        table=new QTableWidget(0,4);table->setObjectName(mode?"recoveryRuns":"cleanupPlan");table->setHorizontalHeaderLabels(mode?QStringList{"Created (UTC)","Files","Logical size","State"}:QStringList{"Category","Thumbnail file","Logical size","Review"});table->horizontalHeader()->setSectionResizeMode(0,QHeaderView::ResizeToContents);table->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);table->horizontalHeader()->setSectionResizeMode(3,QHeaderView::Stretch);table->verticalHeader()->hide();table->setEditTriggers(QAbstractItemView::NoEditTriggers);table->setSelectionBehavior(QAbstractItemView::SelectRows);table->setSelectionMode(QAbstractItemView::SingleSelection);layout->addWidget(table,1);
+        table=new QTableWidget(0,4);table->setObjectName(mode?"recoveryRuns":"cleanupPlan");table->setHorizontalHeaderLabels(mode?QStringList{"Created (UTC)","Files","Logical size","State"}:QStringList{"Category","Thumbnail file","Logical size","Review"});table->horizontalHeader()->setSectionResizeMode(0,QHeaderView::ResizeToContents);table->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);table->horizontalHeader()->setSectionResizeMode(2,QHeaderView::ResizeToContents);table->horizontalHeader()->setSectionResizeMode(3,QHeaderView::Stretch);table->verticalHeader()->hide();table->setEditTriggers(QAbstractItemView::NoEditTriggers);table->setSelectionBehavior(QAbstractItemView::SelectRows);table->setSelectionMode(QAbstractItemView::SingleSelection);layout->addWidget(table,1);
         auto* actions=new QHBoxLayout;apply=new QPushButton(mode?"Review restore…":"Review move to recovery…");apply->setObjectName(mode?"restoreRecovery":"applyCleanup");apply->setProperty("primary",true);apply->setEnabled(false);actions->addWidget(apply);
         if(mode){purge=new QPushButton("Review permanent removal…");purge->setObjectName("purgeRecovery");purge->setEnabled(false);actions->addWidget(purge);}else{auto* open=new QPushButton("Open recovery");open->setObjectName("openCleanupRecovery");actions->addWidget(open);QObject::connect(open,&QPushButton::clicked,q,[this]{if(q->onOpenRecovery)q->onOpenRecovery();});}
-        stop=new QPushButton("Stop analysis");stop->setObjectName("stopCleanupAnalysis");stop->setEnabled(false);actions->addWidget(stop);
+        stop=new QPushButton("Stop analysis");stop->setObjectName("stopCleanupAnalysis");stop->setEnabled(false);stop->setVisible(!mode);actions->addWidget(stop);
         QObject::connect(stop,&QPushButton::clicked,q,[this]{if(busy&&!recovery&&pendingTitle.isEmpty()&&shared)shared->cancel.store(true);});
         actions->addStretch();layout->addLayout(actions);poll=new QTimer(q);poll->setInterval(40);
         QObject::connect(scan,&QPushButton::clicked,q,[this]{refresh();});QObject::connect(apply,&QPushButton::clicked,q,[this]{review(false);});

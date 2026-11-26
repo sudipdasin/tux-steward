@@ -1,43 +1,22 @@
-# SysPulse 3.0.0-alpha.3
+# SysPulse 3.1.0-rc.1 core maintenance candidate
 
-SysPulse is the next major application generation built on the Tux Steward C++ foundation. This is an experimental development milestone, with the approved Precision identity, Observatory monitoring depth, and Forge management layout.
+SysPulse completes the inspect → review → act → supported recovery → saved outcome workflow in the approved Precision interface. It remains the XFCE-first C++17/Qt successor to Tux Steward, developed by Sudip Das and licensed under GPL-3.0-or-later.
 
-Alpha 2 adds explicit native package platform labels, XFCE launch identification and recommended authorization/desktop helpers. Its native Ubuntu build and installation evidence is recorded separately from the earlier Debian 13 alpha; package compatibility follows the tested target rather than the desktop name alone.
+## Completed core workflows
 
-See [the alpha.3 guide](SYSPULSE_ALPHA3.md) for the manual release checker, on-demand 35-tool dependency audit and trusted XFCE launchers. These features preserve explicit user control and do not implement automatic package installation.
+- Reviewed thumbnail-cache analysis with no initial category selection, bounded scans, one-hour plans and identity revalidation before moving files.
+- Private staged recovery, no-overwrite restore and separately reviewed permanent removal. Moving to recovery does not free disk space and is not a backup.
+- Persistent owner-only history of the latest 200 redacted summaries, timestamps, explicit refresh and preview-before-save exports. Raw details remain limited to session memory and fresh export consent.
+- Reviewed per-user read-only diagnostic schedules with fixed presets, hourly/daily/weekly cadence, optional AC gating, explicit enable/disable and actual runtime/startup-state checks.
+- The existing live CPU/per-core/memory/swap/disk/network monitoring, process identity safeguards, startup override recovery, service management, 35-tool catalog, manual release review, tool-availability audit and native XFCE settings launchers.
+- Native packaging with monotonic Debian version `3.1.0~rc1`, plus the three retained compatibility applications and normal-user diagnostic helper.
 
-## Included
+Read [the candidate feature guide](SYSPULSE_RC1.md) for operation, storage scope and recovery limits. Settings-changing catalog tools remain in Experimental; the new timer cannot run them. Opening the app starts no maintenance or automatic update check. An explicitly enabled diagnostic timer runs independently of the GUI.
 
-- White-and-crimson persistent navigation, tool search, overview, settings/help, and local reports.
-- Live CPU/per-core, memory/swap, disk read/write/busy time, and network receive/transmit history; 1/2/5 second sampling, pause, and device/interface selection.
-- The inherited process list/tree, inspect and identity-checked same-user termination controls.
-- Startup entry search and filters, source/session details, per-user overrides, and supported undo.
-- Service runtime/startup state, user/system scope, search, selected-unit details, reviewed actions and activity.
-- All 25 inherited catalog tools plus ten additional read-only network, package, desktop, boot, and security diagnostics.
-- Reviewed asynchronous tool execution, bounded output, read-only cancellation, redacted-summary exports, and a separate Experimental destination for settings-changing maintenance.
-- Native XFCE settings launchers, local interface inspection with addresses hidden by default, timer inspection, and a recovery entry point for startup overrides.
-- The three legacy applications remain included for compatibility.
+## Scope and validation
 
-## Scope and limitations
+This candidate does not provide filesystem snapshots, universal undo, arbitrary file cleanup, antivirus scanning, automatic package installation or signed update distribution. Original photos and documents are outside thumbnail maintenance. Dependency availability does not prove administrator authorization or complete system health.
 
-The new application is not a stable or release-candidate certification. This milestone does not implement a new automatic cleanup engine, snapshot manager, schedule editor, universal undo, antivirus engine, or automatic update mechanism. Storage actions currently use reviewed catalog workflows; the earlier cleanup mockup describes a later richer category-selection interface.
+Application builds, tests, package installation and GUI validation must run in real isolated VMs. Read the versioned executed validation and release record for exact source identity, tested guest environments and remaining gates. Actual Mint hardware, Wayland and arbitrary privileged catalog operations are not certified by fixture or Ubuntu-base testing.
 
-Native desktop configuration requires the relevant XFCE components. APT, UFW, systemd, PolicyKit, X11 input, and gaming integrations are detected at runtime and remain unavailable when missing. A successful diagnostic exit is not a comprehensive health or security assessment.
-
-Service and package actions require deliberate review and may interrupt the system. Settings-changing catalog tools remain Experimental. Startup changes use the existing guarded per-user override backend. Do not assume an action is reversible unless a specific saved state is available.
-
-The service manager keeps a reviewed action busy until its observed helper exits, including a pending authorization prompt. Query deadlines and query cancellation do not release that action. The inherited catalog runner has bounded command deadlines and warns when elevated descendants may remain running; a timeout does not prove that a privileged operation stopped. Inspect the actual system state before retrying. UI admission guards are not a system-wide transaction lock, and another application can change the same resources.
-
-## Validation
-
-See `docs/SYSPULSE_UBUNTU_VALIDATION.md` for the alpha.2 Ubuntu/XFCE results and `docs/SYSPULSE_VALIDATION.md` for the earlier Debian run. They record exact package targets and outstanding desktop/hardware validation. Generated design images are not execution evidence. All application builds and tests for this milestone must run in a real VM; a container, chroot, or offscreen renderer alone does not satisfy that requirement.
-
-GitHub Actions and CircleCI are disabled indefinitely unless the developer explicitly approves them. Archived workflow definitions are historical references only. Source synchronization uses skip-CI commits; no pipeline is dispatched.
-
-## Privacy and feedback
-
-No telemetry, automatic uploads, or background maintenance starts with the app. Reports remain local, summary is the default, and detailed output needs fresh consent. Local detailed diagnostics may contain identifiers and filesystem paths; review them before sharing.
-
-Use Settings & help → Report a problem to open the issue form. Nothing is submitted automatically. Include the SysPulse version, distribution, desktop/session, reproducible steps, and whether the affected feature was Experimental. Exclude confidential computer information from public issues.
-
-Developed by Sudip Das. GNU GPL version 3 or later. Existing tested features are retained through shared source and regression tests; fixes are carried forward in the maintained codebase. Published historical packages are immutable snapshots and do not receive changes automatically.
+GitHub Actions and CircleCI remain disabled. Releases are already authorized by the owner under [the project blueprint](PROJECT_BLUEPRINT.md), subject to verification and truthful labels. Historical alpha artifacts and their versioned evidence remain immutable.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.1.0-rc.1 — 2026-11-27
+
+- Complete reviewed thumbnail-cache maintenance with write-ahead private recovery, identity checks, conflict-preserving restore and separately confirmed permanent removal.
+- Persist the latest 200 owner-only redacted task summaries and add reviewed saved-summary exports while retaining session-only detailed reporting.
+- Add explicit per-user read-only diagnostic schedules, actual state confirmation and a root-refusing diagnostic helper; no scheduled cleanup or arbitrary commands.
+- Advance Debian version ordering to `3.1.0~rc1` so historical `3.0.0` and hyphen/local forms upgrade normally.
+- Preserve all 35 catalog tools, compatibility applications, monitoring, startup/service controls, manual release review and trusted XFCE launchers.
+- Add interrupted-recovery, private-storage, retention, upgrade-order and full workflow regressions, plus a real systemd user-manager integration probe.
+
 ## 3.0.0-alpha.3 — 2026-11-27
 
 - Prevent stale VM source reads and require immutable source identity; real boot and file-replacement checks validate the harness fix.

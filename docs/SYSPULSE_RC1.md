@@ -28,7 +28,7 @@ Open **Schedules → Diagnostic plan**. Choose a fixed Health Check preset, hour
 
 The installed helper `/usr/bin/syspulse-diagnostic --preset …` refuses root execution. It runs fixed read-only checks and saves only redacted summaries. It cannot run cleanup, package installation or arbitrary commands. A persistent timer may catch up a missed run when the user's manager starts. An active desktop systemd user manager is required; signing out generally stops a user's manager unless the system administrator configured lingering. Optional AC gating follows system-reported power state.
 
-**Review disable** stops/disables only this timer and retains reports and configuration. Opening SysPulse does not enable a timer or perform maintenance. Once explicitly enabled, the user timer runs independently of the GUI. Automation status is shown as unchecked/unknown until queried, never assumed off.
+**Review disable** stops/disables only this timer and retains reports and configuration. Disable an enabled timer before uninstalling: personal user-unit files are preserved on package removal, so a retained timer would otherwise point to a removed helper. Opening SysPulse does not enable a timer or perform maintenance. Once explicitly enabled, the user timer runs independently of the GUI. Automation status is shown as unchecked/unknown until queried, never assumed off.
 
 ## Upgrade ordering and installation
 
