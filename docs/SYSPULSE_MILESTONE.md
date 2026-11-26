@@ -28,7 +28,7 @@ The service manager keeps a reviewed action busy until its observed helper exits
 
 ## Validation
 
-See `docs/SYSPULSE_VALIDATION.md` for the exact executed VM results, package target, and outstanding real-desktop/hardware validation. Generated design images are not execution evidence. All application builds and tests for this milestone must run in a real VM; a container, chroot, or offscreen renderer alone does not satisfy that requirement.
+See `docs/SYSPULSE_UBUNTU_VALIDATION.md` for the alpha.2 Ubuntu/XFCE results and `docs/SYSPULSE_VALIDATION.md` for the earlier Debian run. They record exact package targets and outstanding desktop/hardware validation. Generated design images are not execution evidence. All application builds and tests for this milestone must run in a real VM; a container, chroot, or offscreen renderer alone does not satisfy that requirement.
 
 GitHub Actions and CircleCI are disabled indefinitely unless the developer explicitly approves them. Archived workflow definitions are historical references only. Source synchronization uses skip-CI commits; no pipeline is dispatched.
 
