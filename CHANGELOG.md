@@ -2,6 +2,8 @@
 
 ## 3.0.0-alpha.3 — 2026-11-27
 
+- Prevent stale VM source reads and require immutable source identity; real boot and file-replacement checks validate the harness fix.
+
 - Add an explicit manual release check with semantic version/channel ordering, fixed HTTPS project metadata, a bounded response, a request deadline and cancellation. Offers open release notes only; no automatic download or installation.
 - Add an on-demand dependency/session audit for all 35 catalog tools, searchable missing-dependency reasons and direct tool inspection without execution.
 - Resolve native XFCE settings launchers only from protected system locations and recheck them at launch; a user PATH entry cannot replace these launchers.
