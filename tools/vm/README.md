@@ -60,6 +60,19 @@ as tested.
 
 ## Incremental VM session
 
+Keep each VM's source checkout fixed while its jobs run. Read-only access from
+the guest does not freeze host-side edits or branch changes. The source mount
+uses `cache=none`: loose 9p caching can preserve stale file lengths/inodes after
+a host branch switch, even if a later build appears incremental. Immutable
+dependency/toolchain inputs may retain their separate read caches.
+
+For a new source revision, prefer a new dedicated worktree/VM or a verified Git
+archive extracted into a fresh guest directory and mounted read-only. Record
+the exact commit/tree and archive digest before building. Use a clean build or
+force correct dependency invalidation when source timestamps can predate an
+earlier object file. Do not copy an old success marker forward or promote a
+package until its executable versions and expected suite count also match.
+
 Use `guest-session.sh` as the guest job when several fix/test cycles are needed.
 The guest writes `queue/guest.ready` under the dedicated output directory.
 Write numbered shell jobs (`queue/1.sh`, `queue/2.sh`, …) atomically after their
