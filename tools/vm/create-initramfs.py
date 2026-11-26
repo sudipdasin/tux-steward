@@ -59,7 +59,7 @@ for tool in sh dash bash pkexec systemctl apt-get apt journalctl fstrim sysctl t
  done
 done
 /busybox mount -t 9p -o trans=virtio,version=9p2000.L,ro,cache=loose,msize=262144 deps /opt/builddeps || exit 3
-/busybox mount -t 9p -o trans=virtio,version=9p2000.L,ro,cache=loose,msize=262144 source /src || exit 4
+/busybox mount -t 9p -o trans=virtio,version=9p2000.L,ro,cache=none,msize=262144 source /src || exit 4
 /busybox mount -t 9p -o trans=virtio,version=9p2000.L,msize=262144 output /out || exit 5
 /busybox chmod 1777 /tmp
 /busybox mkdir -p /run/user/1000

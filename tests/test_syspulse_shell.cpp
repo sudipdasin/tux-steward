@@ -43,6 +43,15 @@ int main(int argc,char** argv) {
         require(!window.navigate("missing")&&window.currentPageId()=="settings","invalid navigation preserves current context");
         require(idleTimers()==0,"returning to an idle non-monitoring workspace leaves no recurring shell polling timer");
         require(reportTable->rowCount()==0,"page inspection never records fictitious changes");
+        auto* settingsTabs=window.findChild<QTabWidget*>("settingsWorkspaceTabs");
+        require(settingsTabs&&settingsTabs->count()==3,"settings retains preferences and includes manual updates and tool availability");
+        auto* availability=window.findChild<QTableWidget*>("capabilityTable");
+        require(availability&&availability->rowCount()==0,"opening settings leaves the availability audit unscanned");
+        settingsTabs->setCurrentIndex(2);
+        window.findChild<QPushButton*>("refreshCapabilities")->click();
+        require(availability->rowCount()==35,"real guest dependency scan covers all preserved tools");
+        availability->setCurrentCell(0,0);window.findChild<QPushButton*>("inspectCapabilityTool")->click();
+        require(window.currentPageId()=="storage"&&reportTable->rowCount()==0,"availability inspection routes to the actual tool without running it");
         auto* tabs=window.findChild<QTabWidget*>("syspulsePerformanceTabs");
         require(tabs&&tabs->count()==6,"summary and four resource pages plus preserved processes");
         require(tabs->tabText(5)=="Processes","process manager is attached to performance");
@@ -76,6 +85,10 @@ int main(int argc,char** argv) {
             require(window.grab().save(prefix+"-storage.png"),"render actual reviewed-tool workspace");
             window.navigate("experimental");events(40);
             require(window.grab().save(prefix+"-experimental.png"),"render separate experimental workspace");
+            window.navigate("settings");settingsTabs->setCurrentIndex(1);events(40);
+            require(window.grab().save(prefix+"-updates.png"),"render manual update workspace without contacting a service");
+            settingsTabs->setCurrentIndex(2);events(40);
+            require(window.grab().save(prefix+"-capabilities.png"),"render actual guest dependency audit");
         }
         std::cout<<checks<<" SysPulse shell/navigation/search/review/privacy checks passed\n";
     } catch(const std::exception& e) {std::cerr<<"SysPulse shell failure: "<<e.what()<<'\n';return 1;}

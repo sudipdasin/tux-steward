@@ -4,7 +4,9 @@
 
 SysPulse brings performance monitoring, startup and service management, desktop tools, and reviewed maintenance workflows into one white-and-crimson interface. It is the next major generation of the Tux Steward codebase, with the existing tested foundation retained.
 
-Current development milestone: **3.0.0-alpha.2**. This is experimental software, not stable or release-candidate certification. Read [milestone scope](docs/SYSPULSE_MILESTONE.md) and [executed VM validation](docs/SYSPULSE_VALIDATION.md) before testing. The alpha.2 native package passed [Ubuntu 22.04 / 24.04 XFCE VM validation](docs/SYSPULSE_UBUNTU_VALIDATION.md); its publication status is recorded below.
+Current development milestone: **3.0.0-alpha.3**. This is experimental software, not stable or release-candidate certification. Read [milestone scope](docs/SYSPULSE_MILESTONE.md) and [executed VM validation](docs/SYSPULSE_VALIDATION.md) before testing. The alpha.2 native package passed [Ubuntu 22.04 / 24.04 XFCE VM validation](docs/SYSPULSE_UBUNTU_VALIDATION.md); its publication status is recorded below.
+
+Alpha.3 adds [manual release checks, a 35-tool dependency audit and trusted XFCE launchers](docs/SYSPULSE_ALPHA3.md). See [executed alpha.3 validation](docs/SYSPULSE_ALPHA3_VALIDATION.md) for the final 26-suite run, both Ubuntu upgrade checks and exact limits.
 
 ## What works in this milestone
 
