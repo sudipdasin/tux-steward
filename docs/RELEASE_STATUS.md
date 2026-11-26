@@ -1,6 +1,16 @@
 # Release validation status
 
-Checked 2026-11-26.
+Checked 2026-11-27.
+
+## 3.0.0-alpha.2: native Ubuntu / XFCE preview published
+
+**Published:** [SysPulse 3.0.0-alpha.2 downloads](https://github.com/sudipdasin/tux-steward/releases/tag/v3.0.0-alpha.2), 26 November 2026 at 22:01 IST (16:31 UTC). The tag resolves to `0105b57667f79129765c56e3f1654cd91c42cf3a`; the source archive matches its exact tree `b56acee2f956beecedba0aaec70bb03ea1ca4d06`.
+
+All 24 application suites passed in the real Ubuntu 22.04 build VM (GCC 11.4, Qt 5.15.3). Native package/archive checks passed. The same amd64 DEB installed, launched through its desktop entry in actual XFCE sessions, removed and reinstalled in both Ubuntu 22.04 / XFCE 4.16 and Ubuntu 24.04 / XFCE 4.18 VMs. The public filename explicitly labels the older build ABI. This package does not bundle Qt/libc.
+
+After publication, a fresh isolated VM reran all 13 publication regressions and the offline release verifier: six uploaded assets and all five canonical-checksummed payloads matched the prepared names, sizes and SHA-256 digests, with the correct source tag. See [publication receipt](releases/3.0.0-alpha.2.json), [download guidance](SYSPULSE_DOWNLOADS.md) and [executed Ubuntu validation](SYSPULSE_UBUNTU_VALIDATION.md).
+
+The owner's installation target is Mint 22.3 XFCE 64-bit. Its Ubuntu base is covered by the Ubuntu 24.04 runtime check; an actual Mint installation/hardware, full login/PolicyKit/systemd integration, Wayland and upgrades from every historical release are not certified. This remains an alpha. Settings-changing workflows remain Experimental. No hosted CI ran.
 
 ## 3.0.0-alpha.1: SysPulse experimental preview
 
