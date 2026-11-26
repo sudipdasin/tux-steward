@@ -3,6 +3,7 @@
 #include "tux/core.hpp"
 #include <QDateTime>
 #include <QDesktopServices>
+#include <QFrame>
 #include <QHBoxLayout>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -77,14 +78,16 @@ UpdatePanel::UpdatePanel(QWidget* parent) : UpdatePanel(nullptr, 10000, parent) 
 UpdatePanel::UpdatePanel(QNetworkAccessManager* transport, int deadlineMs, QWidget* parent) : QWidget(parent) {
     setObjectName("updatePanel");
     transport_ = transport;
-    auto* layout = new QVBoxLayout(this); layout->setContentsMargins(0, 0, 0, 0);
+    auto* outer = new QVBoxLayout(this); outer->setContentsMargins(0, 12, 0, 0);
+    auto* card = new QFrame; card->setObjectName("panel"); outer->addWidget(card); outer->addStretch(1);
+    auto* layout = new QVBoxLayout(card); layout->setContentsMargins(22, 20, 22, 20); layout->setSpacing(12);
     auto* title = new QLabel("Application updates"); title->setObjectName("sectionTitle"); layout->addWidget(title);
     auto* notice = new QLabel("Check manually for newer published SysPulse releases. This contacts the public GitHub release API only when you click Check. No diagnostics are uploaded. Packages are not downloaded or installed automatically.");
     notice->setTextFormat(Qt::PlainText); notice->setWordWrap(true); layout->addWidget(notice);
     status_ = new QLabel(QString("Installed: %1 · Not checked in this session").arg(tux::Version));
     status_->setObjectName("updateStatus"); status_->setTextFormat(Qt::PlainText); status_->setWordWrap(true); layout->addWidget(status_);
     auto* row = new QHBoxLayout;
-    check_ = new QPushButton("Check for updates"); check_->setObjectName("checkForUpdates"); row->addWidget(check_);
+    check_ = new QPushButton("Check for updates"); check_->setObjectName("checkForUpdates"); check_->setProperty("primary", true); row->addWidget(check_);
     cancel_ = new QPushButton("Cancel check"); cancel_->setObjectName("cancelUpdateCheck"); cancel_->setEnabled(false); row->addWidget(cancel_);
     release_ = new QPushButton("Review release notes…"); release_->setObjectName("reviewUpdateRelease"); release_->setEnabled(false); row->addWidget(release_); row->addStretch(); layout->addLayout(row);
     deadline_ = new QTimer(this); deadline_->setSingleShot(true); deadline_->setInterval(qBound(1, deadlineMs, 30000));

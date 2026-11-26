@@ -313,7 +313,7 @@ struct Window::Impl {
         hl->addWidget(button("Contribute…",[]{QDesktopServices::openUrl(QUrl("https://github.com/sudipdasin/tux-steward/blob/main/CONTRIBUTING.md"));},w));
         hl->addWidget(button("License",[this]{QMessageBox::information(w,"Free and open source","SysPulse is licensed under GNU GPL version 3 or later.\nCopyright Sudip Das.\nSee the included LICENSE for the complete terms.");},w));layout->addWidget(help);layout->addStretch();
         auto* aboutScroll=new QScrollArea;aboutScroll->setWidgetResizable(true);aboutScroll->setWidget(content);
-        tabs->addTab(aboutScroll,"About & preferences");
+        tabs->addTab(aboutScroll,"About && preferences");
         auto* updates=new UpdatePanel;tabs->addTab(updates,"Updates");
         auto* capabilities=new CapabilitiesPanel;capabilities->onOpenTool=[this](const QString& id){findTool(tux::action(id).title);};
         tabs->addTab(capabilities,"Tool availability");
