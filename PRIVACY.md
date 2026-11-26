@@ -25,3 +25,7 @@ Startup changes create owner-only undo records under the user's Tux Steward conf
 ## Maintenance report defaults
 
 Maintenance exports now require a preview before saving. Summary mode uses an allowlist of known tool names, exit codes, durations and truncation flags; it does not copy diagnostic text or command arguments. Unknown action labels become “Unrecognized task”. Full recorded details require explicit consent on each export. This is omission, not regular-expression anonymization: summaries can still reveal tool activity and outcomes. Detailed reports can include arbitrary sensitive output. Review before sharing; neither mode uploads anything. Live output and in-memory session records remain detailed so the local user can diagnose problems.
+
+## Manual release checks
+
+Settings & help → Updates contacts this project's public GitHub release API only after the user clicks Check for updates. The request uses a fixed user-agent and sends no report, machine inventory or authentication token. The service receives the normal connection/request metadata. A separate user click opens validated project release notes in the default browser; no package is downloaded or installed automatically. Opening SysPulse or its Updates page does not create the update network manager or check for releases. The on-demand tool-availability audit checks local dependencies/session requirements and does not contact a server.

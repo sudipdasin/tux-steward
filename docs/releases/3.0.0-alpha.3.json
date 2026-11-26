@@ -1,0 +1,52 @@
+{
+  "version": "3.0.0-alpha.3",
+  "repository": "sudipdasin/tux-steward",
+  "release_id": 459895449,
+  "release_url": "https://github.com/sudipdasin/tux-steward/releases/tag/v3.0.0-alpha.3",
+  "tag": "v3.0.0-alpha.3",
+  "source_commit": "4851c3bae00093cafe0a843af80a11d72699d9bb",
+  "source_tree": "3757945b9e38ca654fea254436cc04de933da5a1",
+  "application_checkpoint": "b1609de4ad0292e1027da0eda5804dced71d34a6",
+  "application_checkpoint_tree": "1eb56121b903fe7145e3b2f9d06e56018abe446f",
+  "published_at": "2026-11-26T20:58:15Z",
+  "verification_date": "2026-11-27",
+  "verification": "Real isolated VM: six uploaded assets and five canonical-checksummed payloads matched the prepared files and exact tag target. 26 final application suites, 13 publication regressions and both Ubuntu alpha2->alpha3 upgrade/desktop/removal/reinstallation checks passed.",
+  "verified_assets": [
+    {
+      "name": "SHA256SUMS",
+      "bytes": 555,
+      "digest": "sha256:f4fb20543cd5f7f7e2867f460aae7005eae5263dc123c50355603b6e0fba3018",
+      "url": "https://github.com/sudipdasin/tux-steward/releases/download/v3.0.0-alpha.3/SHA256SUMS"
+    },
+    {
+      "name": "SysPulse-3.0.0-alpha.3-source.tar.gz",
+      "bytes": 257628,
+      "digest": "sha256:7815f8a9290e4b0ef4c62780a007b6722d24d3b5cc4cf38e5b9d29c916167ccf",
+      "url": "https://github.com/sudipdasin/tux-steward/releases/download/v3.0.0-alpha.3/SysPulse-3.0.0-alpha.3-source.tar.gz"
+    },
+    {
+      "name": "syspulse-3.0.0-alpha.3-x86_64-ubuntu-22.04.deb",
+      "bytes": 736940,
+      "digest": "sha256:14cc7aedf8a55b2f28e3977081410b39e115a779003ab99393cfaad9507a7c9d",
+      "url": "https://github.com/sudipdasin/tux-steward/releases/download/v3.0.0-alpha.3/syspulse-3.0.0-alpha.3-x86_64-ubuntu-22.04.deb"
+    },
+    {
+      "name": "syspulse-3.0.0-alpha.3-x86_64-ubuntu-22.04.tar.gz",
+      "bytes": 734534,
+      "digest": "sha256:f4dfe346d0a2d419e66aa60538141593443e4b333e185e516807852a7da4eaef",
+      "url": "https://github.com/sudipdasin/tux-steward/releases/download/v3.0.0-alpha.3/syspulse-3.0.0-alpha.3-x86_64-ubuntu-22.04.tar.gz"
+    },
+    {
+      "name": "syspulse-3.0.0-alpha.3-x86_64-ubuntu-22.04.zip",
+      "bytes": 740858,
+      "digest": "sha256:590d6f7eb0ec0a66634f23ea4885cd4c2c27028b25857543b27959d2c5891326",
+      "url": "https://github.com/sudipdasin/tux-steward/releases/download/v3.0.0-alpha.3/syspulse-3.0.0-alpha.3-x86_64-ubuntu-22.04.zip"
+    },
+    {
+      "name": "SysPulse-3.0.0-alpha.3-XFCE-VM-evidence.zip",
+      "bytes": 473424,
+      "digest": "sha256:1415c60ecb45db146bbf13ba4c78160899a9cc00f3670f57ee1389ef29cd8d5f",
+      "url": "https://github.com/sudipdasin/tux-steward/releases/download/v3.0.0-alpha.3/SysPulse-3.0.0-alpha.3-XFCE-VM-evidence.zip"
+    }
+  ]
+}
