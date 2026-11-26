@@ -117,3 +117,33 @@ The guest uses an ephemeral overlay to normalize protected system-bin ownership
 and directory metadata to UID0 for strict command-resolution tests. Only the
 guest overlay is changed; the host lower remains read-only. Production ownership
 guards are not relaxed, and the tests do not execute privileged mutations.
+
+## Offline publication verification
+
+`tools/verify-release-assets.py` compares saved GitHub release and tag-ref JSON
+with an exact local folder containing the prepared public assets. Obtain the
+metadata through an authorized read-only connection after publication. The
+helper performs no network access, upload, workflow dispatch or app launch.
+Use the known verified source SHA, not a SHA inferred from the release being
+checked. Its tag JSON must retain `ref` and an `object` resolved to a commit;
+annotated tags need external dereferencing first.
+
+Inside the isolated VM:
+
+```sh
+python3 tests/test_release_assets.py
+python3 tools/verify-release-assets.py \
+  --assets /out/release-publication/assets \
+  --release-json /out/release-publication/release.json \
+  --tag-json /out/release-publication/tag.json \
+  --repository sudipdasin/tux-steward --tag v3.0.0-alpha.1 \
+  --source-commit f0fe320677e40c05e0c176a2fd3efdbe961d9dcd
+```
+
+The helper checks publication/maturity, repository/tag/commit identity, the
+exact set of uploaded filenames, byte sizes, SHA-256 digests, upload state and
+canonical checksum contents. It refuses duplicate names, path escapes and
+symlinked inputs. In particular, canonical checksums must name GitHub's actual
+download filenames after normalization. Build-name checksums may be retained as
+separate metadata; they are not the canonical download checksum list. These
+publication checks supplement application/installation verification.
