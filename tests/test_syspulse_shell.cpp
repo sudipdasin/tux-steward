@@ -12,6 +12,8 @@
 #include <QTabWidget>
 #include <QThread>
 #include <QTimer>
+#include <QTemporaryDir>
+#include <QDir>
 #include <iostream>
 #include <stdexcept>
 namespace {
@@ -23,6 +25,10 @@ int main(int argc,char** argv) {
     QApplication app(argc,argv);app.setApplicationName("SysPulse");app.setApplicationVersion(tux::Version);
     QApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
     syspulse::applyPrecisionTheme();
+    QTemporaryDir profile;
+    qputenv("XDG_DATA_HOME",(profile.path()+"/data").toUtf8());
+    qputenv("XDG_CONFIG_HOME",(profile.path()+"/config").toUtf8());
+    qputenv("XDG_CACHE_HOME",(profile.path()+"/cache").toUtf8());
     try {
         syspulse::Window window(false);window.resize(1366,768);window.show();events(50);
         require(window.navigationCount()==12,"complete persistent navigation");
@@ -83,6 +89,12 @@ int main(int argc,char** argv) {
             require(window.grab().save(prefix+"-performance.png"),"render actual performance workspace");
             window.navigate("storage");events(40);
             require(window.grab().save(prefix+"-storage.png"),"render actual reviewed-tool workspace");
+            window.navigate("recovery");events(40);
+            require(window.grab().save(prefix+"-recovery.png"),"render recovery workspace");
+            window.navigate("schedules");events(40);
+            require(window.grab().save(prefix+"-schedules.png"),"render schedule workspace");
+            window.navigate("reports");events(40);
+            require(window.grab().save(prefix+"-reports.png"),"render persistent report workspace");
             window.navigate("experimental");events(40);
             require(window.grab().save(prefix+"-experimental.png"),"render separate experimental workspace");
             window.navigate("settings");settingsTabs->setCurrentIndex(1);events(40);

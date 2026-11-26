@@ -15,6 +15,10 @@ execute_process(COMMAND "${prefix}/bin/syspulse" --help RESULT_VARIABLE code OUT
 if(NOT code EQUAL 0 OR NOT help MATCHES "Usage:")
     message(FATAL_ERROR "Installed SysPulse help check failed")
 endif()
+execute_process(COMMAND "${prefix}/bin/syspulse-diagnostic" --version RESULT_VARIABLE code OUTPUT_VARIABLE version)
+if(NOT code EQUAL 0 OR NOT version MATCHES "${RELEASE_VERSION}")
+    message(FATAL_ERROR "Installed diagnostic helper version check failed")
+endif()
 foreach(path IN ITEMS share/applications/syspulse.desktop share/icons/hicolor/scalable/apps/syspulse.svg
     share/doc/syspulse/LICENSE share/doc/syspulse/PRIVACY.md share/doc/syspulse/SYSPULSE_MILESTONE.md)
     if(NOT EXISTS "${prefix}/${path}")

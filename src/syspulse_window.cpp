@@ -5,6 +5,9 @@
 #include "syspulse/toolbox.hpp"
 #include "syspulse/updates.hpp"
 #include "syspulse/capabilities.hpp"
+#include "syspulse/maintenance_page.hpp"
+#include "syspulse/schedule_page.hpp"
+#include "syspulse/history.hpp"
 #include "tux/core.hpp"
 #include "tux/health_dialog.hpp"
 #include "tux/report_dialog.hpp"
@@ -15,6 +18,14 @@
 #include <QCompleter>
 #include <QDesktopServices>
 #include <QFrame>
+#include <QDateTime>
+#include <QDialogButtonBox>
+#include <QFileDialog>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QPlainTextEdit>
+#include <QSaveFile>
 #include <QGridLayout>
 #include <QHeaderView>
 #include <QLabel>
@@ -84,11 +95,16 @@ struct Window::Impl {
     QLabel* footer=nullptr;
     PerformancePage* performance=nullptr;
     ManagementPage* management=nullptr;
+    MaintenancePage* cleanup=nullptr;
+    MaintenancePage* recovery=nullptr;
+    SchedulePage* scheduler=nullptr;
+    QLabel* automation=nullptr;
     QMap<QString,QWidget*> pages;
     QMap<QString,QPushButton*> nav;
     QMap<QString,ToolboxPage*> toolboxes;
     QVector<ToolboxPage*> allToolboxes;
     QVector<tux::Result> results;
+    QJsonArray savedReports;
     QTableWidget* reports=nullptr;
     QLabel* reportStatus=nullptr;
     QLabel* cpu=nullptr;QLabel* memory=nullptr;QLabel* disk=nullptr;QLabel* network=nullptr;
@@ -96,28 +112,58 @@ struct Window::Impl {
     QString current="overview";
     bool sampling=true;
     explicit Impl(Window* window,bool sample):w(window),sampling(sample) {build();}
+    bool nativeBusy() const {
+        return (cleanup&&cleanup->isBusy())||(recovery&&recovery->isBusy())||(scheduler&&scheduler->isBusy());
+    }
+    bool idle() const {
+        if(nativeBusy()||(management&&management->isBusy()))return false;
+        for(auto* p:allToolboxes)if(p->isBusy())return false;
+        return true;
+    }
+    void loadReports() {
+        try {
+            savedReports=readHistory(historyDirectory());
+            reports->setRowCount(savedReports.size());
+            for(int row=0;row<savedReports.size();++row) {
+                const auto r=savedReports[savedReports.size()-row-1].toObject();
+                const auto code=r.value("code").toInt();
+                const auto outcome=r.value("cancelled").toBool()?QString("Cancelled"):code==0?QString("Completed"):code==124?QString("Timed out"):QString("Needs attention (%1)").arg(code);
+                const auto finished=QDateTime::fromString(r.value("finished_at").toString(),Qt::ISODate);
+                reports->setItem(row,0,new QTableWidgetItem(r.value("action").toString()));
+                reports->setItem(row,1,new QTableWidgetItem(outcome));
+                reports->setItem(row,2,new QTableWidgetItem(QString::number(r.value("seconds").toDouble(),'f',2)+" s"));
+                reports->setItem(row,3,new QTableWidgetItem(finished.isValid()?finished.toLocalTime().toString("yyyy-MM-dd HH:mm:ss"):"Time unavailable"));
+            }
+            reportStatus->setText(QString("%1 saved summaries · %2 detailed results in this session").arg(savedReports.size()).arg(results.size()));
+        }catch(const std::exception& error){reportStatus->setText(QString("Saved reports unavailable: %1. Session details remain available.").arg(error.what()));}
+    }
     void remember(const tux::Result& result) {
         results.append(result);if(results.size()>20)results.removeFirst();
-        reports->setRowCount(results.size());
-        for(int row=0;row<results.size();++row) {
-            const auto& r=results[results.size()-row-1];
-            const QString outcome=r.cancelled?"Cancelled":r.code==0?"Completed":r.code==124?"Timed out":QString("Needs attention (%1)").arg(r.code);
-            reports->setItem(row,0,new QTableWidgetItem(r.action));
-            reports->setItem(row,1,new QTableWidgetItem(outcome));
-            reports->setItem(row,2,new QTableWidgetItem(QString::number(r.seconds,'f',2)+" s"));
-            reports->setItem(row,3,new QTableWidgetItem(r.truncated?"Output bounded":"Local session"));
-        }
-        reportStatus->setText(QString("%1 completed task(s) in this session · Summary exports omit raw diagnostics").arg(results.size()));
+        try{appendHistory(historyDirectory(),result);loadReports();}
+        catch(const std::exception& error){reportStatus->setText(QString("Result kept in this session; history was not saved: %1").arg(error.what()));}
     }
     void exportReports() {
         tux::ReportDialog dialog(results,w);dialog.setWindowTitle("Review report · SysPulse");
         for(auto* widget:dialog.findChildren<QWidget*>())widget->setStyleSheet(QString());
         dialog.exec();
     }
+    void exportSavedReports() {
+        loadReports();
+        const auto data=QJsonDocument(historyReport(savedReports)).toJson(QJsonDocument::Indented);
+        QDialog preview(w);preview.setWindowTitle("Review saved summary export");auto* layout=new QVBoxLayout(&preview);
+        auto* content=new QPlainTextEdit(QString::fromUtf8(data));content->setReadOnly(true);layout->addWidget(content);
+        auto* actions=new QDialogButtonBox(QDialogButtonBox::Save|QDialogButtonBox::Cancel);layout->addWidget(actions);
+        QObject::connect(actions,&QDialogButtonBox::accepted,&preview,&QDialog::accept);QObject::connect(actions,&QDialogButtonBox::rejected,&preview,&QDialog::reject);preview.resize(720,500);
+        if(preview.exec()!=QDialog::Accepted)return;
+        const auto path=QFileDialog::getSaveFileName(w,"Save reviewed summaries","syspulse-summaries.json","JSON files (*.json)");if(path.isEmpty())return;
+        QSaveFile file(path);file.setDirectWriteFallback(false);
+        if(!file.open(QIODevice::WriteOnly)||!file.setPermissions(QFileDevice::ReadOwner|QFileDevice::WriteOwner)||file.write(data)!=data.size()||!file.commit())QMessageBox::warning(w,"Export failed","The reviewed summaries could not be saved completely.");
+        else reportStatus->setText("Reviewed summary export saved. No raw command output was included.");
+    }
     ToolboxPage* toolbox(const QStringList& groups,bool experimental=false) {
         auto* p=new ToolboxPage(groups,experimental,w);allToolboxes.append(p);
         p->canExecute=[this,p]{
-            if(management&&management->isBusy())return false;
+            if(nativeBusy()||(management&&management->isBusy()))return false;
             for(auto* other:allToolboxes)if(other!=p&&other->isBusy())return false;
             return true;
         };
@@ -127,13 +173,15 @@ struct Window::Impl {
     void updateFooter() {
         bool busy=false;for(auto* p:allToolboxes)busy=busy||p->isBusy();
         const bool systemBusy=management&&management->isBusy();
-        for(auto* page:allToolboxes)page->setExecutionAllowed(!systemBusy&&(!busy||page->isBusy()));
-        if(auto* analyzeButton=w->findChild<QPushButton*>("analyzeSystem"))analyzeButton->setEnabled(!busy&&!systemBusy);
-        footer->setText(QString("%1  ·  Automation off  ·  SysPulse %2").arg(busy||systemBusy?"Task in progress":"Manual maintenance").arg(tux::Version));
+        const bool maintenanceBusy=nativeBusy();
+        for(auto* page:allToolboxes)page->setExecutionAllowed(!systemBusy&&!maintenanceBusy&&(!busy||page->isBusy()));
+        if(auto* analyzeButton=w->findChild<QPushButton*>("analyzeSystem"))analyzeButton->setEnabled(!busy&&!systemBusy&&!maintenanceBusy);
+        const auto automationState=scheduler?scheduler->automationSummary():QString("Automation not checked");
+        footer->setText(QString("%1  ·  %2  ·  SysPulse %3").arg(busy||systemBusy||maintenanceBusy?"Task in progress":"Manual maintenance",automationState,tux::Version));
+        if(automation)automation->setText("MAINTENANCE\nManual\n\n"+automationState);
     }
     void analyze() {
-        if(management->isBusy())return;
-        for(auto* page:allToolboxes)if(page->isBusy())return;
+        if(!idle())return;
         tux::HealthDialog dialog(w);dialog.setWindowTitle("Analyze system · SysPulse");
         dialog.setStyleSheet(QString());
         for(auto* widget:dialog.findChildren<QWidget*>())widget->setStyleSheet(QString());
@@ -186,21 +234,28 @@ struct Window::Impl {
         management=new ManagementPage;
         pages.insert("overview",overview());
         pages.insert("performance",performance);
-        auto* storage=toolbox({"Storage","Maintenance"});toolboxes.insert("storage",storage);
-        pages.insert("storage",workspace("Storage & cleanup","Inspect storage and review maintenance commands. Changes remain in Experimental.",storage));
+        auto* storageTabs=new QTabWidget;storageTabs->setObjectName("storageWorkspaceTabs");cleanup=new MaintenancePage;storageTabs->addTab(cleanup,"Reviewed cleanup");
+        auto* storage=toolbox({"Storage","Maintenance"});toolboxes.insert("storage",storage);storageTabs->addTab(storage,"Diagnostics & tools");
+        pages.insert("storage",workspace("Storage & cleanup","Analyze first. Review the exact scope before moving thumbnail cache files into recovery.",storageTabs));
         pages.insert("management",management);
         pages.insert("network",networkPage());
         pages.insert("desktop",desktopPage());
         auto* security=toolbox({"Diagnostics","Security"});toolboxes.insert("security",security);
         pages.insert("security",workspace("Security & privacy","Review system warnings, update state, permissions and available firewall tools. Reports stay local.",security));
-        auto* schedules=toolbox({"Schedules"});toolboxes.insert("schedules",schedules);
-        pages.insert("schedules",workspace("Schedules","Inspect system and user timers. SysPulse does not enable automation at startup.",schedules));
+        auto* scheduleTabs=new QTabWidget;scheduleTabs->setObjectName("scheduleWorkspaceTabs");scheduler=new SchedulePage;scheduleTabs->addTab(scheduler,"Diagnostic plan");
+        auto* schedules=toolbox({"Schedules"});toolboxes.insert("schedules",schedules);scheduleTabs->addTab(schedules,"Inspect timers");
+        pages.insert("schedules",workspace("Schedules","Review a read-only user diagnostic schedule or inspect existing timers.",scheduleTabs));
         pages.insert("recovery",recoveryPage());
         pages.insert("reports",reportsPage());
         auto* experiments=toolbox({},true);toolboxes.insert("experimental",experiments);
         pages.insert("experimental",workspace("Experimental","Settings-changing maintenance tools. Review scope and limitations before applying a change.",experiments));
         pages.insert("settings",settingsPage());
-        management->canMutate=[this]{for(auto* page:allToolboxes)if(page->isBusy())return false;return true;};
+        for(auto* page:{cleanup,recovery}) {
+            page->canExecute=[this]{return idle();};page->onBusyChanged=[this](bool){updateFooter();};page->onResult=[this](const tux::Result& result){remember(result);};
+        }
+        cleanup->onOpenRecovery=[this]{navigate("recovery");recovery->refresh();};
+        scheduler->canExecute=[this]{return idle();};scheduler->onBusyChanged=[this](bool){updateFooter();};scheduler->onResult=[this](const tux::Result& result){remember(result);};
+        management->canMutate=[this]{if(nativeBusy())return false;for(auto* page:allToolboxes)if(page->isBusy())return false;return true;};
         management->onBusyChanged=[this](bool){updateFooter();};
         for(auto i=pages.cbegin();i!=pages.cend();++i){i.value()->setProperty("sysPulsePageId",i.key());stack->addWidget(i.value());}
         performance->onMetricsChanged=[this]{updateMetrics();};
@@ -213,7 +268,7 @@ struct Window::Impl {
         QObject::connect(completer,QOverload<const QString&>::of(&QCompleter::activated),w,[this](const QString& value){findTool(value);});
         auto* findShortcut=new QShortcut(QKeySequence::Find,w);QObject::connect(findShortcut,&QShortcut::activated,w,[this]{search->setFocus();search->selectAll();});
         auto* clearShortcut=new QShortcut(QKeySequence(Qt::Key_Escape),search);clearShortcut->setContext(Qt::WidgetShortcut);QObject::connect(clearShortcut,&QShortcut::activated,search,&QLineEdit::clear);
-        navigate("overview");updateMetrics();updateFooter();
+        loadReports();navigate("overview");updateMetrics();updateFooter();
     }
     QWidget* overview() {
         auto* content=new QWidget;auto* layout=new QVBoxLayout(content);layout->setContentsMargins(0,0,0,0);layout->setSpacing(14);
@@ -222,7 +277,7 @@ struct Window::Impl {
         auto* heroText=new QVBoxLayout;heroText->addWidget(text("Ready for analysis","sectionTitle"));
         analysisStatus=text("Run a scan to review storage, memory, services and system warnings.","muted");analysisStatus->setObjectName("analysisStatus");heroText->addWidget(analysisStatus);
         auto* actions=new QHBoxLayout;auto* analyzeButton=button("Analyze system",[this]{analyze();},w,true);analyzeButton->setObjectName("analyzeSystem");actions->addWidget(analyzeButton);actions->addWidget(button("Open reports",[this]{navigate("reports");},w));actions->addStretch();heroText->addLayout(actions);hl->addLayout(heroText,1);
-        hl->addWidget(text("MAINTENANCE\nManual\n\nAUTOMATION\nOff","muted"));layout->addWidget(hero);
+        automation=text("MAINTENANCE\nManual\n\nAutomation not checked","muted");hl->addWidget(automation);layout->addWidget(hero);
         auto* metrics=new QGridLayout;metrics->setSpacing(12);
         auto metric=[this,metrics](int column,const QString& label,QLabel** value,const QString& color,int tab) {
             auto* frame=panel("metricCard");auto* ml=new QVBoxLayout(frame);ml->setContentsMargins(16,14,16,14);
@@ -232,9 +287,9 @@ struct Window::Impl {
         metric(0,"CPU",&cpu,"#148344",1);metric(1,"Memory",&memory,"#C8102E",2);metric(2,"Disk",&disk,"#2875D3",3);metric(3,"Network",&network,"#8444C4",4);layout->addLayout(metrics);
         auto* lower=new QHBoxLayout;lower->setSpacing(14);
         auto* checks=panel();auto* cl=new QVBoxLayout(checks);cl->setContentsMargins(18,16,18,16);cl->addWidget(text("Recommended checks","sectionTitle"));
-        cl->addWidget(button("Package health →",[this]{navigate("storage");toolboxes["storage"]->setSearch("package");},w));
+        cl->addWidget(button("Package health →",[this]{findTool("Package health");},w));
         cl->addWidget(button("Startup review →",[this]{navigate("management");management->showStartup();},w));
-        cl->addWidget(button("SSD maintenance →",[this]{navigate("storage");toolboxes["storage"]->setSearch("trim");},w));cl->addStretch();lower->addWidget(checks,1);
+        cl->addWidget(button("SSD maintenance →",[this]{findTool("trim");},w));cl->addStretch();lower->addWidget(checks,1);
         auto* quick=panel();auto* ql=new QVBoxLayout(quick);ql->setContentsMargins(18,16,18,16);ql->addWidget(text("Quick tools","sectionTitle"));auto* grid=new QGridLayout;
         grid->addWidget(button("Startup apps",[this]{navigate("management");management->showStartup();},w),0,0);
         grid->addWidget(button("Services",[this]{navigate("management");management->showServices();},w),0,1);
@@ -288,17 +343,20 @@ struct Window::Impl {
         return workspace("XFCE desktop","Desktop, input, power and installed Linux integrations.",tabs);
     }
     QWidget* recoveryPage() {
+        auto* tabs=new QTabWidget;recovery=new MaintenancePage(true);tabs->addTab(recovery,"Thumbnail recovery");
         auto* content=new QWidget;auto* layout=new QVBoxLayout(content);auto* frame=panel();auto* fl=new QVBoxLayout(frame);fl->setContentsMargins(20,20,20,20);
         fl->addWidget(text("Startup overrides","sectionTitle"));fl->addWidget(text("Review the selected application in Startup apps to restore its system default or inspect an available undo record. Recovery refuses externally changed targets.","muted"));fl->addWidget(button("Review startup recovery",[this]{navigate("management");management->showStartup();},w,true));layout->addWidget(frame);
-        auto* limits=panel();auto* ll=new QVBoxLayout(limits);ll->setContentsMargins(20,20,20,20);ll->addWidget(text("Recovery availability","sectionTitle"));ll->addWidget(text("Cleanup and process termination cannot be undone here. Snapshot creation and general configuration rollback are planned; no backup is created automatically.","muted"));layout->addWidget(limits);layout->addStretch();
-        return workspace("Recovery","Use recovery only where a supported saved state exists.",content);
+        auto* limits=panel();auto* ll=new QVBoxLayout(limits);ll->setContentsMargins(20,20,20,20);ll->addWidget(text("Recovery availability","sectionTitle"));ll->addWidget(text("Recovery covers staged thumbnails and supported startup overrides. Permanent removal, process termination and other system changes cannot be undone here. No filesystem snapshot is created automatically.","muted"));layout->addWidget(limits);layout->addStretch();tabs->addTab(content,"Startup recovery & limits");
+        return workspace("Recovery","Restore only supported saved state. Review permanent removal separately.",tabs);
     }
     QWidget* reportsPage() {
         auto* content=new QWidget;auto* layout=new QVBoxLayout(content);layout->setContentsMargins(0,0,0,0);
         auto* row=new QHBoxLayout;reportStatus=text("No completed tasks in this session.","muted");reportStatus->setObjectName("reportsStatus");row->addWidget(reportStatus,1);
-        auto* exportButton=button("Review export…",[this]{exportReports();},w,true);exportButton->setObjectName("reviewReports");row->addWidget(exportButton);layout->addLayout(row);
-        reports=new QTableWidget(0,4);reports->setObjectName("sessionReports");reports->setHorizontalHeaderLabels({"Task","Outcome","Duration","Record"});reports->verticalHeader()->hide();reports->horizontalHeader()->setSectionResizeMode(0,QHeaderView::Stretch);reports->horizontalHeader()->setSectionResizeMode(3,QHeaderView::Stretch);reports->setColumnWidth(1,170);reports->setEditTriggers(QAbstractItemView::NoEditTriggers);reports->setSelectionBehavior(QAbstractItemView::SelectRows);layout->addWidget(reports,1);
-        layout->addWidget(text("The latest 20 task results stay in memory for this session. Summary is the default export; diagnostic details require a fresh opt-in. No report is sent automatically.","muted"));
+        auto* refresh=button("Refresh",[this]{loadReports();},w);refresh->setObjectName("refreshReports");row->addWidget(refresh);
+        auto* saved=button("Export saved summaries…",[this]{exportSavedReports();},w,true);saved->setObjectName("exportSavedReports");row->addWidget(saved);
+        auto* exportButton=button("Session details…",[this]{exportReports();},w);exportButton->setObjectName("reviewReports");row->addWidget(exportButton);layout->addLayout(row);
+        reports=new QTableWidget(0,4);reports->setObjectName("sessionReports");reports->setHorizontalHeaderLabels({"Task","Outcome","Duration","Finished (local time)"});reports->verticalHeader()->hide();reports->horizontalHeader()->setSectionResizeMode(0,QHeaderView::Stretch);reports->horizontalHeader()->setSectionResizeMode(3,QHeaderView::Stretch);reports->setColumnWidth(1,170);reports->setEditTriggers(QAbstractItemView::NoEditTriggers);reports->setSelectionBehavior(QAbstractItemView::SelectRows);layout->addWidget(reports,1);
+        layout->addWidget(text("The latest 200 redacted summaries persist locally with owner-only permissions. The latest 20 detailed results stay in session memory; details require a fresh export opt-in. No report is sent automatically.","muted"));
         return workspace("Reports","Review analysis and tool outcomes before saving or sharing.",content);
     }
     QWidget* settingsPage() {
@@ -322,6 +380,7 @@ struct Window::Impl {
     bool navigate(const QString& id) {
         if(!pages.contains(id))return false;
         current=id;stack->setCurrentWidget(pages[id]);nav[id]->setChecked(true);
+        if(id=="reports")loadReports();
         const auto group=(id=="overview"||id=="performance"||id=="storage")?"Workspace":(id=="management"||id=="network"||id=="desktop"||id=="security")?"System":"Tools";
         breadcrumb->setText(QString(group)+" / "+nav[id]->property("displayTitle").toString());
         performance->setSamplingEnabled(sampling&&(id=="overview"||id=="performance"));return true;
@@ -332,6 +391,8 @@ struct Window::Impl {
         for(const auto& a:tux::actions())if(tux::matches(a,trimmed)) {
             const auto id=destination(a);navigate(id);toolboxes[id]->setSearch(trimmed);
             if(id=="network")pages[id]->findChild<QTabWidget*>("networkWorkspaceTabs")->setCurrentIndex(1);
+            if(id=="storage")pages[id]->findChild<QTabWidget*>("storageWorkspaceTabs")->setCurrentIndex(1);
+            if(id=="schedules")pages[id]->findChild<QTabWidget*>("scheduleWorkspaceTabs")->setCurrentIndex(1);
             if(id=="desktop") {auto* tabs=toolboxes[id]->parentWidget();while(tabs&&!qobject_cast<QTabWidget*>(tabs))tabs=tabs->parentWidget();if(auto* t=qobject_cast<QTabWidget*>(tabs))t->setCurrentIndex(1);}
             return;
         }
@@ -344,6 +405,12 @@ bool Window::navigate(const QString& id) {return d->navigate(id);}
 QString Window::currentPageId()const{return d->current;}
 int Window::navigationCount()const{return d->nav.size();}
 void Window::closeEvent(QCloseEvent* event) {
+    for(auto* page:{d->cleanup,d->recovery})if(page&&page->isBusy()) {
+        if(page->isCancellable()&&QMessageBox::question(this,"Analysis in progress","Stop analysis? Close SysPulse after it finishes.",QMessageBox::Yes|QMessageBox::Cancel,QMessageBox::Cancel)==QMessageBox::Yes)page->requestStop();
+        else if(!page->isCancellable())QMessageBox::information(this,"Maintenance in progress","Wait for maintenance to finish before closing SysPulse.");
+        event->ignore();return;
+    }
+    if(d->scheduler&&d->scheduler->isBusy()){QMessageBox::information(this,"Schedule operation in progress","Wait for the user timer operation to finish before closing SysPulse.");event->ignore();return;}
     if(d->management->isBusy()) {QMessageBox::information(this,"System action in progress","Wait for the service action to finish or cancel the desktop authorization before closing SysPulse.");event->ignore();return;}
     for(auto* page:d->allToolboxes)if(page->isBusy()) {
         if(page->isCancellable()&&QMessageBox::question(this,"Diagnostic in progress","Stop the active diagnostic? Close SysPulse after it finishes.",QMessageBox::Yes|QMessageBox::Cancel,QMessageBox::Cancel)==QMessageBox::Yes)page->requestStop();

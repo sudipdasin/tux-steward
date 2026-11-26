@@ -102,6 +102,7 @@ QJsonObject sessionReport(const QVector<Result>& results, bool includeDetails) {
         if (includeDetails) { records.append(result.json()); continue; }
         QString title="Unrecognized task";
         for (const auto& tool:actions()) if (tool.title==result.action) { title=tool.title; break; }
+        if (QStringList{"Thumbnail cache staging","Thumbnail cache restore","Thumbnail cache permanent removal","Diagnostic schedule"}.contains(result.action)) title=result.action;
         records.append(QJsonObject{{"action",title},{"code",result.code},
             {"seconds",result.seconds},{"truncated",result.truncated},{"cancelled",result.cancelled}});
     }

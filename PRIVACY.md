@@ -29,3 +29,11 @@ Maintenance exports now require a preview before saving. Summary mode uses an al
 ## Manual release checks
 
 Settings & help → Updates contacts this project's public GitHub release API only after the user clicks Check for updates. The request uses a fixed user-agent and sends no report, machine inventory or authentication token. The service receives the normal connection/request metadata. A separate user click opens validated project release notes in the default browser; no package is downloaded or installed automatically. Opening SysPulse or its Updates page does not create the update network manager or check for releases. The on-demand tool-availability audit checks local dependencies/session requirements and does not contact a server.
+
+## Saved summaries, recovery and schedules
+
+SysPulse retains at most 200 redacted task summaries in owner-only local application data. These record allowlisted tool names, results, durations and completion times; raw output and command arguments are not persisted. Saved-summary exports require preview and a chosen destination. Detailed session output remains in memory until the application exits. Private records are not uploaded automatically, and removal preserves the user's data.
+
+Explicit thumbnail cleanup moves reviewed cache files into owner-only recovery storage inside the user's cache. Its private manifest includes thumbnail names and file identities so supported files can be restored without overwriting conflicts. Recovery is not a backup and external cache cleaners may remove it. Permanent removal is separate and irreversible.
+
+The optional diagnostic schedule is disabled until the user reviews save/enable. Once enabled in the normal user's systemd manager, it runs fixed read-only checks independently of the GUI and saves the same redacted summaries. Opening the GUI does not enable automation. There is no scheduled cleanup, privileged scheduled task, telemetry or automatic report transmission.
