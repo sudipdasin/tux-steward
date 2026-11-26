@@ -22,5 +22,5 @@ Next:
 - Measure performance profiles on constrained hardware before adding tuning presets.
 - 1.0.0: supported-distribution matrix, packaging, accessibility and public-readiness review.
 
-Filesystem repair remains guidance-only until an offline workflow and strong mount checks are validated. No final release or public visibility change is automatic.
+Filesystem repair remains guidance-only until an offline workflow and strong mount checks are validated. Releases have standing owner approval under [the project blueprint](PROJECT_BLUEPRINT.md); publish the appropriate maturity level after its verification gates pass. Repository visibility changes are separate from routine release publication.
 

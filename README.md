@@ -58,6 +58,6 @@ The richer category-based cleanup planner, snapshot manager, schedule editor, an
 
 Use **Settings & help → Report a problem** or [open an issue](https://github.com/sudipdasin/tux-steward/issues/new/choose). Nothing is submitted automatically. Include the application version, distribution, XFCE/session type, steps, and whether the issue involved Experimental. Keep confidential details out of public issues.
 
-Developers can start with [CONTRIBUTING.md](CONTRIBUTING.md), [AGENTS.md](AGENTS.md), the [UI specification](docs/SYSPULSE_UI_SPECIFICATION.md), and the [milestone scope](docs/SYSPULSE_MILESTONE.md). Verified fixes are inherited through shared source and regression tests; historical release archives do not update themselves. [Historical Tux Steward notes](docs/TUX_STEWARD_HISTORY.md) are retained separately.
+Developers can start with [CONTRIBUTING.md](CONTRIBUTING.md), [AGENTS.md](AGENTS.md), the [project blueprint](docs/PROJECT_BLUEPRINT.md), the [UI specification](docs/SYSPULSE_UI_SPECIFICATION.md), and the [milestone scope](docs/SYSPULSE_MILESTONE.md). Verified fixes are inherited through shared source and regression tests; historical release archives do not update themselves. [Historical Tux Steward notes](docs/TUX_STEWARD_HISTORY.md) are retained separately.
 
 Developed by **Sudip Das**. Licensed under [GNU GPL version 3 or later](LICENSE).
