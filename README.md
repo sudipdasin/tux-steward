@@ -21,17 +21,17 @@ The interface follows the selected **Precision** identity, **Observatory** monit
 
 ## Testing and installation
 
-The [3.0.0-alpha.1 native testing release](https://github.com/sudipdasin/tux-steward/releases/tag/v3.0.0-alpha.1) includes DEB/ZIP/TGZ, corresponding application source and checksums. Read the [3.0 alpha download guidance](docs/SYSPULSE_DOWNLOADS.md) before choosing a package. It distinguishes Debian 13 native binaries from the separate portable test preview and records the remaining validation and runtime-provenance limits.
+The [3.0.0-alpha.2 Ubuntu / XFCE testing release](https://github.com/sudipdasin/tux-steward/releases/tag/v3.0.0-alpha.2) is live with a native amd64 DEB, executable ZIP/TGZ, corresponding source, VM evidence and checksums. All six published assets were independently verified. Read [download guidance](docs/SYSPULSE_DOWNLOADS.md) and [the Ubuntu validation matrix](docs/SYSPULSE_UBUNTU_VALIDATION.md).
 
-Native DEB/ZIP/TGZ packages require compatible system libraries. A package built in the Debian 13 validation VM must not be described as an Ubuntu/Mint-compatible binary without matching ABI verification. The optional portable runtime bundle includes its loader, Qt libraries, and platform plugins; target Mint/XFCE desktop, graphics, and authorization behavior still require testing on those systems.
+The DEB was built on Ubuntu 22.04 and the same file passed installed XFCE launch, removal and reinstallation on Ubuntu 22.04 and 24.04 real VMs. It is the native testing download for the owner's Mint 22.3 XFCE 64-bit system; actual Mint hardware remains untested. Verify the checksum before installation:
 
-No new downloadable release is claimed solely by a source commit. Published assets, checksums, tested target, and remaining limitations must be documented together. The previous Tux Steward releases remain historical testing snapshots; the current source is not proof that a similarly named binary exists on Releases.
+```sh
+sudo apt install ./syspulse-3.0.0-alpha.2-x86_64-ubuntu-22.04.deb
+```
 
-For a verified native package, use your distribution's package manager. A SysPulse DEB replaces the legacy tux-steward package because it includes the legacy binaries. Do not force conflicting packages to coexist. User settings and private undo records are retained when packages are removed.
+Open SysPulse from the desktop menu as your normal user, or run `syspulse`. Native packages use system runtime libraries. They replace the legacy tux-steward package and retain personal settings on removal. The compatibility executables remain tux-steward, tux-task-manager and tux-setup; the old wizard manages those legacy programs, not a new SysPulse installation.
 
-For a verified portable archive, extract it and run its lowercase `syspulse` launcher (`./syspulse`) as your normal desktop user. It does not install system libraries or enable background maintenance. Keep its bundled libraries together. Use the checksum supplied with that exact artifact.
-
-The compatibility executables remain `tux-steward`, `tux-task-manager`, and `tux-setup`. The old setup wizard manages those three legacy programs; install the new SysPulse program using its native package or run the portable launcher. It must not be represented as a new SysPulse setup wizard.
+The previous alpha.1 native packages target Debian 13 and must not be installed as Mint/Ubuntu packages. Historical releases remain immutable. Full Mint/hardware, login, PolicyKit and Wayland verification remains open; see the exact evidence before testing settings-changing workflows.
 
 ## Build and verify in a VM
 
