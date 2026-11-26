@@ -21,7 +21,7 @@ The interface follows the selected **Precision** identity, **Observatory** monit
 
 ## Testing and installation
 
-Read the [3.0 alpha download guidance](docs/SYSPULSE_DOWNLOADS.md) before choosing a package. It distinguishes Debian 13 native binaries from the separate portable test preview and records the remaining validation and runtime-provenance limits.
+The [3.0.0-alpha.1 native testing release](https://github.com/sudipdasin/tux-steward/releases/tag/v3.0.0-alpha.1) includes DEB/ZIP/TGZ, corresponding application source and checksums. Read the [3.0 alpha download guidance](docs/SYSPULSE_DOWNLOADS.md) before choosing a package. It distinguishes Debian 13 native binaries from the separate portable test preview and records the remaining validation and runtime-provenance limits.
 
 Native DEB/ZIP/TGZ packages require compatible system libraries. A package built in the Debian 13 validation VM must not be described as an Ubuntu/Mint-compatible binary without matching ABI verification. The optional portable runtime bundle includes its loader, Qt libraries, and platform plugins; target Mint/XFCE desktop, graphics, and authorization behavior still require testing on those systems.
 

@@ -4,13 +4,17 @@ Checked 2026-11-26.
 
 ## 3.0.0-alpha.1: SysPulse experimental preview
 
+**Published:** [SysPulse 3.0.0-alpha.1 downloads](https://github.com/sudipdasin/tux-steward/releases/tag/v3.0.0-alpha.1), 26 November 2026 at 21:06 IST (15:36 UTC). The tag resolves to `f0fe320677e40c05e0c176a2fd3efdbe961d9dcd`. All six uploaded native/source/checksum files were checked against their prepared byte sizes and SHA-256 digests. GitHub's two automatically generated source-archive links are separate from those six uploads.
+
+GitHub normalizes the public DEB filename to `syspulse_3.0.0.alpha1_amd64.deb`; its internal Debian version remains `3.0.0~alpha1`. The canonical `SHA256SUMS` matches the public filenames. `SHA256SUMS-build-names.txt` preserves the original local build filenames separately. Use the canonical checksum list for downloads.
+
 The SysPulse application checkpoint `c2150885c82bb202df8b82f6da760cc41fcd4f99` passed all 24 regression suites in an isolated QEMU VM. The maintained source retains the inherited tools and legacy applications. The source synchronization fallback was verified against the exact local Git tree; it does not replace VM validation with hosted CI.
 
 Native DEB, executable ZIP and TGZ archives were produced in that VM, checked for version, executable layout, documentation and private build-path exclusion. They target **Debian 13 x86_64**, with libc6 >= 2.41 and Qt >= 5.15.15. These are not Mint/Ubuntu packages. Clean package-manager installation, upgrades, removal and desktop integration remain unverified for this alpha.
 
 A separate portable test preview passed recursive bundled-loader dependency checks and extracted-file checksum/version verification. Its runtime notices are included, but exact third-party source-version provenance remains incomplete. Keep broader bundled-runtime redistribution gated on that provenance; native packages and the corresponding application source do not bundle those runtime libraries.
 
-See [executed validation](SYSPULSE_VALIDATION.md) and [download guidance](SYSPULSE_DOWNLOADS.md). An alpha label permits exploratory testing with these explicit limits; it is not stable, release-candidate, full XFCE, PolicyKit or hardware certification. Publication must be checked independently of local package creation.
+See [executed validation](SYSPULSE_VALIDATION.md) and [download guidance](SYSPULSE_DOWNLOADS.md). An alpha label permits exploratory testing with these explicit limits; it is not stable, release-candidate, full XFCE, PolicyKit or hardware certification. Publication metadata and digests were checked independently of local package creation.
 
 GitHub Actions and CircleCI remain disabled. Manual VM packaging and source synchronization use no hosted workflow.
 

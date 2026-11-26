@@ -2,15 +2,19 @@
 
 This is an experimental C++17/Qt preview. The application sources passed all 24 suites in an isolated Debian-userspace QEMU VM. Use the checksum supplied with the exact downloaded file. Packages are unsigned.
 
+[Open the published 3.0.0-alpha.1 release](https://github.com/sudipdasin/tux-steward/releases/tag/v3.0.0-alpha.1). The uploaded assets' names, sizes and SHA-256 digests were verified after publication; the tag points to source revision `f0fe320677e40c05e0c176a2fd3efdbe961d9dcd`.
+
 ## Native artifacts: Debian 13 x86_64
 
 | Filename | Contents |
 | --- | --- |
-| `syspulse_3.0.0~alpha1_amd64.deb` | System package containing SysPulse and the three compatibility applications |
+| `syspulse_3.0.0.alpha1_amd64.deb` | Published system package containing SysPulse and the three compatibility applications |
 | `syspulse-3.0.0-alpha.1-x86_64.zip` | Native executables under `usr/bin`, desktop entries, icons and notices |
 | `syspulse-3.0.0-alpha.1-x86_64.tar.gz` | The same native install tree as a tar archive |
 | `SysPulse-3.0.0-alpha.1-source.tar.gz` | Corresponding application sources, build files, tests, packaging tools and documentation |
 | `SHA256SUMS` | SHA-256 digests for those exact files |
+
+GitHub normalizes the original build filename's `~` to `.`. The DEB's internal version is still `3.0.0~alpha1`. Use the canonical `SHA256SUMS` with the public download filenames; the additional `SHA256SUMS-build-names.txt` records the original build filenames used inside the separate test preview.
 
 **The native binaries require Debian 13-compatible ABIs: libc6 >= 2.41 and Qt >= 5.15.15. Do not install this DEB on Linux Mint/Ubuntu as a compatibility test.** Native archives use system runtime libraries; they are not portable bundles.
 
