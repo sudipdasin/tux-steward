@@ -3,6 +3,8 @@
 #include "syspulse/performance.hpp"
 #include "syspulse/management.hpp"
 #include "syspulse/toolbox.hpp"
+#include "syspulse/updates.hpp"
+#include "syspulse/capabilities.hpp"
 #include "tux/core.hpp"
 #include "tux/health_dialog.hpp"
 #include "tux/report_dialog.hpp"
@@ -272,8 +274,10 @@ struct Window::Impl {
         auto* grid=new QGridLayout;grid->setSpacing(12);int index=0;
         const QVector<QPair<QString,QString>> apps={{"Display","xfce4-display-settings"},{"Keyboard","xfce4-keyboard-settings"},{"Mouse & touchpad","xfce4-mouse-settings"},{"Power manager","xfce4-power-manager-settings"},{"Panel","xfce4-panel"},{"Session","xfce4-session-settings"},{"Appearance","xfce4-appearance-settings"},{"Window manager","xfwm4-settings"}};
         for(const auto& item:apps) {
-            const auto program=QStandardPaths::findExecutable(item.second);
-            auto* b=button(item.first,[this,program,item]{
+            const auto program=desktopSettingsExecutable(item.second);
+            auto* b=button(item.first,[this,item]{
+                const auto program=desktopSettingsExecutable(item.second);
+                if(program.isEmpty()) {QMessageBox::warning(w,item.first,"A trusted system settings tool is no longer available. Refresh or reinstall the native XFCE component.");return;}
                 QStringList args;if(item.second=="xfce4-panel")args<<"--preferences";
                 if(!QProcess::startDetached(program,args))QMessageBox::warning(w,item.first,"The desktop settings tool could not be opened.");
             },w);
@@ -298,6 +302,7 @@ struct Window::Impl {
         return workspace("Reports","Review analysis and tool outcomes before saving or sharing.",content);
     }
     QWidget* settingsPage() {
+        auto* tabs=new QTabWidget;tabs->setObjectName("settingsWorkspaceTabs");
         auto* content=new QWidget;auto* layout=new QVBoxLayout(content);layout->setContentsMargins(0,0,0,0);
         auto* about=panel();auto* al=new QVBoxLayout(about);al->setContentsMargins(22,20,22,20);al->addWidget(text(QString("SysPulse %1").arg(tux::Version),"sectionTitle"));
         al->addWidget(text("Developed by Sudip Das · GNU GPL version 3 or later\nXFCE-first Linux system tools, built on the Tux Steward foundation.","muted"));
@@ -307,7 +312,12 @@ struct Window::Impl {
         hl->addWidget(button("Report a problem…",[]{QDesktopServices::openUrl(QUrl("https://github.com/sudipdasin/tux-steward/issues/new/choose"));},w));
         hl->addWidget(button("Contribute…",[]{QDesktopServices::openUrl(QUrl("https://github.com/sudipdasin/tux-steward/blob/main/CONTRIBUTING.md"));},w));
         hl->addWidget(button("License",[this]{QMessageBox::information(w,"Free and open source","SysPulse is licensed under GNU GPL version 3 or later.\nCopyright Sudip Das.\nSee the included LICENSE for the complete terms.");},w));layout->addWidget(help);layout->addStretch();
-        return workspace("Settings & help","Local preferences, project information and developer feedback.",content);
+        auto* aboutScroll=new QScrollArea;aboutScroll->setWidgetResizable(true);aboutScroll->setWidget(content);
+        tabs->addTab(aboutScroll,"About & preferences");
+        auto* updates=new UpdatePanel;tabs->addTab(updates,"Updates");
+        auto* capabilities=new CapabilitiesPanel;capabilities->onOpenTool=[this](const QString& id){findTool(tux::action(id).title);};
+        tabs->addTab(capabilities,"Tool availability");
+        return workspace("Settings & help","Local preferences, manual release checks, dependency availability and developer feedback.",tabs);
     }
     bool navigate(const QString& id) {
         if(!pages.contains(id))return false;

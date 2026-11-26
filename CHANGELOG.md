@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.0.0-alpha.3 — 2026-11-27
+
+- Add an explicit manual release check with semantic version/channel ordering, fixed HTTPS project metadata, a bounded response, a request deadline and cancellation. Offers open release notes only; no automatic download or installation.
+- Add an on-demand dependency/session audit for all 35 catalog tools, searchable missing-dependency reasons and direct tool inspection without execution.
+- Resolve native XFCE settings launchers only from protected system locations and recheck them at launch; a user PATH entry cannot replace these launchers.
+- Preserve the three compatibility applications, the existing monitoring/management/report workflows and the approved Precision interface.
+
 ## 3.0.0-alpha.2 — 2026-11-26
 
 - Added an explicit verified-platform label for native DEB/ZIP/TGZ filenames, avoiding ambiguous distribution targets and GitHub's normalization of Debian version separators.
@@ -127,4 +134,3 @@ Live command output, case-insensitive tool search, bounded output/history memory
 ## 0.1.0 — 2026-11-10
 
 Initial development alpha: native dark GUI, seven grouped tabs, 25 explicit actions, PolicyKit authentication per admin action, command review, worker queue, dependency checks, JSON report export, source audit, tests and CI configuration.
-

@@ -1,8 +1,10 @@
-# SysPulse 3.0.0-alpha.2
+# SysPulse 3.0.0-alpha.3
 
 SysPulse is the next major application generation built on the Tux Steward C++ foundation. This is an experimental development milestone, with the approved Precision identity, Observatory monitoring depth, and Forge management layout.
 
 Alpha 2 adds explicit native package platform labels, XFCE launch identification and recommended authorization/desktop helpers. Its native Ubuntu build and installation evidence is recorded separately from the earlier Debian 13 alpha; package compatibility follows the tested target rather than the desktop name alone.
+
+See [the alpha.3 guide](SYSPULSE_ALPHA3.md) for the manual release checker, on-demand 35-tool dependency audit and trusted XFCE launchers. These features preserve explicit user control and do not implement automatic package installation.
 
 ## Included
 
