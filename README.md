@@ -4,7 +4,7 @@
 
 SysPulse brings performance monitoring, startup and service management, desktop tools, and reviewed maintenance workflows into one white-and-crimson interface. It is the next major generation of the Tux Steward codebase, with the existing tested foundation retained.
 
-Current development milestone: **3.0.0-alpha.3**. This is experimental software, not stable or release-candidate certification. Read [milestone scope](docs/SYSPULSE_MILESTONE.md) and [executed VM validation](docs/SYSPULSE_VALIDATION.md) before testing. The alpha.2 native package passed [Ubuntu 22.04 / 24.04 XFCE VM validation](docs/SYSPULSE_UBUNTU_VALIDATION.md); its publication status is recorded below.
+Current development milestone: **3.0.0-alpha.3**. This is experimental software. Read [the milestone guide](docs/SYSPULSE_ALPHA3.md) and [executed alpha.3 validation](docs/SYSPULSE_ALPHA3_VALIDATION.md) for supported workflows, tested environments and remaining limits.
 
 Alpha.3 adds [manual release checks, a 35-tool dependency audit and trusted XFCE launchers](docs/SYSPULSE_ALPHA3.md). See [executed alpha.3 validation](docs/SYSPULSE_ALPHA3_VALIDATION.md) for the final 26-suite run, both Ubuntu upgrade checks and exact limits.
 
@@ -17,18 +17,20 @@ Alpha.3 adds [manual release checks, a 35-tool dependency audit and trusted XFCE
 - Service runtime and startup state, user/system scope, filtering, selected-unit inspector, dependencies, journal access, reviewed actions, and activity history.
 - Thirty-five reviewed catalog tools: all 25 inherited tools plus ten network, security, package, desktop, and boot diagnostics.
 - Responsive task execution, bounded output, read-only cancellation, local reports, and a separate Experimental area for settings-changing catalog tasks.
-- Native XFCE settings launchers, interface inspection with local addresses hidden by default, timer inspection, and startup recovery entry points.
+- Protected native XFCE settings launchers, interface inspection with local addresses hidden by default, timer inspection, and startup recovery entry points.
+- Manual release checks with explicit review, bounded HTTPS metadata and no automatic package installation.
+- On-demand availability auditing and missing-dependency search for all 35 catalog tools, with inspection that does not execute them.
 
 The interface follows the selected **Precision** identity, **Observatory** monitoring depth, and **Forge** management layout. See [the UI specification](docs/SYSPULSE_UI_SPECIFICATION.md).
 
 ## Testing and installation
 
-The [3.0.0-alpha.2 Ubuntu / XFCE testing release](https://github.com/sudipdasin/tux-steward/releases/tag/v3.0.0-alpha.2) is live with a native amd64 DEB, executable ZIP/TGZ, corresponding source, VM evidence and checksums. All six published assets were independently verified. Read [download guidance](docs/SYSPULSE_DOWNLOADS.md) and [the Ubuntu validation matrix](docs/SYSPULSE_UBUNTU_VALIDATION.md).
+The [3.0.0-alpha.3 Ubuntu / XFCE testing release](https://github.com/sudipdasin/tux-steward/releases/tag/v3.0.0-alpha.3) is live with a native amd64 DEB, executable ZIP/TGZ, corresponding source, VM evidence and checksums. All six published assets were independently verified. Read [download guidance](docs/SYSPULSE_DOWNLOADS.md) and [the Ubuntu validation matrix](docs/SYSPULSE_ALPHA3_VALIDATION.md).
 
-The DEB was built on Ubuntu 22.04 and the same file passed installed XFCE launch, removal and reinstallation on Ubuntu 22.04 and 24.04 real VMs. It is the native testing download for the owner's Mint 22.3 XFCE 64-bit system; actual Mint hardware remains untested. Verify the checksum before installation:
+The DEB was built on Ubuntu 22.04 and the same final file passed alpha.2 → alpha.3 upgrades, exact installed-byte checks, XFCE launch, removal and fresh reinstallation on Ubuntu 22.04 and 24.04 real VMs. It is the native testing download for the owner's Mint 22.3 XFCE 64-bit system; actual Mint hardware remains untested. Verify the checksum before installation:
 
 ```sh
-sudo apt install ./syspulse-3.0.0-alpha.2-x86_64-ubuntu-22.04.deb
+sudo apt install ./syspulse-3.0.0-alpha.3-x86_64-ubuntu-22.04.deb
 ```
 
 Open SysPulse from the desktop menu as your normal user, or run `syspulse`. Native packages use system runtime libraries. They replace the legacy tux-steward package and retain personal settings on removal. The compatibility executables remain tux-steward, tux-task-manager and tux-setup; the old wizard manages those legacy programs, not a new SysPulse installation.

@@ -2,6 +2,16 @@
 
 Checked 2026-11-27.
 
+## 3.0.0-alpha.3: manual updates and availability audit published
+
+**Published:** [SysPulse alpha.3 downloads](https://github.com/sudipdasin/tux-steward/releases/tag/v3.0.0-alpha.3), 27 November 2026 at 02:28 IST. Tag/source commit: `4851c3bae00093cafe0a843af80a11d72699d9bb`; corresponding source tree: `3757945b9e38ca654fea254436cc04de933da5a1`.
+
+The native suite adds explicit manual release review, a 35-tool dependency/session audit and protected native XFCE settings launchers. All 26 final application suites passed in 59.39 seconds; all 13 publication regressions and native DEB/ZIP/TGZ checks passed. The identical final DEB passed alpha.2 → alpha.3 upgrades, exact installed-byte comparison, user-file preservation, actual XFCE desktop-entry launch, removal and reinstallation in both Ubuntu 22.04 and 24.04 real VMs. Visual review and a fresh full run followed the Updates card refinement.
+
+The offline published-release verifier also passed inside the VM: exact tag target, six uploaded filenames, byte sizes/digests and all five canonical-checksummed payloads matched. See [publication receipt](releases/3.0.0-alpha.3.json), [download guidance](SYSPULSE_DOWNLOADS.md), [feature guide](SYSPULSE_ALPHA3.md) and [executed validation](SYSPULSE_ALPHA3_VALIDATION.md).
+
+The VM source-cache defect was corrected and reproduced with separate boot/hash/coherence checks. A short paused Overview probe recorded zero delivered application timer events and 42,964 KiB endpoint RSS, with its measurement limits recorded in the raw evidence. Actual Mint hardware, full authorization/login/systemd/Wayland integration and live guest HTTPS/browser handoff remain unverified. The manual checker opens release notes only; package installation remains an explicit package-manager action. This remains an alpha, and hosted CI stayed disabled.
+
 ## 3.0.0-alpha.2: native Ubuntu / XFCE preview published
 
 **Published:** [SysPulse 3.0.0-alpha.2 downloads](https://github.com/sudipdasin/tux-steward/releases/tag/v3.0.0-alpha.2), 26 November 2026 at 22:01 IST (16:31 UTC). The tag resolves to `0105b57667f79129765c56e3f1654cd91c42cf3a`; the source archive matches its exact tree `b56acee2f956beecedba0aaec70bb03ea1ca4d06`.
